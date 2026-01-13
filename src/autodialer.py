@@ -80,9 +80,12 @@ class AutodialerState:
         """Yangi buyurtma keldi"""
         self.pending_orders_count = count
         self.pending_order_ids = order_ids
-        if not self.waiting_for_call:
+
+        # Agar kutish boshlanmagan YOKI oldingi qo'ng'iroq tugagan bo'lsa
+        if not self.waiting_for_call or self.call_started:
             self.last_new_order_time = datetime.now()
             self.waiting_for_call = True
+            self.call_started = False  # Yangi qo'ng'iroq uchun reset
             self.call_attempts = 0
             self.telegram_notified = False
             self.telegram_notify_time = datetime.now() + timedelta(seconds=180)
@@ -269,12 +272,12 @@ class AutodialerPro:
             if elapsed >= self.wait_before_call and not self.state.call_started:
                 self.state.call_started = True
                 await self._make_call()
-                # Qo'ng'iroq tugagandan keyin tekshirish
 
-        # Barcha qo'ng'iroq urinishlari tugadimi? -> Telegram xabar
-        if (self.state.call_attempts >= self.max_call_attempts and
-            not self.state.telegram_notified):
-            await self._send_telegram_alert()
+            # 3 daqiqa (180 soniya) o'tgandan keyin Telegram xabar yuborish
+            if elapsed >= self.telegram_alert_time and not self.state.telegram_notified:
+                logger.info(f"3 daqiqa o'tdi, Telegram xabar yuborish...")
+                await self._send_telegram_for_remaining()
+                self.state.telegram_notified = True
 
     async def _on_new_orders(self, count: int, new_ids: list):
         """Yangi buyurtmalar callback"""
@@ -292,16 +295,18 @@ class AutodialerPro:
         """Buyurtmalar tekshirildi callback"""
         logger.info(f"Tekshirildi: {resolved_count} ta, Qoldi: {remaining_count} ta")
 
-        # Telegram xabar o'chirish
-        if self.notification_manager:
-            await self.notification_manager.notify_resolved(resolved_count, remaining_count)
+        # Avvalgi xabarlarni o'chirish
+        await self._delete_telegram_messages()
 
         # Agar hammasi tekshirilgan bo'lsa
         if remaining_count == 0:
             logger.info("Barcha buyurtmalar tekshirildi!")
             self.state.reset()
         else:
+            # Qolgan buyurtmalar uchun yangi Telegram xabar yuborish
             self.state.pending_orders_count = remaining_count
+            logger.info(f"Qolgan {remaining_count} ta buyurtma uchun yangi Telegram xabar...")
+            await self._send_telegram_for_remaining()
 
     async def _make_call(self):
         """Sotuvchiga qo'ng'iroq qilish (barcha urinishlar)"""
@@ -325,13 +330,11 @@ class AutodialerPro:
 
         if result.is_answered:
             logger.info("Qo'ng'iroq muvaffaqiyatli!")
-            # Kutish holatini yangilash - keyingi buyurtma uchun
-            self.state.last_new_order_time = datetime.now()
-            self.state.call_attempts = 0
         else:
             logger.warning(f"Qo'ng'iroq muvaffaqiyatsiz: {result.status}")
-            # Barcha urinishlar tugadi - Telegram yuborish uchun
-            self.state.call_attempts = self.max_call_attempts
+
+        # Telegram xabar uchun vaqtni belgilash (buyurtma tushganidan 3 daqiqa keyin)
+        # Telegram xabar _check_and_process da yuboriladi
 
     async def _on_call_attempt(self, attempt: int, max_attempts: int):
         """Qo'ng'iroq urinishi callback"""
@@ -379,6 +382,67 @@ class AutodialerPro:
                 logger.error(f"Sotuvchi {seller_phone} xabar yuborishda xato: {e}")
 
         self.state.telegram_notified = True
+
+    async def _delete_telegram_messages(self):
+        """Telegram xabarlarni o'chirish"""
+        if not self.notification_manager:
+            return
+
+        if self.notification_manager._active_message_ids:
+            logger.info(f"Telegram xabarlarni o'chirish: {len(self.notification_manager._active_message_ids)} ta")
+            for msg_id in self.notification_manager._active_message_ids:
+                try:
+                    await self.telegram.delete_message(msg_id)
+                    logger.debug(f"Xabar o'chirildi: {msg_id}")
+                except Exception as e:
+                    logger.error(f"Xabar o'chirishda xato {msg_id}: {e}")
+            self.notification_manager._active_message_ids = []
+
+    async def _send_telegram_for_remaining(self):
+        """Qolgan buyurtmalar uchun Telegram xabar yuborish (birinchi tekshirilganda)"""
+        if not self.notification_manager:
+            return
+
+        # Hozirgi TEKSHIRILMOQDA dagi barcha buyurtmalarni olish
+        leads = await self.amocrm.get_leads_by_status()
+        if not leads:
+            return
+
+        order_ids = [lead["id"] for lead in leads]
+        logger.info(f"Qolgan buyurtmalar uchun Telegram: {len(order_ids)} ta")
+
+        # Barcha buyurtmalarni olish
+        all_orders = []
+        for order_id in order_ids:
+            try:
+                order_data = await self.amocrm.get_order_full_data(order_id)
+                all_orders.append(order_data)
+            except Exception as e:
+                logger.error(f"Buyurtma #{order_id} ma'lumotini olishda xato: {e}")
+
+        # Sotuvchi bo'yicha guruhlash
+        sellers = {}
+        for order in all_orders:
+            seller_phone = order.get("seller_phone", "Noma'lum")
+            if seller_phone not in sellers:
+                sellers[seller_phone] = {
+                    "seller_name": order.get("seller_name", "Noma'lum"),
+                    "seller_phone": seller_phone,
+                    "seller_address": order.get("seller_address", "Noma'lum"),
+                    "orders": []
+                }
+            sellers[seller_phone]["orders"].append(order)
+
+        # Har bir sotuvchi uchun yangi xabar
+        for seller_phone, seller_data in sellers.items():
+            try:
+                logger.info(f"Sotuvchi {seller_data['seller_name']}: {len(seller_data['orders'])} ta buyurtma")
+                await self.notification_manager.notify_seller_orders(
+                    seller_data,
+                    0  # Qo'ng'iroq urinishlari soni
+                )
+            except Exception as e:
+                logger.error(f"Sotuvchi {seller_phone} xabar yuborishda xato: {e}")
 
 
 async def main():

@@ -1,0 +1,416 @@
+"""
+Autodialer Pro - Asosiy Servis
+================================================================================
+
+Professional autodialer tizimi - amoCRM buyurtmalarini kuzatish va
+sotuvchilarga avtomatik qo'ng'iroq qilish
+
+Jarayon:
+1. Yangi buyurtma (TEKSHIRILMOQDA) keladi
+2. 1.5 daqiqa kutish
+3. Sotuvchiga qo'ng'iroq: "Sizda N ta yangi buyurtma bor"
+4. Javob bo'lmasa → yana qo'ng'iroq (max 3 marta)
+5. 3 daqiqada Telegram xabar
+6. Status o'zgarsa → Telegram xabar o'chiriladi
+
+================================================================================
+"""
+
+import asyncio
+import logging
+import signal
+import sys
+import os
+from datetime import datetime, timedelta
+from typing import Optional
+from pathlib import Path
+from dotenv import load_dotenv
+
+# .env yuklash
+load_dotenv(Path(__file__).parent.parent / ".env")
+
+from services import (
+    TTSService,
+    AmoCRMService,
+    AmoCRMPoller,
+    AsteriskAMI,
+    CallManager,
+    CallStatus,
+    TelegramService,
+    TelegramNotificationManager
+)
+
+# Logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler("logs/autodialer.log")
+    ]
+)
+logger = logging.getLogger("autodialer")
+
+
+class AutodialerState:
+    """Autodialer holati"""
+
+    def __init__(self):
+        self.pending_orders_count: int = 0
+        self.pending_order_ids: list = []  # Buyurtma IDlari
+        self.last_new_order_time: Optional[datetime] = None
+        self.call_attempts: int = 0
+        self.call_started: bool = False  # Qo'ng'iroq jarayoni boshlandi
+        self.waiting_for_call: bool = False
+        self.telegram_notified: bool = False
+        self.telegram_notify_time: Optional[datetime] = None
+
+    def reset(self):
+        """Holatni tozalash"""
+        self.pending_orders_count = 0
+        self.pending_order_ids = []
+        self.last_new_order_time = None
+        self.call_attempts = 0
+        self.call_started = False
+        self.waiting_for_call = False
+        self.telegram_notified = False
+        self.telegram_notify_time = None
+
+    def new_order_received(self, count: int, order_ids: list):
+        """Yangi buyurtma keldi"""
+        self.pending_orders_count = count
+        self.pending_order_ids = order_ids
+        if not self.waiting_for_call:
+            self.last_new_order_time = datetime.now()
+            self.waiting_for_call = True
+            self.call_attempts = 0
+            self.telegram_notified = False
+            self.telegram_notify_time = datetime.now() + timedelta(seconds=180)
+
+
+class AutodialerPro:
+    """
+    Autodialer Pro - Asosiy klass
+
+    Barcha komponentlarni birlashtiradi va jarayonni boshqaradi
+    """
+
+    def __init__(
+        self,
+        # amoCRM
+        amocrm_subdomain: str,
+        amocrm_token: str,
+        # Sarkor SIP
+        sip_host: str = "127.0.0.1",
+        ami_port: int = 5038,
+        ami_username: str = "autodialer",
+        ami_password: str = "autodialer123",
+        # Telegram
+        telegram_token: str = None,
+        telegram_chat_id: str = None,
+        # Sotuvchi
+        seller_phone: str = "+998948679300",
+        # Vaqtlar
+        wait_before_call: int = 90,  # 1.5 daqiqa
+        telegram_alert_time: int = 180,  # 3 daqiqa
+        max_call_attempts: int = 3,
+        retry_interval: int = 60,
+        # Yo'llar
+        audio_dir: str = "audio"
+    ):
+        # Konfiguratsiya
+        self.seller_phone = seller_phone
+        self.wait_before_call = wait_before_call
+        self.telegram_alert_time = telegram_alert_time
+        self.max_call_attempts = max_call_attempts
+        self.retry_interval = retry_interval
+        self.audio_dir = Path(audio_dir)
+
+        # Holat
+        self.state = AutodialerState()
+        self._running = False
+        self._tasks = []
+
+        # Servislar
+        self.tts = TTSService(self.audio_dir, provider="edge")
+
+        self.amocrm = AmoCRMService(
+            subdomain=amocrm_subdomain,
+            access_token=amocrm_token,
+            status_name="TEKSHIRILMOQDA"
+        )
+
+        self.amocrm_poller = AmoCRMPoller(
+            amocrm_service=self.amocrm,
+            polling_interval=3,
+            on_new_orders=self._on_new_orders,
+            on_orders_resolved=self._on_orders_resolved
+        )
+
+        self.ami = AsteriskAMI(
+            host=sip_host,
+            port=ami_port,
+            username=ami_username,
+            password=ami_password
+        )
+
+        self.call_manager = CallManager(
+            ami=self.ami,
+            max_attempts=max_call_attempts,
+            retry_interval=retry_interval
+        )
+
+        if telegram_token and telegram_chat_id:
+            self.telegram = TelegramService(
+                bot_token=telegram_token,
+                default_chat_id=telegram_chat_id
+            )
+            self.notification_manager = TelegramNotificationManager(self.telegram)
+        else:
+            self.telegram = None
+            self.notification_manager = None
+
+        logger.info("AutodialerPro yaratildi")
+
+    async def start(self):
+        """Autodialer ni ishga tushirish"""
+        logger.info("=" * 60)
+        logger.info("AUTODIALER PRO ISHGA TUSHMOQDA")
+        logger.info("=" * 60)
+
+        self._running = True
+
+        # Signal handlers (faqat Unix uchun, Windows da ishlamaydi)
+        if sys.platform != "win32":
+            for sig in (signal.SIGINT, signal.SIGTERM):
+                asyncio.get_event_loop().add_signal_handler(
+                    sig, lambda: asyncio.create_task(self.stop())
+                )
+
+        # TTS oldindan yaratish
+        logger.info("TTS xabarlarini tayyorlash...")
+        await self.tts.pregenerate_messages(max_count=20)
+
+        # AMI ulanish
+        logger.info("Asterisk AMI ga ulanish...")
+        ami_connected = await self.ami.connect()
+        if not ami_connected:
+            logger.error("AMI ulanish muvaffaqiyatsiz!")
+            # AMI siz ham davom etish mumkin (faqat Telegram)
+
+        # SIP registratsiya tekshirish
+        if ami_connected:
+            registered = await self.ami.check_registration()
+            if registered:
+                logger.info("SIP registratsiya: OK")
+            else:
+                logger.warning("SIP registratsiya: MUVAFFAQIYATSIZ")
+
+        # amoCRM polling boshlash
+        logger.info("amoCRM polling boshlash...")
+        await self.amocrm_poller.start()
+
+        # Asosiy loop
+        logger.info("=" * 60)
+        logger.info("AUTODIALER PRO ISHLAYAPTI")
+        logger.info("=" * 60)
+
+        # Asosiy task
+        self._tasks.append(asyncio.create_task(self._main_loop()))
+
+        # Wait
+        try:
+            await asyncio.gather(*self._tasks)
+        except asyncio.CancelledError:
+            pass
+
+    async def stop(self):
+        """Autodialer ni to'xtatish"""
+        logger.info("Autodialer to'xtatilmoqda...")
+        self._running = False
+
+        # Tasks ni bekor qilish
+        for task in self._tasks:
+            task.cancel()
+
+        # Servislarni yopish
+        await self.amocrm_poller.stop()
+        await self.ami.disconnect()
+        await self.amocrm.close()
+        if self.telegram:
+            await self.telegram.close()
+
+        logger.info("Autodialer to'xtatildi")
+
+    async def _main_loop(self):
+        """Asosiy ishlash sikli"""
+        while self._running:
+            try:
+                await self._check_and_process()
+                await asyncio.sleep(1)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Main loop xatosi: {e}")
+                await asyncio.sleep(5)
+
+    async def _check_and_process(self):
+        """Holatni tekshirish va qayta ishlash"""
+        if not self.state.waiting_for_call:
+            return
+
+        now = datetime.now()
+
+        # Kutish vaqti o'tdimi?
+        if self.state.last_new_order_time:
+            elapsed = (now - self.state.last_new_order_time).total_seconds()
+
+            # Qo'ng'iroq qilish vaqti (faqat bir marta chaqiriladi - ichida barcha urinishlar)
+            if elapsed >= self.wait_before_call and not self.state.call_started:
+                self.state.call_started = True
+                await self._make_call()
+                # Qo'ng'iroq tugagandan keyin tekshirish
+
+        # Barcha qo'ng'iroq urinishlari tugadimi? -> Telegram xabar
+        if (self.state.call_attempts >= self.max_call_attempts and
+            not self.state.telegram_notified):
+            await self._send_telegram_alert()
+
+    async def _on_new_orders(self, count: int, new_ids: list):
+        """Yangi buyurtmalar callback"""
+        logger.info(f"Yangi buyurtmalar: {len(new_ids)} ta, Jami: {count} ta")
+
+        # Holatni yangilash
+        old_count = self.state.pending_orders_count
+        self.state.new_order_received(count, new_ids)
+
+        # Agar ilgari kutish boshlangan bo'lsa, faqat sonni yangilash
+        if old_count > 0:
+            logger.debug(f"Buyurtmalar soni yangilandi: {old_count} -> {count}")
+
+    async def _on_orders_resolved(self, resolved_count: int, remaining_count: int):
+        """Buyurtmalar tekshirildi callback"""
+        logger.info(f"Tekshirildi: {resolved_count} ta, Qoldi: {remaining_count} ta")
+
+        # Telegram xabar o'chirish
+        if self.notification_manager:
+            await self.notification_manager.notify_resolved(resolved_count, remaining_count)
+
+        # Agar hammasi tekshirilgan bo'lsa
+        if remaining_count == 0:
+            logger.info("Barcha buyurtmalar tekshirildi!")
+            self.state.reset()
+        else:
+            self.state.pending_orders_count = remaining_count
+
+    async def _make_call(self):
+        """Sotuvchiga qo'ng'iroq qilish (barcha urinishlar)"""
+        count = self.state.pending_orders_count
+
+        logger.info(f"Qo'ng'iroq qilish: {self.seller_phone}, Buyurtmalar: {count}")
+
+        # TTS audio olish
+        audio_path = await self.tts.generate_order_message(count)
+        if not audio_path:
+            logger.error("TTS audio yaratilmadi!")
+            self.state.call_attempts = self.max_call_attempts  # Telegram yuborish uchun
+            return
+
+        # Qo'ng'iroq qilish - barcha urinishlar (retry bilan)
+        result = await self.call_manager.make_call_with_retry(
+            phone_number=self.seller_phone,
+            audio_file=str(audio_path),
+            on_attempt=self._on_call_attempt
+        )
+
+        if result.is_answered:
+            logger.info("Qo'ng'iroq muvaffaqiyatli!")
+            # Kutish holatini yangilash - keyingi buyurtma uchun
+            self.state.last_new_order_time = datetime.now()
+            self.state.call_attempts = 0
+        else:
+            logger.warning(f"Qo'ng'iroq muvaffaqiyatsiz: {result.status}")
+            # Barcha urinishlar tugadi - Telegram yuborish uchun
+            self.state.call_attempts = self.max_call_attempts
+
+    async def _on_call_attempt(self, attempt: int, max_attempts: int):
+        """Qo'ng'iroq urinishi callback"""
+        logger.info(f"Qo'ng'iroq urinishi: {attempt}/{max_attempts}")
+
+    async def _send_telegram_alert(self):
+        """Telegram xabar yuborish - sotuvchi bo'yicha guruhlangan"""
+        if not self.notification_manager:
+            return
+
+        order_ids = self.state.pending_order_ids
+        logger.info(f"Telegram xabar yuborish: {len(order_ids)} ta buyurtma")
+
+        # Barcha buyurtmalarni olish
+        all_orders = []
+        for order_id in order_ids:
+            try:
+                order_data = await self.amocrm.get_order_full_data(order_id)
+                all_orders.append(order_data)
+            except Exception as e:
+                logger.error(f"Buyurtma #{order_id} ma'lumotini olishda xato: {e}")
+
+        # Sotuvchi bo'yicha guruhlash
+        sellers = {}
+        for order in all_orders:
+            seller_phone = order.get("seller_phone", "Noma'lum")
+            if seller_phone not in sellers:
+                sellers[seller_phone] = {
+                    "seller_name": order.get("seller_name", "Noma'lum"),
+                    "seller_phone": seller_phone,
+                    "seller_address": order.get("seller_address", "Noma'lum"),
+                    "orders": []
+                }
+            sellers[seller_phone]["orders"].append(order)
+
+        # Har bir sotuvchi uchun bitta xabar
+        for seller_phone, seller_data in sellers.items():
+            try:
+                logger.info(f"Sotuvchi {seller_data['seller_name']}: {len(seller_data['orders'])} ta buyurtma")
+                await self.notification_manager.notify_seller_orders(
+                    seller_data,
+                    self.state.call_attempts
+                )
+            except Exception as e:
+                logger.error(f"Sotuvchi {seller_phone} xabar yuborishda xato: {e}")
+
+        self.state.telegram_notified = True
+
+
+async def main():
+    """Asosiy funksiya"""
+
+    autodialer = AutodialerPro(
+        # amoCRM
+        amocrm_subdomain=os.getenv("AMOCRM_SUBDOMAIN", "welltech"),
+        amocrm_token=os.getenv("AMOCRM_TOKEN", "YOUR_TOKEN"),
+
+        # Asterisk AMI (WSL)
+        sip_host=os.getenv("AMI_HOST", "172.29.124.85"),
+        ami_port=int(os.getenv("AMI_PORT", "5038")),
+        ami_username=os.getenv("AMI_USERNAME", "autodialer"),
+        ami_password=os.getenv("AMI_PASSWORD", "autodialer123"),
+
+        # Telegram
+        telegram_token=os.getenv("TELEGRAM_BOT_TOKEN"),
+        telegram_chat_id=os.getenv("TELEGRAM_CHAT_ID"),
+
+        # Sotuvchi
+        seller_phone=os.getenv("SELLER_PHONE", "+998948679300"),
+
+        # Vaqtlar
+        wait_before_call=int(os.getenv("WAIT_BEFORE_CALL", "90")),
+        telegram_alert_time=int(os.getenv("TELEGRAM_ALERT_TIME", "180")),
+        max_call_attempts=int(os.getenv("MAX_CALL_ATTEMPTS", "3")),
+        retry_interval=int(os.getenv("RETRY_INTERVAL", "60")),
+    )
+
+    await autodialer.start()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

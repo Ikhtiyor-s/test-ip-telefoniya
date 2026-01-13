@@ -1,0 +1,62 @@
+# =============================================================================
+# AUTODIALER PRO - DOCKER COMPOSE
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ===========================================================================
+  # ASTERISK PBX
+  # ===========================================================================
+  asterisk:
+    image: andrius/asterisk:alpine-18
+    container_name: autodialer-asterisk
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./config/asterisk/pjsip.conf:/etc/asterisk/pjsip.conf:ro
+      - ./config/asterisk/extensions.conf:/etc/asterisk/extensions.conf:ro
+      - ./config/asterisk/manager.conf:/etc/asterisk/manager.conf:ro
+      - ./audio:/var/lib/asterisk/sounds/autodialer
+      - asterisk-logs:/var/log/asterisk
+    environment:
+      - TZ=Asia/Tashkent
+    healthcheck:
+      test: ["CMD", "asterisk", "-rx", "core show channels"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===========================================================================
+  # AUTODIALER SERVICE
+  # ===========================================================================
+  autodialer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autodialer-pro
+    restart: unless-stopped
+    depends_on:
+      asterisk:
+        condition: service_healthy
+    volumes:
+      - ./audio:/app/audio
+      - ./logs:/app/logs
+    environment:
+      - AMOCRM_SUBDOMAIN=${AMOCRM_SUBDOMAIN}
+      - AMOCRM_TOKEN=${AMOCRM_TOKEN}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - SELLER_PHONE=${SELLER_PHONE}
+      - AMI_HOST=127.0.0.1
+      - AMI_PORT=5038
+      - AMI_USERNAME=autodialer
+      - AMI_PASSWORD=autodialer123
+      - WAIT_BEFORE_CALL=${WAIT_BEFORE_CALL:-90}
+      - TELEGRAM_ALERT_TIME=${TELEGRAM_ALERT_TIME:-180}
+      - MAX_CALL_ATTEMPTS=${MAX_CALL_ATTEMPTS:-3}
+      - TZ=Asia/Tashkent
+    network_mode: host
+
+volumes:
+  asterisk-logs:

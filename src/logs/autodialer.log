@@ -1,0 +1,326 @@
+2026-01-14 00:44:00,775 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 00:44:00,776 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 00:44:00,776 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 00:44:00,776 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 127.0.0.1:5038
+2026-01-14 00:44:00,777 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 00:44:00,777 [INFO] autodialer: ============================================================
+2026-01-14 00:44:00,777 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 00:44:00,778 [INFO] autodialer: ============================================================
+2026-01-14 00:50:23,357 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 00:50:23,357 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 00:50:23,358 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 00:50:23,359 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 127.0.0.1:5038
+2026-01-14 00:50:23,360 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 00:50:23,361 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 00:50:23,361 [INFO] autodialer: ============================================================
+2026-01-14 00:50:23,364 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 00:50:23,364 [INFO] autodialer: ============================================================
+2026-01-14 00:50:23,364 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 00:50:23,365 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 00:50:25,847 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\6f6dd3db616b9ecb0c65a11fdb8309a4.wav
+2026-01-14 00:50:27,601 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\c420d9c550285fc8abe4362cb473d10d.wav
+2026-01-14 00:50:29,179 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\fb6a18c18519acdd2c4112b9707d0c35.wav
+2026-01-14 00:50:31,185 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\bb8bda7561bda7f848fffb65f3762fa6.wav
+2026-01-14 00:50:32,597 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\48758b888fe48abc908b22b02aa67257.wav
+2026-01-14 00:50:34,091 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\1806dce00a5a5824dcf60ef3f9d0de52.wav
+2026-01-14 00:50:35,729 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\5383d617a34faa33d11262d6e734e37a.wav
+2026-01-14 00:50:37,469 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\04cf723d8eff42e73b985ed80265ca09.wav
+2026-01-14 00:50:40,190 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\de51dfd910120dea59abd3085aaba5f9.wav
+2026-01-14 00:50:41,822 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\0893e0dc889600d7184a4979d4fd286a.wav
+2026-01-14 00:50:43,421 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\35a32a4d0fa0c413c4d8eb9569b04545.wav
+2026-01-14 00:50:45,073 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\e17a7e0151fbe40cab63091d0cfeb682.wav
+2026-01-14 00:50:46,957 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\5fb50614c495af75d6564aa3a6173266.wav
+2026-01-14 00:50:48,683 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\b0b6c10a6c500f946bd57fb83f173f90.wav
+2026-01-14 00:50:50,750 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\4fc4e5f24f805dc77778e955cba02541.wav
+2026-01-14 00:50:52,115 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\377408830e73d54d357e20ea8f9839b5.wav
+2026-01-14 00:50:53,500 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\e00f532e46bd3fac2bc8cae333a6aa54.wav
+2026-01-14 00:50:54,981 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\95dcc4a169ec6e97bf87c87452d9f608.wav
+2026-01-14 00:50:56,689 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\873374a4c27d4f968968132b66f9b7d7.wav
+2026-01-14 00:51:09,560 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\db2a646c4585823bc10dea17480df4f9.wav
+2026-01-14 00:51:09,565 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 00:51:09,579 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 00:51:19,593 [WARNING] services.asterisk_service: AMI action timeout: Login
+2026-01-14 00:51:19,593 [ERROR] services.asterisk_service: AMI login xatosi: None
+2026-01-14 00:51:19,594 [ERROR] autodialer: AMI ulanish muvaffaqiyatsiz!
+2026-01-14 00:51:19,595 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 00:51:19,595 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 00:51:19,596 [INFO] autodialer: ============================================================
+2026-01-14 00:51:19,596 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 00:51:19,597 [INFO] autodialer: ============================================================
+2026-01-14 00:51:19,989 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:51:23,251 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:51:26,436 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:51:29,609 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:51:32,751 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:51:35,928 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:51:39,109 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:51:42,282 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:51:45,473 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:51:48,691 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:51:51,871 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:51:55,037 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:52:00,467 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:52:03,745 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:52:07,012 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:52:10,185 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:52:13,771 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:52:17,027 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:52:20,184 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:52:23,376 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:52:26,672 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:52:29,885 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:52:33,122 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:52:36,311 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:52:39,587 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:52:42,742 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:52:45,883 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:52:49,077 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:52:52,242 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:52:55,440 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:53:00,462 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:53:03,862 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:53:07,220 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:53:10,495 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:53:13,653 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:53:16,817 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:53:20,047 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:53:23,210 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:53:26,364 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:53:29,583 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:53:32,766 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:53:35,970 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:53:39,275 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:53:42,470 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:53:45,621 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:53:48,955 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:53:52,128 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:53:55,451 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:53:58,618 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:54:01,906 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:54:05,347 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:54:08,588 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:54:11,792 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:54:16,066 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:54:19,413 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:54:22,590 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:54:25,862 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:54:29,033 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:54:32,427 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:54:35,614 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:54:38,898 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:54:42,065 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:54:45,236 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:54:48,446 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:54:51,635 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:54:54,854 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:54:58,051 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:55:01,310 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:55:04,702 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:55:08,128 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:55:11,362 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:55:14,531 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:55:17,700 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:55:20,860 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:55:24,230 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:55:27,511 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:55:30,800 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:55:33,957 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:55:37,252 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:55:40,465 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:55:43,648 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:55:46,829 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:55:50,028 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:55:53,231 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:55:56,488 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:55:59,681 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:56:03,034 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:56:06,215 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:56:09,497 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:56:12,695 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:56:16,042 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:56:19,234 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:56:23,418 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:56:26,585 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:56:29,762 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:56:32,930 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:56:36,134 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:56:39,747 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:56:42,959 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:56:46,183 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:56:49,367 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:56:52,571 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:56:55,717 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:56:58,877 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:57:02,103 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:57:05,268 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:57:08,444 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:57:11,627 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:57:14,832 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:57:17,990 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:57:21,277 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:57:24,472 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:57:27,753 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:57:30,903 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:57:34,086 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:57:37,257 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:57:40,523 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:57:44,009 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:57:47,165 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:57:50,323 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:57:53,625 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:57:56,812 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:57:59,958 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:58:03,260 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:58:06,457 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:58:09,628 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:58:13,823 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:58:17,089 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:58:20,376 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:58:23,666 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:58:26,867 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:58:30,062 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:58:33,330 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:58:36,551 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:58:39,694 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:58:42,931 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:58:46,085 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:58:49,243 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:58:52,510 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:58:55,680 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:58:58,883 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:59:02,239 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:59:05,548 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:59:08,786 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:59:11,988 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:59:15,151 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:59:18,327 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:59:21,512 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:59:24,725 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:59:27,930 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 00:59:31,103 [ERROR] services.amocrm_service: amoCRM: Token yaroqsiz (401)
+2026-01-14 01:06:03,099 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 01:06:03,099 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 01:06:03,100 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 01:06:03,101 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 127.0.0.1:5038
+2026-01-14 01:06:03,102 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 01:06:03,104 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 01:06:03,106 [INFO] autodialer: ============================================================
+2026-01-14 01:06:03,107 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 01:06:03,107 [INFO] autodialer: ============================================================
+2026-01-14 01:06:03,107 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 01:06:03,108 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 01:06:03,109 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 01:06:03,110 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 01:06:13,126 [WARNING] services.asterisk_service: AMI action timeout: Login
+2026-01-14 01:06:13,128 [ERROR] services.asterisk_service: AMI login xatosi: None
+2026-01-14 01:06:13,131 [ERROR] autodialer: AMI ulanish muvaffaqiyatsiz!
+2026-01-14 01:06:13,133 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 01:06:13,140 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 01:06:13,149 [INFO] autodialer: ============================================================
+2026-01-14 01:06:13,155 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 01:06:13,159 [INFO] autodialer: ============================================================
+2026-01-14 01:06:13,744 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 01:06:14,551 [INFO] services.amocrm_service: Yangi leadlar: 2 ta, Jami: 2 ta
+2026-01-14 01:06:14,556 [INFO] autodialer: Yangi buyurtmalar: 2 ta, Jami: 2 ta
+2026-01-14 01:06:49,267 [INFO] autodialer: Tekshirildi: 1 ta, Qoldi: 1 ta
+2026-01-14 01:06:49,898 [ERROR] services.telegram_service: Telegram xatosi: Bad Request: chat not found
+2026-01-14 01:06:56,315 [INFO] autodialer: Tekshirildi: 1 ta, Qoldi: 0 ta
+2026-01-14 01:06:56,431 [ERROR] services.telegram_service: Telegram xatosi: Bad Request: chat not found
+2026-01-14 01:06:56,434 [INFO] autodialer: Barcha buyurtmalar tekshirildi!
+2026-01-14 01:12:49,729 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 1 ta
+2026-01-14 01:12:49,734 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 1 ta
+2026-01-14 01:13:40,245 [ERROR] asyncio: Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x0000016FC17A2950>
+2026-01-14 01:13:40,249 [ERROR] asyncio: Fatal error on SSL transport
+protocol: <asyncio.sslproto.SSLProtocol object at 0x0000016FC181CDC0>
+transport: <_ProactorSocketTransport fd=-1 read=<_OverlappedFuture cancelled>>
+Traceback (most recent call last):
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python310\lib\asyncio\sslproto.py", line 684, in _process_write_backlog
+    self._transport.write(chunk)
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python310\lib\asyncio\proactor_events.py", line 361, in write
+    self._loop_writing(data=bytes(data))
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python310\lib\asyncio\proactor_events.py", line 397, in _loop_writing
+    self._write_fut = self._loop._proactor.send(self._sock, data)
+AttributeError: 'NoneType' object has no attribute 'send'
+2026-01-14 01:13:40,352 [ERROR] asyncio: Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x0000016FC17A2BC0>
+2026-01-14 01:13:40,354 [ERROR] asyncio: Unclosed connector
+connections: ['[(<aiohttp.client_proto.ResponseHandler object at 0x0000016FC17BF2E0>, 135521.468)]']
+connector: <aiohttp.connector.TCPConnector object at 0x0000016FC17A2CB0>
+2026-01-14 01:13:42,523 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 01:13:42,523 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 01:13:42,524 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 01:13:42,525 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 127.0.0.1:5038
+2026-01-14 01:13:42,525 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 01:13:42,526 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 01:13:42,527 [INFO] autodialer: ============================================================
+2026-01-14 01:13:42,529 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 01:13:42,529 [INFO] autodialer: ============================================================
+2026-01-14 01:13:42,530 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 01:13:42,530 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 01:13:42,532 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 01:13:42,532 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 01:13:52,539 [WARNING] services.asterisk_service: AMI action timeout: Login
+2026-01-14 01:13:52,540 [ERROR] services.asterisk_service: AMI login xatosi: None
+2026-01-14 01:13:52,544 [ERROR] autodialer: AMI ulanish muvaffaqiyatsiz!
+2026-01-14 01:13:52,549 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 01:13:52,551 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 01:13:52,552 [INFO] autodialer: ============================================================
+2026-01-14 01:13:52,555 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 01:13:52,565 [INFO] autodialer: ============================================================
+2026-01-14 01:13:53,128 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 01:13:53,423 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 1 ta
+2026-01-14 01:13:53,425 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 1 ta
+2026-01-14 01:15:24,319 [INFO] autodialer: Qo'ng'iroq qilish: +998948679300, Buyurtmalar: 1
+2026-01-14 01:15:24,325 [INFO] autodialer: Qo'ng'iroq urinishi: 1/3
+2026-01-14 01:15:24,335 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/3: +998948679300
+2026-01-14 01:15:24,338 [INFO] services.asterisk_service: Qayta urinish 60s dan keyin...
+2026-01-14 01:16:24,337 [INFO] autodialer: Qo'ng'iroq urinishi: 2/3
+2026-01-14 01:16:24,339 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/3: +998948679300
+2026-01-14 01:16:24,343 [INFO] services.asterisk_service: Qayta urinish 60s dan keyin...
+2026-01-14 01:17:24,340 [INFO] autodialer: Qo'ng'iroq urinishi: 3/3
+2026-01-14 01:17:24,340 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 3/3: +998948679300
+2026-01-14 01:17:24,343 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998948679300
+2026-01-14 01:17:24,344 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: CallStatus.FAILED
+2026-01-14 01:17:25,353 [INFO] autodialer: Qo'ng'iroq qilish: +998948679300, Buyurtmalar: 1
+2026-01-14 01:17:25,355 [INFO] autodialer: Qo'ng'iroq urinishi: 1/3
+2026-01-14 01:17:25,357 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/3: +998948679300
+2026-01-14 01:17:25,358 [INFO] services.asterisk_service: Qayta urinish 60s dan keyin...
+2026-01-14 01:18:25,358 [INFO] autodialer: Qo'ng'iroq urinishi: 2/3
+2026-01-14 01:18:25,363 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/3: +998948679300
+2026-01-14 01:18:25,370 [INFO] services.asterisk_service: Qayta urinish 60s dan keyin...
+2026-01-14 01:19:25,368 [INFO] autodialer: Qo'ng'iroq urinishi: 3/3
+2026-01-14 01:19:25,368 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 3/3: +998948679300
+2026-01-14 01:19:25,369 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998948679300
+2026-01-14 01:19:25,370 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: CallStatus.FAILED
+2026-01-14 01:19:25,370 [INFO] autodialer: Telegram xabar yuborish: 1 ta buyurtma
+2026-01-14 01:19:25,789 [ERROR] services.telegram_service: Telegram xatosi: Bad Request: chat not found
+2026-01-14 01:19:26,799 [INFO] autodialer: Qo'ng'iroq qilish: +998948679300, Buyurtmalar: 1
+2026-01-14 01:19:26,802 [INFO] autodialer: Qo'ng'iroq urinishi: 1/3
+2026-01-14 01:19:26,806 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/3: +998948679300
+2026-01-14 01:19:26,809 [INFO] services.asterisk_service: Qayta urinish 60s dan keyin...
+2026-01-14 01:20:26,822 [INFO] autodialer: Qo'ng'iroq urinishi: 2/3
+2026-01-14 01:20:26,823 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/3: +998948679300
+2026-01-14 01:20:26,829 [INFO] services.asterisk_service: Qayta urinish 60s dan keyin...
+2026-01-14 01:21:26,849 [INFO] autodialer: Qo'ng'iroq urinishi: 3/3
+2026-01-14 01:21:26,854 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 3/3: +998948679300
+2026-01-14 01:21:26,863 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998948679300
+2026-01-14 01:21:26,866 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: CallStatus.FAILED
+2026-01-14 01:25:12,512 [ERROR] asyncio: Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x00000209B0F4A860>
+2026-01-14 01:25:12,517 [ERROR] asyncio: Fatal error on SSL transport
+protocol: <asyncio.sslproto.SSLProtocol object at 0x00000209B0F23730>
+transport: <_ProactorSocketTransport fd=-1 read=<_OverlappedFuture cancelled>>
+Traceback (most recent call last):
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python310\lib\asyncio\sslproto.py", line 684, in _process_write_backlog
+    self._transport.write(chunk)
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python310\lib\asyncio\proactor_events.py", line 361, in write
+    self._loop_writing(data=bytes(data))
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python310\lib\asyncio\proactor_events.py", line 397, in _loop_writing
+    self._write_fut = self._loop._proactor.send(self._sock, data)
+AttributeError: 'NoneType' object has no attribute 'send'
+2026-01-14 01:25:12,673 [ERROR] asyncio: Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x00000209B0F4AE30>
+2026-01-14 01:25:12,677 [ERROR] asyncio: Unclosed connector
+connections: ['[(<aiohttp.client_proto.ResponseHandler object at 0x00000209B0F3FDC0>, 136214.171)]']
+connector: <aiohttp.connector.TCPConnector object at 0x00000209B0F4AD40>

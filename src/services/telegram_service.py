@@ -173,13 +173,25 @@ class TelegramService:
             "message_id": message_id
         }
 
-        result = await self._make_request("deleteMessage", data)
+        # To'g'ridan-to'g'ri API chaqirish
+        session = await self._get_session()
+        url = f"{self.base_url}/deleteMessage"
 
-        if result:
-            logger.info(f"Telegram xabar o'chirildi: {message_id}")
-            return True
+        try:
+            async with session.post(url, json=data) as response:
+                result = await response.json()
+                logger.debug(f"Delete response: {result}")
 
-        return False
+                if result.get("ok"):
+                    logger.info(f"Telegram xabar o'chirildi: {message_id}")
+                    return True
+                else:
+                    logger.error(f"Telegram o'chirish xatosi: {result.get('description')}")
+                    return False
+
+        except Exception as e:
+            logger.error(f"Telegram delete xatosi: {e}")
+            return False
 
     async def send_seller_orders_alert(
         self,

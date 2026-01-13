@@ -338,25 +338,18 @@ RETRY_INTERVAL=0
 
 Tizim avtomatik ravishda Edge TTS orqali o'zbek tilida audio fayllar yaratadi.
 
+**Qo'ng'iroqdagi xabar:**
+> "Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda N ta buyurtma bor, iltimos, buyurtmalaringizni tekshiring."
+
 ### 4.2 WSL ga audio nusxalash
 
-Har safar tizimni ishga tushirishdan oldin:
+**Avtomatik:** Tizim ishga tushganda audio fayllar avtomatik WSL ga ko'chiriladi.
 
+**Qo'lda** (agar kerak bo'lsa):
 ```bash
-# WSL da papka yaratish
+# WSL da papka yaratish va fayllarni nusxalash
 wsl mkdir -p /tmp/autodialer
-
-# Windows dan WSL ga nusxalash
-wsl cp /mnt/c/Users/YourUsername/autodialer-pro/audio/cache/*.wav /tmp/autodialer/
-```
-
-Yoki avtomatik skript:
-```bash
-# sync_audio.sh
-#!/bin/bash
-mkdir -p /tmp/autodialer
-cp /mnt/c/Users/*/autodialer-pro/audio/cache/*.wav /tmp/autodialer/ 2>/dev/null
-echo "Audio fayllar sinxronlandi: $(ls /tmp/autodialer/*.wav 2>/dev/null | wc -l) ta"
+wsl cp /mnt/c/Users/Asus/autodialer-pro/audio/cache/*.wav /tmp/autodialer/
 ```
 
 ---
@@ -381,13 +374,13 @@ sudo asterisk -rx "manager show connected"
 
 Windows da:
 ```bash
-cd C:\Users\YourUsername\autodialer-pro
+cd C:\Users\Asus\autodialer-pro
 
 # Virtual environment faollashtirish
 venv\Scripts\activate
 
 # Ishga tushirish
-python main.py
+python src/autodialer.py
 ```
 
 ### 5.3 Muvaffaqiyatli ishga tushish
@@ -500,36 +493,34 @@ wsl sudo tail -f /var/log/asterisk/messages
 
 ```
 autodialer-pro/
-├── main.py                 # Asosiy ishga tushirish fayli
-├── .env                    # Konfiguratsiya (GIT da yo'q!)
-├── .gitignore             # Git ignore qoidalari
+├── .env                    # Konfiguratsiya
 ├── requirements.txt        # Python kutubxonalari
 ├── README.md              # Ushbu qo'llanma
+├── dialplan.conf          # Asterisk dialplan namunasi
+├── setup_dialplan.py      # Dialplan o'rnatish skripti
 ├── audio/
-│   └── cache/             # TTS audio fayllar
+│   └── cache/             # TTS audio fayllar (1-20 buyurtma)
 ├── logs/                  # Log fayllar
 └── src/
-    ├── autodialer.py      # Asosiy business logic
-    ├── config.py          # Konfiguratsiya yuklovchi
+    ├── autodialer.py      # Asosiy business logic (ishga tushirish)
     └── services/
+        ├── __init__.py          # Servislar eksporti
         ├── amocrm_service.py    # amoCRM API
         ├── asterisk_service.py  # Asterisk AMI
         ├── telegram_service.py  # Telegram Bot
-        └── tts_service.py       # Text-to-Speech
+        └── tts_service.py       # Text-to-Speech + WSL sync
 ```
 
 ---
 
 ## Xavfsizlik
 
-**Muhim:** `.env` faylini hech qachon Git ga push qilmang!
-
-`.env` faylida maxfiy ma'lumotlar bor:
+**Eslatma:** `.env` faylida maxfiy ma'lumotlar bor:
 - amoCRM API token
 - Telegram bot token
 - AMI parol
 
-`.gitignore` fayli avtomatik ravishda bu fayllarni himoya qiladi.
+Loyihani boshqa muhitga o'rnatganda `.env` faylini to'g'ri sozlang.
 
 ---
 

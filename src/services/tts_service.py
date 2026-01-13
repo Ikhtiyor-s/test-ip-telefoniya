@@ -165,9 +165,9 @@ class TTSService:
         """
         # Xabar matni
         if count == 1:
-            text = "Assalomu alaykum! Sizda 1 ta yangi buyurtma bor. Iltimos, tekshiring."
+            text = "Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda 1 ta buyurtma bor, iltimos, buyurtmangizni tekshiring."
         else:
-            text = f"Assalomu alaykum! Sizda {count} ta yangi buyurtma bor. Iltimos, tekshiring."
+            text = f"Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda {count} ta buyurtma bor, iltimos, buyurtmalaringizni tekshiring."
 
         # Cache tekshirish
         cache_path = self._get_cache_path(text)
@@ -210,9 +210,9 @@ class TTSService:
     def get_audio_path(self, count: int) -> Optional[Path]:
         """Mavjud audio faylni olish (agar cache da bo'lsa)"""
         if count == 1:
-            text = "Assalomu alaykum! Sizda 1 ta yangi buyurtma bor. Iltimos, tekshiring."
+            text = "Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda 1 ta buyurtma bor, iltimos, buyurtmangizni tekshiring."
         else:
-            text = f"Assalomu alaykum! Sizda {count} ta yangi buyurtma bor. Iltimos, tekshiring."
+            text = f"Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda {count} ta buyurtma bor, iltimos, buyurtmalaringizni tekshiring."
 
         cache_path = self._get_cache_path(text)
         if cache_path.exists():
@@ -231,6 +231,51 @@ class TTSService:
             logger.debug(f"TTS yaratildi: {i} ta buyurtma")
 
         logger.info("TTS oldindan yaratish tugadi")
+
+        # WSL ga audio fayllarni ko'chirish
+        await self.sync_to_wsl()
+
+    async def sync_to_wsl(self):
+        """
+        Audio fayllarni WSL /tmp/autodialer/ katalogiga ko'chirish
+        Asterisk uchun kerak
+        """
+        import subprocess
+
+        cache_dir = self.audio_dir / "cache"
+        if not cache_dir.exists():
+            logger.warning("Cache katalogi topilmadi")
+            return
+
+        try:
+            # WSL da katalog yaratish
+            subprocess.run(
+                ["wsl", "mkdir", "-p", "/tmp/autodialer"],
+                capture_output=True,
+                timeout=10
+            )
+
+            # Fayllarni ko'chirish
+            cache_path_wsl = str(cache_dir).replace("\\", "/")
+            # C:/Users/... -> /mnt/c/Users/...
+            if len(cache_path_wsl) > 1 and cache_path_wsl[1] == ":":
+                cache_path_wsl = f"/mnt/{cache_path_wsl[0].lower()}{cache_path_wsl[2:]}"
+
+            result = subprocess.run(
+                ["wsl", "bash", "-c", f"cp {cache_path_wsl}/*.wav /tmp/autodialer/"],
+                capture_output=True,
+                timeout=30
+            )
+
+            if result.returncode == 0:
+                logger.info("Audio fayllar WSL ga ko'chirildi: /tmp/autodialer/")
+            else:
+                logger.warning(f"WSL ga ko'chirishda xato: {result.stderr.decode()}")
+
+        except subprocess.TimeoutExpired:
+            logger.error("WSL buyrug'i timeout")
+        except Exception as e:
+            logger.error(f"WSL sync xatosi: {e}")
 
 
 # Async import uchun

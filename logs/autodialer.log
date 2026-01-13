@@ -1,0 +1,1072 @@
+2026-01-14 01:25:27,229 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 01:25:27,231 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 01:25:27,233 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 01:25:27,235 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 127.0.0.1:5038
+2026-01-14 01:25:27,240 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 01:25:27,242 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 01:25:27,245 [INFO] autodialer: ============================================================
+2026-01-14 01:25:27,251 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 01:25:27,253 [INFO] autodialer: ============================================================
+2026-01-14 01:25:27,258 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 01:25:27,262 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 01:25:28,672 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\6f6dd3db616b9ecb0c65a11fdb8309a4.wav
+2026-01-14 01:25:29,922 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\c420d9c550285fc8abe4362cb473d10d.wav
+2026-01-14 01:25:30,987 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\fb6a18c18519acdd2c4112b9707d0c35.wav
+2026-01-14 01:25:33,442 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\bb8bda7561bda7f848fffb65f3762fa6.wav
+2026-01-14 01:25:36,787 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\48758b888fe48abc908b22b02aa67257.wav
+2026-01-14 01:25:38,738 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\1806dce00a5a5824dcf60ef3f9d0de52.wav
+2026-01-14 01:25:39,830 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\5383d617a34faa33d11262d6e734e37a.wav
+2026-01-14 01:25:40,978 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\04cf723d8eff42e73b985ed80265ca09.wav
+2026-01-14 01:25:42,061 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\de51dfd910120dea59abd3085aaba5f9.wav
+2026-01-14 01:25:43,107 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\0893e0dc889600d7184a4979d4fd286a.wav
+2026-01-14 01:25:45,156 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\35a32a4d0fa0c413c4d8eb9569b04545.wav
+2026-01-14 01:25:47,345 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\e17a7e0151fbe40cab63091d0cfeb682.wav
+2026-01-14 01:25:48,411 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\5fb50614c495af75d6564aa3a6173266.wav
+2026-01-14 01:25:49,492 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\b0b6c10a6c500f946bd57fb83f173f90.wav
+2026-01-14 01:25:50,521 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\4fc4e5f24f805dc77778e955cba02541.wav
+2026-01-14 01:25:53,519 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\377408830e73d54d357e20ea8f9839b5.wav
+2026-01-14 01:25:54,636 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\e00f532e46bd3fac2bc8cae333a6aa54.wav
+2026-01-14 01:25:55,655 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\95dcc4a169ec6e97bf87c87452d9f608.wav
+2026-01-14 01:25:56,658 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\873374a4c27d4f968968132b66f9b7d7.wav
+2026-01-14 01:25:57,624 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\db2a646c4585823bc10dea17480df4f9.wav
+2026-01-14 01:25:57,625 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 01:25:57,627 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 01:26:07,644 [WARNING] services.asterisk_service: AMI action timeout: Login
+2026-01-14 01:26:07,646 [ERROR] services.asterisk_service: AMI login xatosi: None
+2026-01-14 01:26:07,652 [ERROR] autodialer: AMI ulanish muvaffaqiyatsiz!
+2026-01-14 01:26:07,654 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 01:26:07,657 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 01:26:07,659 [INFO] autodialer: ============================================================
+2026-01-14 01:26:07,661 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 01:26:07,667 [INFO] autodialer: ============================================================
+2026-01-14 01:26:08,055 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 01:26:08,345 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 1 ta
+2026-01-14 01:26:08,347 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 1 ta
+2026-01-14 01:26:18,818 [INFO] autodialer: Qo'ng'iroq qilish: +998948679300, Buyurtmalar: 1
+2026-01-14 01:26:18,820 [INFO] autodialer: Qo'ng'iroq urinishi: 1/3
+2026-01-14 01:26:18,825 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/3: +998948679300
+2026-01-14 01:26:18,829 [INFO] services.asterisk_service: Qayta urinish 60s dan keyin...
+2026-01-14 01:27:18,847 [INFO] autodialer: Qo'ng'iroq urinishi: 2/3
+2026-01-14 01:27:18,849 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/3: +998948679300
+2026-01-14 01:27:18,850 [INFO] services.asterisk_service: Qayta urinish 60s dan keyin...
+2026-01-14 01:28:18,858 [INFO] autodialer: Qo'ng'iroq urinishi: 3/3
+2026-01-14 01:28:18,860 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 3/3: +998948679300
+2026-01-14 01:28:18,864 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998948679300
+2026-01-14 01:28:18,871 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: CallStatus.FAILED
+2026-01-14 01:28:19,881 [INFO] autodialer: Qo'ng'iroq qilish: +998948679300, Buyurtmalar: 1
+2026-01-14 01:28:19,885 [INFO] autodialer: Qo'ng'iroq urinishi: 1/3
+2026-01-14 01:28:19,905 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/3: +998948679300
+2026-01-14 01:28:19,911 [INFO] services.asterisk_service: Qayta urinish 60s dan keyin...
+2026-01-14 01:29:19,922 [INFO] autodialer: Qo'ng'iroq urinishi: 2/3
+2026-01-14 01:29:19,925 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/3: +998948679300
+2026-01-14 01:29:19,931 [INFO] services.asterisk_service: Qayta urinish 60s dan keyin...
+2026-01-14 01:30:19,939 [INFO] autodialer: Qo'ng'iroq urinishi: 3/3
+2026-01-14 01:30:19,940 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 3/3: +998948679300
+2026-01-14 01:30:19,943 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998948679300
+2026-01-14 01:30:19,944 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: CallStatus.FAILED
+2026-01-14 01:30:20,946 [INFO] autodialer: Qo'ng'iroq qilish: +998948679300, Buyurtmalar: 1
+2026-01-14 01:30:20,948 [INFO] autodialer: Qo'ng'iroq urinishi: 1/3
+2026-01-14 01:30:20,952 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/3: +998948679300
+2026-01-14 01:30:20,954 [INFO] services.asterisk_service: Qayta urinish 60s dan keyin...
+2026-01-14 01:31:20,980 [INFO] autodialer: Qo'ng'iroq urinishi: 2/3
+2026-01-14 01:31:20,984 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/3: +998948679300
+2026-01-14 01:31:21,005 [INFO] services.asterisk_service: Qayta urinish 60s dan keyin...
+2026-01-14 01:32:21,012 [INFO] autodialer: Qo'ng'iroq urinishi: 3/3
+2026-01-14 01:32:21,013 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 3/3: +998948679300
+2026-01-14 01:32:21,015 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998948679300
+2026-01-14 01:32:21,016 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: CallStatus.FAILED
+2026-01-14 01:32:22,029 [INFO] autodialer: Telegram xabar yuborish: 1 ta buyurtma
+2026-01-14 01:32:22,558 [INFO] services.telegram_service: Telegram xabar yuborildi: 227
+2026-01-14 01:41:57,759 [ERROR] asyncio: Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x000002B26CDF09D0>
+2026-01-14 01:41:57,764 [ERROR] asyncio: Fatal error on SSL transport
+protocol: <asyncio.sslproto.SSLProtocol object at 0x000002B26CDF15A0>
+transport: <_ProactorSocketTransport fd=-1 read=<_OverlappedFuture cancelled>>
+Traceback (most recent call last):
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python310\lib\asyncio\sslproto.py", line 684, in _process_write_backlog
+    self._transport.write(chunk)
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python310\lib\asyncio\proactor_events.py", line 361, in write
+    self._loop_writing(data=bytes(data))
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python310\lib\asyncio\proactor_events.py", line 397, in _loop_writing
+    self._write_fut = self._loop._proactor.send(self._sock, data)
+AttributeError: 'NoneType' object has no attribute 'send'
+2026-01-14 01:41:57,934 [ERROR] asyncio: Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x000002B26CD9DD50>
+2026-01-14 01:41:57,939 [ERROR] asyncio: Unclosed connector
+connections: ['[(<aiohttp.client_proto.ResponseHandler object at 0x000002B26CDA93C0>, 137217.64)]']
+connector: <aiohttp.connector.TCPConnector object at 0x000002B26CD9FF70>
+2026-01-14 01:42:07,600 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 01:42:07,601 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 01:42:07,602 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 01:42:07,602 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 127.0.0.1:5038
+2026-01-14 01:42:07,602 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 01:42:07,603 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 01:42:07,603 [INFO] autodialer: ============================================================
+2026-01-14 01:42:07,604 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 01:42:07,604 [INFO] autodialer: ============================================================
+2026-01-14 01:42:07,604 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 01:42:07,605 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 01:42:07,606 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 01:42:07,607 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 01:42:17,620 [WARNING] services.asterisk_service: AMI action timeout: Login
+2026-01-14 01:42:17,621 [ERROR] services.asterisk_service: AMI login xatosi: None
+2026-01-14 01:42:17,627 [ERROR] autodialer: AMI ulanish muvaffaqiyatsiz!
+2026-01-14 01:42:17,629 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 01:42:17,634 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 01:42:17,637 [INFO] autodialer: ============================================================
+2026-01-14 01:42:17,643 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 01:42:17,655 [INFO] autodialer: ============================================================
+2026-01-14 01:42:18,078 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 01:42:18,469 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 1 ta
+2026-01-14 01:42:18,470 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 1 ta
+2026-01-14 01:42:18,700 [INFO] autodialer: Telegram xabar yuborish: 1 ta buyurtma
+2026-01-14 01:42:19,203 [INFO] autodialer: Sotuvchi Noma'lum: 1 ta buyurtma
+2026-01-14 01:42:19,556 [INFO] services.telegram_service: Telegram xabar yuborildi: 228
+2026-01-14 01:45:06,901 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 01:45:06,901 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 01:45:06,901 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 01:45:06,901 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 127.0.0.1:5038
+2026-01-14 01:45:06,901 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 01:45:06,901 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 01:45:06,901 [INFO] autodialer: ============================================================
+2026-01-14 01:45:06,902 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 01:45:06,902 [INFO] autodialer: ============================================================
+2026-01-14 01:45:06,902 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 01:45:06,902 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 01:45:06,904 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 01:45:06,905 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 01:45:16,918 [WARNING] services.asterisk_service: AMI action timeout: Login
+2026-01-14 01:45:16,921 [ERROR] services.asterisk_service: AMI login xatosi: None
+2026-01-14 01:45:16,921 [ERROR] autodialer: AMI ulanish muvaffaqiyatsiz!
+2026-01-14 01:45:16,921 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 01:45:16,922 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 01:45:16,923 [INFO] autodialer: ============================================================
+2026-01-14 01:45:16,924 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 01:45:16,924 [INFO] autodialer: ============================================================
+2026-01-14 01:45:17,310 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 01:45:17,523 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 1 ta
+2026-01-14 01:45:17,524 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 1 ta
+2026-01-14 01:45:17,986 [INFO] autodialer: Telegram xabar yuborish: 1 ta buyurtma
+2026-01-14 01:45:18,403 [INFO] autodialer: Sotuvchi Noma'lum: 1 ta buyurtma
+2026-01-14 01:45:18,998 [INFO] services.telegram_service: Telegram xabar yuborildi: 229
+2026-01-14 01:52:47,278 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 01:52:47,278 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 01:52:47,278 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 01:52:47,279 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 127.0.0.1:5038
+2026-01-14 01:52:47,279 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 01:52:47,279 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 01:52:47,279 [INFO] autodialer: ============================================================
+2026-01-14 01:52:47,279 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 01:52:47,279 [INFO] autodialer: ============================================================
+2026-01-14 01:52:47,279 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 01:52:47,279 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 01:52:47,281 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 01:52:47,281 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 01:52:57,306 [WARNING] services.asterisk_service: AMI action timeout: Login
+2026-01-14 01:52:57,307 [ERROR] services.asterisk_service: AMI login xatosi: None
+2026-01-14 01:52:57,309 [ERROR] autodialer: AMI ulanish muvaffaqiyatsiz!
+2026-01-14 01:52:57,312 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 01:52:57,314 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 01:52:57,314 [INFO] autodialer: ============================================================
+2026-01-14 01:52:57,316 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 01:52:57,316 [INFO] autodialer: ============================================================
+2026-01-14 01:52:57,701 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 01:52:57,892 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 1 ta
+2026-01-14 01:52:57,894 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 1 ta
+2026-01-14 01:52:58,384 [INFO] autodialer: Telegram xabar yuborish: 1 ta buyurtma
+2026-01-14 01:52:59,046 [INFO] autodialer: Sotuvchi Milliy: 1 ta buyurtma
+2026-01-14 01:52:59,382 [INFO] services.telegram_service: Telegram xabar yuborildi: 230
+2026-01-14 01:54:59,592 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 01:54:59,592 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 01:54:59,593 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 01:54:59,594 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 127.0.0.1:5038
+2026-01-14 01:54:59,594 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 01:54:59,594 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 01:54:59,594 [INFO] autodialer: ============================================================
+2026-01-14 01:54:59,594 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 01:54:59,595 [INFO] autodialer: ============================================================
+2026-01-14 01:54:59,595 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 01:54:59,595 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 01:54:59,598 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 01:54:59,598 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 01:55:09,603 [WARNING] services.asterisk_service: AMI action timeout: Login
+2026-01-14 01:55:09,603 [ERROR] services.asterisk_service: AMI login xatosi: None
+2026-01-14 01:55:09,604 [ERROR] autodialer: AMI ulanish muvaffaqiyatsiz!
+2026-01-14 01:55:09,604 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 01:55:09,604 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 01:55:09,604 [INFO] autodialer: ============================================================
+2026-01-14 01:55:09,605 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 01:55:09,605 [INFO] autodialer: ============================================================
+2026-01-14 01:55:09,940 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 01:55:10,215 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 1 ta
+2026-01-14 01:55:10,216 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 1 ta
+2026-01-14 01:55:10,649 [INFO] autodialer: Telegram xabar yuborish: 1 ta buyurtma
+2026-01-14 01:55:11,445 [INFO] autodialer: Sotuvchi Milliy: 1 ta buyurtma
+2026-01-14 01:55:11,833 [INFO] services.telegram_service: Telegram xabar yuborildi: 231
+2026-01-14 01:55:23,645 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 2 ta
+2026-01-14 01:55:23,645 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 2 ta
+2026-01-14 01:55:26,469 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 2 ta
+2026-01-14 01:55:26,472 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 2 ta
+2026-01-14 01:55:26,744 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 2 ta
+2026-01-14 01:55:26,745 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 2 ta
+2026-01-14 01:57:52,776 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 01:57:52,777 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 01:57:52,777 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 01:57:52,777 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 127.0.0.1:5038
+2026-01-14 01:57:52,777 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 01:57:52,777 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 01:57:52,777 [INFO] autodialer: ============================================================
+2026-01-14 01:57:52,777 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 01:57:52,777 [INFO] autodialer: ============================================================
+2026-01-14 01:57:52,777 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 01:57:52,778 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 01:57:52,779 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 01:57:52,780 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 01:58:02,797 [WARNING] services.asterisk_service: AMI action timeout: Login
+2026-01-14 01:58:02,797 [ERROR] services.asterisk_service: AMI login xatosi: None
+2026-01-14 01:58:02,799 [ERROR] autodialer: AMI ulanish muvaffaqiyatsiz!
+2026-01-14 01:58:02,799 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 01:58:02,799 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 01:58:02,799 [INFO] autodialer: ============================================================
+2026-01-14 01:58:02,799 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 01:58:02,800 [INFO] autodialer: ============================================================
+2026-01-14 01:58:03,512 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 01:58:03,981 [INFO] services.amocrm_service: Yangi leadlar: 2 ta, Jami: 2 ta
+2026-01-14 01:58:03,982 [INFO] autodialer: Yangi buyurtmalar: 2 ta, Jami: 2 ta
+2026-01-14 01:58:04,900 [INFO] autodialer: Telegram xabar yuborish: 2 ta buyurtma
+2026-01-14 01:58:06,874 [INFO] autodialer: Sotuvchi Milliy: 2 ta buyurtma
+2026-01-14 01:58:07,216 [INFO] services.telegram_service: Telegram xabar yuborildi: 232
+2026-01-14 02:02:43,697 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 02:02:43,697 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 02:02:43,697 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 02:02:43,697 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 02:02:43,697 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 02:02:43,698 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 02:02:43,698 [INFO] autodialer: ============================================================
+2026-01-14 02:02:43,698 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 02:02:43,698 [INFO] autodialer: ============================================================
+2026-01-14 02:02:43,698 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 02:02:43,698 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 02:02:43,700 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 02:02:43,701 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 02:02:53,718 [WARNING] services.asterisk_service: AMI action timeout: Login
+2026-01-14 02:02:53,718 [ERROR] services.asterisk_service: AMI login xatosi: None
+2026-01-14 02:02:53,718 [ERROR] autodialer: AMI ulanish muvaffaqiyatsiz!
+2026-01-14 02:02:53,718 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 02:02:53,718 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 02:02:53,718 [INFO] autodialer: ============================================================
+2026-01-14 02:02:53,719 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 02:02:53,719 [INFO] autodialer: ============================================================
+2026-01-14 02:02:54,039 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 02:02:54,325 [INFO] services.amocrm_service: Yangi leadlar: 2 ta, Jami: 2 ta
+2026-01-14 02:02:54,326 [INFO] autodialer: Yangi buyurtmalar: 2 ta, Jami: 2 ta
+2026-01-14 02:03:04,842 [INFO] autodialer: Qo'ng'iroq qilish: +998948679300, Buyurtmalar: 2
+2026-01-14 02:03:04,842 [INFO] autodialer: Qo'ng'iroq urinishi: 1/3
+2026-01-14 02:03:04,842 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/3: +998948679300
+2026-01-14 02:03:04,842 [INFO] services.asterisk_service: Qayta urinish 30s dan keyin...
+2026-01-14 02:03:34,858 [INFO] autodialer: Qo'ng'iroq urinishi: 2/3
+2026-01-14 02:03:34,859 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/3: +998948679300
+2026-01-14 02:03:34,859 [INFO] services.asterisk_service: Qayta urinish 30s dan keyin...
+2026-01-14 02:04:04,854 [INFO] autodialer: Qo'ng'iroq urinishi: 3/3
+2026-01-14 02:04:04,854 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 3/3: +998948679300
+2026-01-14 02:04:04,854 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998948679300
+2026-01-14 02:04:04,854 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: CallStatus.FAILED
+2026-01-14 02:04:05,869 [INFO] autodialer: Qo'ng'iroq qilish: +998948679300, Buyurtmalar: 2
+2026-01-14 02:04:05,870 [INFO] autodialer: Qo'ng'iroq urinishi: 1/3
+2026-01-14 02:04:05,871 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/3: +998948679300
+2026-01-14 02:04:05,871 [INFO] services.asterisk_service: Qayta urinish 30s dan keyin...
+2026-01-14 02:04:35,874 [INFO] autodialer: Qo'ng'iroq urinishi: 2/3
+2026-01-14 02:04:35,875 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/3: +998948679300
+2026-01-14 02:04:35,875 [INFO] services.asterisk_service: Qayta urinish 30s dan keyin...
+2026-01-14 02:05:05,874 [INFO] autodialer: Qo'ng'iroq urinishi: 3/3
+2026-01-14 02:05:05,874 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 3/3: +998948679300
+2026-01-14 02:05:05,874 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998948679300
+2026-01-14 02:05:05,875 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: CallStatus.FAILED
+2026-01-14 02:05:06,883 [INFO] autodialer: Qo'ng'iroq qilish: +998948679300, Buyurtmalar: 2
+2026-01-14 02:05:06,885 [INFO] autodialer: Qo'ng'iroq urinishi: 1/3
+2026-01-14 02:05:06,886 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/3: +998948679300
+2026-01-14 02:05:06,886 [INFO] services.asterisk_service: Qayta urinish 30s dan keyin...
+2026-01-14 02:05:36,889 [INFO] autodialer: Qo'ng'iroq urinishi: 2/3
+2026-01-14 02:05:36,890 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/3: +998948679300
+2026-01-14 02:05:36,890 [INFO] services.asterisk_service: Qayta urinish 30s dan keyin...
+2026-01-14 02:06:06,895 [INFO] autodialer: Qo'ng'iroq urinishi: 3/3
+2026-01-14 02:06:06,896 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 3/3: +998948679300
+2026-01-14 02:06:06,896 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998948679300
+2026-01-14 02:06:06,896 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: CallStatus.FAILED
+2026-01-14 02:06:07,901 [INFO] autodialer: Telegram xabar yuborish: 2 ta buyurtma
+2026-01-14 02:06:10,529 [INFO] autodialer: Sotuvchi Milliy: 2 ta buyurtma
+2026-01-14 02:06:11,140 [INFO] services.telegram_service: Telegram xabar yuborildi: 233
+2026-01-14 02:11:33,057 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 02:11:33,057 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 02:11:33,057 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 02:11:33,057 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 02:11:33,058 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 02:11:33,058 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 02:11:33,058 [INFO] autodialer: ============================================================
+2026-01-14 02:11:33,058 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 02:11:33,058 [INFO] autodialer: ============================================================
+2026-01-14 02:11:33,058 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 02:11:33,058 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 02:11:33,060 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 02:11:33,060 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 02:11:43,070 [WARNING] services.asterisk_service: AMI action timeout: Login
+2026-01-14 02:11:43,070 [ERROR] services.asterisk_service: AMI login xatosi: None
+2026-01-14 02:11:43,071 [ERROR] autodialer: AMI ulanish muvaffaqiyatsiz!
+2026-01-14 02:11:43,071 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 02:11:43,071 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 02:11:43,072 [INFO] autodialer: ============================================================
+2026-01-14 02:11:43,072 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 02:11:43,072 [INFO] autodialer: ============================================================
+2026-01-14 02:11:43,464 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 02:11:43,729 [INFO] services.amocrm_service: Yangi leadlar: 2 ta, Jami: 2 ta
+2026-01-14 02:11:43,729 [INFO] autodialer: Yangi buyurtmalar: 2 ta, Jami: 2 ta
+2026-01-14 02:11:54,229 [INFO] autodialer: Qo'ng'iroq qilish: +998948679300, Buyurtmalar: 2
+2026-01-14 02:11:54,231 [INFO] autodialer: Qo'ng'iroq urinishi: 1/3
+2026-01-14 02:11:54,233 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/3: +998948679300
+2026-01-14 02:11:54,233 [INFO] services.asterisk_service: Qayta urinish 30s dan keyin...
+2026-01-14 02:12:20,312 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 02:12:20,312 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 02:12:20,313 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 02:12:20,313 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 02:12:20,313 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 02:12:20,313 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 02:12:20,314 [INFO] autodialer: ============================================================
+2026-01-14 02:12:20,314 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 02:12:20,314 [INFO] autodialer: ============================================================
+2026-01-14 02:12:20,314 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 02:12:20,315 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 02:12:20,318 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 02:12:20,319 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 02:12:20,322 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 02:12:20,338 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 02:12:20,339 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 02:12:20,339 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 02:12:20,339 [INFO] autodialer: ============================================================
+2026-01-14 02:12:20,339 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 02:12:20,339 [INFO] autodialer: ============================================================
+2026-01-14 02:12:20,714 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 02:12:21,004 [INFO] services.amocrm_service: Yangi leadlar: 2 ta, Jami: 2 ta
+2026-01-14 02:12:21,005 [INFO] autodialer: Yangi buyurtmalar: 2 ta, Jami: 2 ta
+2026-01-14 02:12:31,460 [INFO] autodialer: Qo'ng'iroq qilish: +998948679300, Buyurtmalar: 2
+2026-01-14 02:12:31,461 [INFO] autodialer: Qo'ng'iroq urinishi: 1/3
+2026-01-14 02:12:31,461 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/3: +998948679300
+2026-01-14 02:12:31,462 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998948679300
+2026-01-14 02:12:31,469 [ERROR] services.asterisk_service: Qo'ng'iroq xatosi: Extension does not exist.
+2026-01-14 02:12:31,469 [INFO] services.asterisk_service: Qayta urinish 30s dan keyin...
+2026-01-14 02:13:01,457 [INFO] autodialer: Qo'ng'iroq urinishi: 2/3
+2026-01-14 02:13:01,457 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/3: +998948679300
+2026-01-14 02:13:01,458 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998948679300
+2026-01-14 02:13:01,459 [ERROR] services.asterisk_service: Qo'ng'iroq xatosi: Extension does not exist.
+2026-01-14 02:13:01,460 [INFO] services.asterisk_service: Qayta urinish 30s dan keyin...
+2026-01-14 02:13:31,478 [INFO] autodialer: Qo'ng'iroq urinishi: 3/3
+2026-01-14 02:13:31,479 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 3/3: +998948679300
+2026-01-14 02:13:31,479 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998948679300
+2026-01-14 02:13:31,482 [ERROR] services.asterisk_service: Qo'ng'iroq xatosi: Extension does not exist.
+2026-01-14 02:13:31,483 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998948679300
+2026-01-14 02:13:31,484 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: CallStatus.FAILED
+2026-01-14 02:13:32,499 [INFO] autodialer: Qo'ng'iroq qilish: +998948679300, Buyurtmalar: 2
+2026-01-14 02:13:32,501 [INFO] autodialer: Qo'ng'iroq urinishi: 1/3
+2026-01-14 02:13:32,502 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/3: +998948679300
+2026-01-14 02:13:32,502 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998948679300
+2026-01-14 02:13:32,504 [ERROR] services.asterisk_service: Qo'ng'iroq xatosi: Extension does not exist.
+2026-01-14 02:13:32,505 [INFO] services.asterisk_service: Qayta urinish 30s dan keyin...
+2026-01-14 02:14:02,508 [INFO] autodialer: Qo'ng'iroq urinishi: 2/3
+2026-01-14 02:14:02,508 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/3: +998948679300
+2026-01-14 02:14:02,509 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998948679300
+2026-01-14 02:14:02,511 [ERROR] services.asterisk_service: Qo'ng'iroq xatosi: Extension does not exist.
+2026-01-14 02:14:02,511 [INFO] services.asterisk_service: Qayta urinish 30s dan keyin...
+2026-01-14 02:14:32,523 [INFO] autodialer: Qo'ng'iroq urinishi: 3/3
+2026-01-14 02:14:32,524 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 3/3: +998948679300
+2026-01-14 02:14:32,525 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998948679300
+2026-01-14 02:14:32,529 [ERROR] services.asterisk_service: Qo'ng'iroq xatosi: Extension does not exist.
+2026-01-14 02:14:32,531 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998948679300
+2026-01-14 02:14:32,531 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: CallStatus.FAILED
+2026-01-14 02:14:33,531 [INFO] autodialer: Qo'ng'iroq qilish: +998948679300, Buyurtmalar: 2
+2026-01-14 02:14:33,531 [INFO] autodialer: Qo'ng'iroq urinishi: 1/3
+2026-01-14 02:14:33,531 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/3: +998948679300
+2026-01-14 02:14:33,531 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998948679300
+2026-01-14 02:14:33,533 [ERROR] services.asterisk_service: Qo'ng'iroq xatosi: Extension does not exist.
+2026-01-14 02:14:33,533 [INFO] services.asterisk_service: Qayta urinish 30s dan keyin...
+2026-01-14 02:25:20,244 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 02:25:20,245 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 02:25:20,245 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 02:25:20,245 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 02:25:20,245 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 02:25:20,245 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 02:25:20,245 [INFO] autodialer: ============================================================
+2026-01-14 02:25:20,245 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 02:25:20,245 [INFO] autodialer: ============================================================
+2026-01-14 02:25:20,245 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 02:25:20,246 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 02:25:20,249 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 02:25:20,249 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 02:25:20,252 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 02:25:20,254 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 02:25:20,254 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 02:25:20,254 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 02:25:20,254 [INFO] autodialer: ============================================================
+2026-01-14 02:25:20,254 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 02:25:20,254 [INFO] autodialer: ============================================================
+2026-01-14 02:25:20,798 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 02:25:24,375 [INFO] services.amocrm_service: Yangi leadlar: 2 ta, Jami: 2 ta
+2026-01-14 02:25:24,375 [INFO] autodialer: Yangi buyurtmalar: 2 ta, Jami: 2 ta
+2026-01-14 02:25:35,361 [INFO] autodialer: Qo'ng'iroq qilish: +998948679300, Buyurtmalar: 2
+2026-01-14 02:25:35,363 [INFO] autodialer: Qo'ng'iroq urinishi: 1/3
+2026-01-14 02:25:35,365 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/3: +998948679300
+2026-01-14 02:25:35,366 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998948679300, Audio: c420d9c550285fc8abe4362cb473d10d
+2026-01-14 02:25:35,372 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998948679300
+2026-01-14 02:26:01,682 [INFO] services.asterisk_service: Qayta urinish 30s dan keyin...
+2026-01-14 02:26:31,688 [INFO] autodialer: Qo'ng'iroq urinishi: 2/3
+2026-01-14 02:26:31,688 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/3: +998948679300
+2026-01-14 02:26:31,688 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998948679300, Audio: c420d9c550285fc8abe4362cb473d10d
+2026-01-14 02:26:31,690 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998948679300
+2026-01-14 02:26:56,738 [INFO] services.asterisk_service: Qayta urinish 30s dan keyin...
+2026-01-14 02:27:26,739 [INFO] autodialer: Qo'ng'iroq urinishi: 3/3
+2026-01-14 02:27:26,740 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 3/3: +998948679300
+2026-01-14 02:27:26,740 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998948679300, Audio: c420d9c550285fc8abe4362cb473d10d
+2026-01-14 02:27:26,742 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998948679300
+2026-01-14 02:27:52,777 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998948679300
+2026-01-14 02:27:52,778 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: CallStatus.FAILED
+2026-01-14 02:27:53,779 [INFO] autodialer: Qo'ng'iroq qilish: +998948679300, Buyurtmalar: 2
+2026-01-14 02:27:53,780 [INFO] autodialer: Qo'ng'iroq urinishi: 1/3
+2026-01-14 02:27:53,781 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/3: +998948679300
+2026-01-14 02:27:53,781 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998948679300, Audio: c420d9c550285fc8abe4362cb473d10d
+2026-01-14 02:27:53,784 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998948679300
+2026-01-14 02:28:18,716 [INFO] services.asterisk_service: Qayta urinish 30s dan keyin...
+2026-01-14 02:28:48,717 [INFO] autodialer: Qo'ng'iroq urinishi: 2/3
+2026-01-14 02:28:48,718 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/3: +998948679300
+2026-01-14 02:28:48,719 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998948679300, Audio: c420d9c550285fc8abe4362cb473d10d
+2026-01-14 02:28:48,722 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998948679300
+2026-01-14 02:30:32,805 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 02:30:32,805 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 02:30:32,805 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 02:30:32,805 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 02:30:32,805 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 02:30:32,805 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 02:30:32,805 [INFO] autodialer: ============================================================
+2026-01-14 02:30:32,805 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 02:30:32,805 [INFO] autodialer: ============================================================
+2026-01-14 02:30:32,805 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 02:30:32,805 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 02:30:32,806 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 02:30:32,807 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 02:30:32,808 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 02:30:32,810 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 02:30:32,810 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 02:30:32,810 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 02:30:32,810 [INFO] autodialer: ============================================================
+2026-01-14 02:30:32,810 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 02:30:32,810 [INFO] autodialer: ============================================================
+2026-01-14 02:30:33,155 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 02:30:33,339 [INFO] services.amocrm_service: Yangi leadlar: 2 ta, Jami: 2 ta
+2026-01-14 02:30:33,340 [INFO] autodialer: Yangi buyurtmalar: 2 ta, Jami: 2 ta
+2026-01-14 02:30:43,957 [INFO] autodialer: Qo'ng'iroq qilish: +998948679300, Buyurtmalar: 2
+2026-01-14 02:30:43,958 [INFO] autodialer: Qo'ng'iroq urinishi: 1/3
+2026-01-14 02:30:43,958 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/3: +998948679300
+2026-01-14 02:30:43,958 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998948679300, Audio: audio/cache/c420d9c550285fc8abe4362cb473d10d
+2026-01-14 02:30:43,959 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998948679300
+2026-01-14 02:31:09,631 [INFO] services.asterisk_service: Qayta urinish 30s dan keyin...
+2026-01-14 02:31:39,639 [INFO] autodialer: Qo'ng'iroq urinishi: 2/3
+2026-01-14 02:31:39,639 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/3: +998948679300
+2026-01-14 02:31:39,640 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998948679300, Audio: audio/cache/c420d9c550285fc8abe4362cb473d10d
+2026-01-14 02:31:39,641 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998948679300
+2026-01-14 02:32:04,709 [INFO] services.asterisk_service: Qayta urinish 30s dan keyin...
+2026-01-14 02:32:34,716 [INFO] autodialer: Qo'ng'iroq urinishi: 3/3
+2026-01-14 02:32:34,716 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 3/3: +998948679300
+2026-01-14 02:32:34,717 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998948679300, Audio: audio/cache/c420d9c550285fc8abe4362cb473d10d
+2026-01-14 02:32:34,718 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998948679300
+2026-01-14 02:32:59,743 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998948679300
+2026-01-14 02:32:59,744 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: CallStatus.FAILED
+2026-01-14 02:32:59,744 [INFO] autodialer: Telegram xabar yuborish: 2 ta buyurtma
+2026-01-14 02:33:00,957 [INFO] autodialer: Sotuvchi Milliy: 2 ta buyurtma
+2026-01-14 02:33:01,305 [INFO] services.telegram_service: Telegram xabar yuborildi: 234
+2026-01-14 02:41:48,678 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 02:41:48,679 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 02:41:48,679 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 02:41:48,679 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 02:41:48,679 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 02:41:48,679 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 02:41:48,679 [INFO] autodialer: ============================================================
+2026-01-14 02:41:48,679 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 02:41:48,679 [INFO] autodialer: ============================================================
+2026-01-14 02:41:48,679 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 02:41:48,679 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 02:41:48,680 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 02:41:48,680 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 02:41:48,685 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 02:41:48,685 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 02:41:48,685 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 02:41:48,686 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 02:41:48,686 [INFO] autodialer: ============================================================
+2026-01-14 02:41:48,687 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 02:41:48,687 [INFO] autodialer: ============================================================
+2026-01-14 02:41:49,000 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 02:41:49,185 [INFO] services.amocrm_service: Yangi leadlar: 2 ta, Jami: 2 ta
+2026-01-14 02:41:49,185 [INFO] autodialer: Yangi buyurtmalar: 2 ta, Jami: 2 ta
+2026-01-14 02:41:59,797 [INFO] autodialer: Qo'ng'iroq qilish: +998505019800, Buyurtmalar: 2
+2026-01-14 02:41:59,799 [INFO] autodialer: Qo'ng'iroq urinishi: 1/3
+2026-01-14 02:41:59,803 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/3: +998505019800
+2026-01-14 02:41:59,804 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998505019800, Audio: audio/cache/c420d9c550285fc8abe4362cb473d10d
+2026-01-14 02:41:59,807 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998505019800
+2026-01-14 02:42:22,408 [INFO] services.asterisk_service: Qayta urinish 30s dan keyin...
+2026-01-14 02:42:52,431 [INFO] autodialer: Qo'ng'iroq urinishi: 2/3
+2026-01-14 02:42:52,432 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/3: +998505019800
+2026-01-14 02:42:52,433 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998505019800, Audio: audio/cache/c420d9c550285fc8abe4362cb473d10d
+2026-01-14 02:42:52,436 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998505019800
+2026-01-14 02:43:01,200 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 02:43:01,200 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 02:43:01,200 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 02:43:01,200 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 02:43:01,201 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 02:43:01,201 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 02:43:01,201 [INFO] autodialer: ============================================================
+2026-01-14 02:43:01,201 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 02:43:01,201 [INFO] autodialer: ============================================================
+2026-01-14 02:43:01,201 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 02:43:01,201 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 02:43:01,202 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 02:43:01,202 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 02:43:01,204 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 02:43:01,205 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 02:43:01,205 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 02:43:01,205 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 02:43:01,205 [INFO] autodialer: ============================================================
+2026-01-14 02:43:01,205 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 02:43:01,206 [INFO] autodialer: ============================================================
+2026-01-14 02:43:01,648 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 02:43:01,861 [INFO] services.amocrm_service: Yangi leadlar: 2 ta, Jami: 2 ta
+2026-01-14 02:43:01,862 [INFO] autodialer: Yangi buyurtmalar: 2 ta, Jami: 2 ta
+2026-01-14 02:43:12,323 [INFO] autodialer: Qo'ng'iroq qilish: +998505019800, Buyurtmalar: 2
+2026-01-14 02:43:12,324 [INFO] autodialer: Qo'ng'iroq urinishi: 1/3
+2026-01-14 02:43:12,324 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/3: +998505019800
+2026-01-14 02:43:12,325 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998505019800, Audio: audio/cache/c420d9c550285fc8abe4362cb473d10d
+2026-01-14 02:43:12,326 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998505019800
+2026-01-14 02:43:19,111 [INFO] services.asterisk_service: Qo'ng'iroq muvaffaqiyatli: +998505019800
+2026-01-14 02:43:19,112 [INFO] autodialer: Qo'ng'iroq muvaffaqiyatli!
+2026-01-14 02:46:57,560 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 02:46:57,561 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 02:46:57,561 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 02:46:57,561 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 02:46:57,562 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 02:46:57,562 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 02:46:57,562 [INFO] autodialer: ============================================================
+2026-01-14 02:46:57,562 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 02:46:57,562 [INFO] autodialer: ============================================================
+2026-01-14 02:46:57,562 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 02:46:57,562 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 02:46:57,564 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 02:46:57,564 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 02:46:57,567 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 02:46:57,568 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 02:46:57,568 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 02:46:57,568 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 02:46:57,568 [INFO] autodialer: ============================================================
+2026-01-14 02:46:57,568 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 02:46:57,568 [INFO] autodialer: ============================================================
+2026-01-14 02:46:57,873 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 02:46:58,069 [INFO] services.amocrm_service: Yangi leadlar: 2 ta, Jami: 2 ta
+2026-01-14 02:46:58,069 [INFO] autodialer: Yangi buyurtmalar: 2 ta, Jami: 2 ta
+2026-01-14 02:47:08,649 [INFO] autodialer: Qo'ng'iroq qilish: +998505019800, Buyurtmalar: 2
+2026-01-14 02:47:08,650 [INFO] autodialer: Qo'ng'iroq urinishi: 1/3
+2026-01-14 02:47:08,651 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/3: +998505019800
+2026-01-14 02:47:08,651 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998505019800, Audio: /tmp/autodialer/c420d9c550285fc8abe4362cb473d10d
+2026-01-14 02:47:08,654 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998505019800
+2026-01-14 02:47:22,528 [INFO] services.asterisk_service: Qo'ng'iroq muvaffaqiyatli: +998505019800
+2026-01-14 02:47:22,528 [INFO] autodialer: Qo'ng'iroq muvaffaqiyatli!
+2026-01-14 03:15:00,548 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 3 ta
+2026-01-14 03:15:00,551 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 3 ta
+2026-01-14 03:15:01,030 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 3 ta
+2026-01-14 03:15:01,030 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 3 ta
+2026-01-14 03:21:19,495 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 03:21:19,496 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 03:21:19,496 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 03:21:19,496 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 03:21:19,497 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 03:21:19,497 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 03:21:19,497 [INFO] autodialer: ============================================================
+2026-01-14 03:21:19,497 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 03:21:19,497 [INFO] autodialer: ============================================================
+2026-01-14 03:21:19,497 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 03:21:19,497 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 03:21:19,499 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 03:21:19,499 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 03:21:19,503 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 03:21:19,504 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 03:21:19,504 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 03:21:19,505 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 03:21:19,505 [INFO] autodialer: ============================================================
+2026-01-14 03:21:19,505 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 03:21:19,505 [INFO] autodialer: ============================================================
+2026-01-14 03:21:19,861 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 03:21:20,134 [INFO] services.amocrm_service: Yangi leadlar: 3 ta, Jami: 3 ta
+2026-01-14 03:21:20,134 [INFO] autodialer: Yangi buyurtmalar: 3 ta, Jami: 3 ta
+2026-01-14 03:22:50,222 [INFO] autodialer: Qo'ng'iroq qilish: +998505019800, Buyurtmalar: 3
+2026-01-14 03:22:50,224 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 03:22:50,225 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998505019800
+2026-01-14 03:22:50,225 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998505019800, Audio: /tmp/autodialer/fb6a18c18519acdd2c4112b9707d0c35
+2026-01-14 03:22:50,229 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998505019800
+2026-01-14 03:23:20,165 [INFO] services.asterisk_service: Qayta urinish 0s dan keyin...
+2026-01-14 03:23:20,166 [INFO] autodialer: Qo'ng'iroq urinishi: 2/2
+2026-01-14 03:23:20,166 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/2: +998505019800
+2026-01-14 03:23:20,166 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998505019800, Audio: /tmp/autodialer/fb6a18c18519acdd2c4112b9707d0c35
+2026-01-14 03:23:20,167 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998505019800
+2026-01-14 03:23:38,318 [INFO] services.asterisk_service: Qo'ng'iroq muvaffaqiyatli: +998505019800
+2026-01-14 03:23:38,318 [INFO] autodialer: Qo'ng'iroq muvaffaqiyatli!
+2026-01-14 03:26:47,165 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 03:26:47,166 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 03:26:47,166 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 03:26:47,167 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 03:26:47,167 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 03:26:47,167 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 03:26:47,167 [INFO] autodialer: ============================================================
+2026-01-14 03:26:47,167 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 03:26:47,167 [INFO] autodialer: ============================================================
+2026-01-14 03:26:47,167 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 03:26:47,167 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 03:26:47,168 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 03:26:47,168 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 03:26:47,171 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 03:26:47,173 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 03:26:47,173 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 03:26:47,173 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 03:26:47,173 [INFO] autodialer: ============================================================
+2026-01-14 03:26:47,173 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 03:26:47,173 [INFO] autodialer: ============================================================
+2026-01-14 03:26:47,514 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 03:26:47,706 [INFO] services.amocrm_service: Yangi leadlar: 3 ta, Jami: 3 ta
+2026-01-14 03:26:47,706 [INFO] autodialer: Yangi buyurtmalar: 3 ta, Jami: 3 ta
+2026-01-14 03:26:48,183 [INFO] autodialer: Telegram xabar yuborish: 3 ta buyurtma
+2026-01-14 03:26:50,261 [INFO] autodialer: Sotuvchi Milliy: 2 ta buyurtma
+2026-01-14 03:26:50,757 [INFO] services.telegram_service: Telegram xabar yuborildi: 235
+2026-01-14 03:26:50,757 [INFO] autodialer: Sotuvchi Milliy: 1 ta buyurtma
+2026-01-14 03:26:50,913 [INFO] services.telegram_service: Telegram xabar yuborildi: 236
+2026-01-14 03:28:18,577 [INFO] autodialer: Qo'ng'iroq qilish: +998505019800, Buyurtmalar: 3
+2026-01-14 03:28:18,579 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998505019800
+2026-01-14 03:28:18,580 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: CallStatus.FAILED
+2026-01-14 03:30:46,366 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 03:30:46,367 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 03:30:46,367 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 03:30:46,367 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 03:30:46,367 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 03:30:46,367 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 03:30:46,367 [INFO] autodialer: ============================================================
+2026-01-14 03:30:46,367 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 03:30:46,367 [INFO] autodialer: ============================================================
+2026-01-14 03:30:46,368 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 03:30:46,368 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 03:30:46,370 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 03:30:46,370 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 03:30:46,372 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 03:30:46,375 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 03:30:46,375 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 03:30:46,375 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 03:30:46,375 [INFO] autodialer: ============================================================
+2026-01-14 03:30:46,375 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 03:30:46,375 [INFO] autodialer: ============================================================
+2026-01-14 03:30:46,696 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 03:30:46,894 [INFO] services.amocrm_service: Yangi leadlar: 3 ta, Jami: 3 ta
+2026-01-14 03:30:46,894 [INFO] autodialer: Yangi buyurtmalar: 3 ta, Jami: 3 ta
+2026-01-14 03:31:32,252 [INFO] autodialer: Tekshirildi: 1 ta, Qoldi: 2 ta
+2026-01-14 03:31:32,253 [INFO] autodialer: Qolgan 2 ta buyurtma uchun Telegram xabar yuborish...
+2026-01-14 03:31:32,510 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 2 ta
+2026-01-14 03:31:33,915 [INFO] autodialer: Sotuvchi Milliy: 1 ta buyurtma
+2026-01-14 03:31:34,257 [INFO] services.telegram_service: Telegram xabar yuborildi: 237
+2026-01-14 03:31:34,258 [INFO] autodialer: Sotuvchi Milliy: 1 ta buyurtma
+2026-01-14 03:31:34,382 [INFO] services.telegram_service: Telegram xabar yuborildi: 238
+2026-01-14 03:32:17,118 [INFO] autodialer: Qo'ng'iroq qilish: +998505019800, Buyurtmalar: 2
+2026-01-14 03:32:17,118 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 03:32:17,118 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998505019800
+2026-01-14 03:32:17,119 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998505019800, Audio: /tmp/autodialer/c420d9c550285fc8abe4362cb473d10d
+2026-01-14 03:32:17,121 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998505019800
+2026-01-14 03:42:10,973 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 03:42:10,973 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 03:42:10,974 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 03:42:10,974 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 03:42:10,974 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 03:42:10,974 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 03:42:10,974 [INFO] autodialer: ============================================================
+2026-01-14 03:42:10,974 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 03:42:10,974 [INFO] autodialer: ============================================================
+2026-01-14 03:42:10,974 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 03:42:10,974 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 03:42:10,975 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 03:42:10,976 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 03:42:10,978 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 03:42:10,979 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 03:42:10,979 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 03:42:10,979 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 03:42:10,979 [INFO] autodialer: ============================================================
+2026-01-14 03:42:10,979 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 03:42:10,979 [INFO] autodialer: ============================================================
+2026-01-14 03:42:11,570 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 03:42:12,222 [INFO] services.amocrm_service: Yangi leadlar: 3 ta, Jami: 3 ta
+2026-01-14 03:42:12,223 [INFO] autodialer: Yangi buyurtmalar: 3 ta, Jami: 3 ta
+2026-01-14 03:42:54,570 [INFO] autodialer: Tekshirildi: 1 ta, Qoldi: 2 ta
+2026-01-14 03:42:54,571 [INFO] autodialer: Qolgan 2 ta buyurtma uchun yangi Telegram xabar...
+2026-01-14 03:42:54,769 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 2 ta
+2026-01-14 03:42:56,109 [INFO] autodialer: Sotuvchi Milliy: 2 ta buyurtma
+2026-01-14 03:42:56,448 [INFO] services.telegram_service: Telegram xabar yuborildi: 239
+2026-01-14 03:43:25,634 [INFO] autodialer: Tekshirildi: 1 ta, Qoldi: 1 ta
+2026-01-14 03:43:25,635 [INFO] autodialer: Telegram xabarlarni o'chirish: 1 ta
+2026-01-14 03:43:25,962 [INFO] services.telegram_service: Telegram xabar o'chirildi: 239
+2026-01-14 03:43:25,963 [INFO] autodialer: Qolgan 1 ta buyurtma uchun yangi Telegram xabar...
+2026-01-14 03:43:26,148 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 1 ta
+2026-01-14 03:43:26,764 [INFO] autodialer: Sotuvchi Milliy: 1 ta buyurtma
+2026-01-14 03:43:26,890 [INFO] services.telegram_service: Telegram xabar yuborildi: 240
+2026-01-14 03:43:36,557 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 2 ta
+2026-01-14 03:43:36,557 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 2 ta
+2026-01-14 03:43:42,689 [INFO] autodialer: Qo'ng'iroq qilish: +998505019800, Buyurtmalar: 2
+2026-01-14 03:43:42,690 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 03:43:42,691 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998505019800
+2026-01-14 03:43:42,692 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998505019800, Audio: /tmp/autodialer/c420d9c550285fc8abe4362cb473d10d
+2026-01-14 03:43:42,695 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998505019800
+2026-01-14 03:44:01,618 [INFO] services.asterisk_service: Qo'ng'iroq muvaffaqiyatli: +998505019800
+2026-01-14 03:44:01,618 [INFO] autodialer: Qo'ng'iroq muvaffaqiyatli!
+2026-01-14 03:44:01,619 [INFO] autodialer: Qo'ng'iroqdan keyin Telegram xabar yuborish...
+2026-01-14 03:44:02,012 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 2 ta
+2026-01-14 03:44:05,712 [INFO] autodialer: Sotuvchi Milliy: 1 ta buyurtma
+2026-01-14 03:44:06,061 [INFO] services.telegram_service: Telegram xabar yuborildi: 241
+2026-01-14 03:44:06,062 [INFO] autodialer: Sotuvchi Doniyorbek oshxonasi: 1 ta buyurtma
+2026-01-14 03:44:06,189 [INFO] services.telegram_service: Telegram xabar yuborildi: 242
+2026-01-14 03:45:30,399 [INFO] autodialer: Tekshirildi: 1 ta, Qoldi: 1 ta
+2026-01-14 03:45:30,399 [INFO] autodialer: Telegram xabarlarni o'chirish: 3 ta
+2026-01-14 03:45:30,777 [INFO] services.telegram_service: Telegram xabar o'chirildi: 240
+2026-01-14 03:45:30,952 [INFO] services.telegram_service: Telegram xabar o'chirildi: 241
+2026-01-14 03:45:31,115 [INFO] services.telegram_service: Telegram xabar o'chirildi: 242
+2026-01-14 03:45:31,115 [INFO] autodialer: Qolgan 1 ta buyurtma uchun yangi Telegram xabar...
+2026-01-14 03:45:31,350 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 1 ta
+2026-01-14 03:45:31,909 [INFO] autodialer: Sotuvchi Doniyorbek oshxonasi: 1 ta buyurtma
+2026-01-14 03:45:32,029 [INFO] services.telegram_service: Telegram xabar yuborildi: 243
+2026-01-14 03:45:35,233 [INFO] autodialer: Tekshirildi: 1 ta, Qoldi: 0 ta
+2026-01-14 03:45:35,234 [INFO] autodialer: Telegram xabarlarni o'chirish: 1 ta
+2026-01-14 03:45:35,344 [INFO] services.telegram_service: Telegram xabar o'chirildi: 243
+2026-01-14 03:45:35,344 [INFO] autodialer: Barcha buyurtmalar tekshirildi!
+2026-01-14 03:49:53,218 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 03:49:53,218 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 03:49:53,218 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 03:49:53,218 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 03:49:53,218 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 03:49:53,219 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 03:49:53,219 [INFO] autodialer: ============================================================
+2026-01-14 03:49:53,219 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 03:49:53,219 [INFO] autodialer: ============================================================
+2026-01-14 03:49:53,219 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 03:49:53,219 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 03:49:53,220 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 03:49:53,220 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 03:49:53,223 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 03:49:53,224 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 03:49:53,224 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 03:49:53,225 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 03:49:53,225 [INFO] autodialer: ============================================================
+2026-01-14 03:49:53,225 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 03:49:53,225 [INFO] autodialer: ============================================================
+2026-01-14 03:49:53,552 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 03:52:07,355 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 03:52:07,356 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 03:52:07,356 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 03:52:07,356 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 03:52:07,356 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 03:52:07,356 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 03:52:07,356 [INFO] autodialer: ============================================================
+2026-01-14 03:52:07,356 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 03:52:07,356 [INFO] autodialer: ============================================================
+2026-01-14 03:52:07,356 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 03:52:07,357 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 03:52:07,358 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 03:52:07,358 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 03:52:07,361 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 03:52:07,362 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 03:52:07,362 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 03:52:07,363 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 03:52:07,363 [INFO] autodialer: ============================================================
+2026-01-14 03:52:07,363 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 03:52:07,363 [INFO] autodialer: ============================================================
+2026-01-14 03:52:07,654 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 03:52:07,838 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 1 ta
+2026-01-14 03:52:07,838 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 1 ta
+2026-01-14 03:52:47,128 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 2 ta
+2026-01-14 03:52:47,129 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 2 ta
+2026-01-14 03:53:38,009 [INFO] autodialer: Qo'ng'iroq qilish: +998505019800, Buyurtmalar: 2
+2026-01-14 03:53:38,010 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 03:53:38,011 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998505019800
+2026-01-14 03:53:38,011 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998505019800, Audio: /tmp/autodialer/c420d9c550285fc8abe4362cb473d10d
+2026-01-14 03:53:38,013 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998505019800
+2026-01-14 03:54:08,014 [INFO] services.asterisk_service: Qayta urinish 0s dan keyin...
+2026-01-14 03:54:08,014 [INFO] autodialer: Qo'ng'iroq urinishi: 2/2
+2026-01-14 03:54:08,014 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/2: +998505019800
+2026-01-14 03:54:08,015 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998505019800, Audio: /tmp/autodialer/c420d9c550285fc8abe4362cb473d10d
+2026-01-14 03:54:08,016 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998505019800
+2026-01-14 03:54:24,829 [INFO] services.asterisk_service: Qo'ng'iroq muvaffaqiyatli: +998505019800
+2026-01-14 03:54:24,830 [INFO] autodialer: Qo'ng'iroq muvaffaqiyatli!
+2026-01-14 03:54:24,830 [INFO] autodialer: Qo'ng'iroqdan keyin Telegram xabar yuborish...
+2026-01-14 03:54:25,024 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 2 ta
+2026-01-14 03:54:26,561 [INFO] autodialer: Sotuvchi Milliy: 2 ta buyurtma
+2026-01-14 03:54:26,907 [INFO] services.telegram_service: Telegram xabar yuborildi: 245
+2026-01-14 03:56:15,956 [INFO] autodialer: Tekshirildi: 1 ta, Qoldi: 1 ta
+2026-01-14 03:56:15,956 [INFO] autodialer: Telegram xabarlarni o'chirish: 1 ta
+2026-01-14 03:56:16,286 [INFO] services.telegram_service: Telegram xabar o'chirildi: 245
+2026-01-14 03:56:16,286 [INFO] autodialer: Qolgan 1 ta buyurtma uchun yangi Telegram xabar...
+2026-01-14 03:56:16,499 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 1 ta
+2026-01-14 03:56:17,172 [INFO] autodialer: Sotuvchi Milliy: 1 ta buyurtma
+2026-01-14 03:56:17,301 [INFO] services.telegram_service: Telegram xabar yuborildi: 246
+2026-01-14 03:56:20,550 [INFO] autodialer: Tekshirildi: 1 ta, Qoldi: 0 ta
+2026-01-14 03:56:20,550 [INFO] autodialer: Telegram xabarlarni o'chirish: 1 ta
+2026-01-14 03:56:20,706 [INFO] services.telegram_service: Telegram xabar o'chirildi: 246
+2026-01-14 03:56:20,706 [INFO] autodialer: Barcha buyurtmalar tekshirildi!
+2026-01-14 03:57:21,031 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 03:57:21,031 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 03:57:21,031 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 03:57:21,031 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 03:57:21,031 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 03:57:21,032 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 03:57:21,032 [INFO] autodialer: ============================================================
+2026-01-14 03:57:21,032 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 03:57:21,032 [INFO] autodialer: ============================================================
+2026-01-14 03:57:21,032 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 03:57:21,032 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 03:57:21,033 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 03:57:21,033 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 03:57:21,035 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 03:57:21,037 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 03:57:21,038 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 03:57:21,038 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 03:57:21,038 [INFO] autodialer: ============================================================
+2026-01-14 03:57:21,038 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 03:57:21,038 [INFO] autodialer: ============================================================
+2026-01-14 03:57:21,317 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 04:01:23,303 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 04:01:23,303 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 04:01:23,303 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 04:01:23,303 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 04:01:23,303 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 04:01:23,303 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 04:01:23,303 [INFO] autodialer: ============================================================
+2026-01-14 04:01:23,303 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 04:01:23,304 [INFO] autodialer: ============================================================
+2026-01-14 04:01:23,304 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 04:01:23,304 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 04:01:26,087 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\3f5f652ef7c02fd28a6d14c9aabc5952.wav
+2026-01-14 04:01:27,336 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\e0ffcc7a61c7dd9657f305bf2d97f1dc.wav
+2026-01-14 04:01:29,459 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\68a25f7d6dda918eb5a8ffc665756ac7.wav
+2026-01-14 04:01:30,812 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\89fef798a065b95306eda4054aac2c9b.wav
+2026-01-14 04:01:32,782 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\699e636e35785ec8413643aa8185041b.wav
+2026-01-14 04:01:34,039 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\be144a1f6adb001237d92c4e615f2bed.wav
+2026-01-14 04:01:35,746 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\c5af01d68188be56b377f35a280e531a.wav
+2026-01-14 04:01:37,663 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\ed0358c1247fe77c0697897e2c645fcb.wav
+2026-01-14 04:01:39,038 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\f6a512e64ed611d305305eca6777f502.wav
+2026-01-14 04:01:40,947 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\e7816f867a0d365cf7e4bc3a59035508.wav
+2026-01-14 04:01:42,322 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\a7c9ae5b2f0f711c269b2dd13a360373.wav
+2026-01-14 04:01:44,805 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\9ce92f13561e083927efe68027b95eb1.wav
+2026-01-14 04:01:46,118 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\439d83e399b1a0e8d5fdc8beec4fad86.wav
+2026-01-14 04:01:48,733 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\42b52aad934de8630a0eac81966f0f70.wav
+2026-01-14 04:01:50,710 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\30a508274de96179484b5d97dce04aa5.wav
+2026-01-14 04:01:52,288 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\b1cac662247ef7a1e0bef66571646846.wav
+2026-01-14 04:01:54,715 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\9bc1d7fc8c925dd30f49cb2b69bf21f5.wav
+2026-01-14 04:01:59,403 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\9391c7c6f334e739f033ac05e7d41c5a.wav
+2026-01-14 04:02:00,743 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\5c824129325d1a3ec55e292d1ad7bc1f.wav
+2026-01-14 04:02:02,970 [INFO] services.tts_service: Edge TTS yaratildi: audio\cache\a57f023a71c0ecd97227278cd161c684.wav
+2026-01-14 04:02:02,970 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 04:02:02,970 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 04:02:02,974 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 04:02:02,976 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 04:02:02,976 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 04:02:02,976 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 04:02:02,976 [INFO] autodialer: ============================================================
+2026-01-14 04:02:02,976 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 04:02:02,976 [INFO] autodialer: ============================================================
+2026-01-14 04:02:03,258 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 04:02:03,919 [INFO] services.amocrm_service: Yangi leadlar: 3 ta, Jami: 3 ta
+2026-01-14 04:02:03,920 [INFO] autodialer: Yangi buyurtmalar: 3 ta, Jami: 3 ta
+2026-01-14 04:03:34,738 [INFO] autodialer: Qo'ng'iroq qilish: +998505019800, Buyurtmalar: 3
+2026-01-14 04:03:34,740 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 04:03:34,740 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998505019800
+2026-01-14 04:03:34,740 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998505019800, Audio: /tmp/autodialer/68a25f7d6dda918eb5a8ffc665756ac7
+2026-01-14 04:03:34,741 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998505019800
+2026-01-14 04:03:42,772 [INFO] services.asterisk_service: Qo'ng'iroq muvaffaqiyatli: +998505019800
+2026-01-14 04:03:42,772 [INFO] autodialer: Qo'ng'iroq muvaffaqiyatli!
+2026-01-14 04:04:27,435 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 04:04:27,435 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 04:04:27,435 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 04:04:27,436 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 04:04:27,436 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 04:04:27,436 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 04:04:27,436 [INFO] autodialer: ============================================================
+2026-01-14 04:04:27,436 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 04:04:27,436 [INFO] autodialer: ============================================================
+2026-01-14 04:04:27,436 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 04:04:27,436 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 04:04:27,437 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 04:04:27,437 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 04:04:27,439 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 04:04:27,440 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 04:04:27,441 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 04:04:27,441 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 04:04:27,441 [INFO] autodialer: ============================================================
+2026-01-14 04:04:27,441 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 04:04:27,441 [INFO] autodialer: ============================================================
+2026-01-14 04:04:27,923 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 04:04:28,552 [INFO] services.amocrm_service: Yangi leadlar: 3 ta, Jami: 3 ta
+2026-01-14 04:04:28,552 [INFO] autodialer: Yangi buyurtmalar: 3 ta, Jami: 3 ta
+2026-01-14 04:05:56,639 [INFO] autodialer: Tekshirildi: 1 ta, Qoldi: 2 ta
+2026-01-14 04:05:56,640 [INFO] autodialer: Qolgan 2 ta buyurtma uchun yangi Telegram xabar...
+2026-01-14 04:05:56,877 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 2 ta
+2026-01-14 04:05:58,089 [INFO] autodialer: Sotuvchi Milliy: 2 ta buyurtma
+2026-01-14 04:05:58,503 [INFO] services.telegram_service: Telegram xabar yuborildi: 247
+2026-01-14 04:05:59,203 [INFO] autodialer: Qo'ng'iroq qilish: +998505019800, Buyurtmalar: 2
+2026-01-14 04:05:59,206 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 04:05:59,206 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998505019800
+2026-01-14 04:05:59,207 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998505019800, Audio: /tmp/autodialer/e0ffcc7a61c7dd9657f305bf2d97f1dc
+2026-01-14 04:05:59,210 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998505019800
+2026-01-14 04:06:05,572 [INFO] services.asterisk_service: Qo'ng'iroq muvaffaqiyatli: +998505019800
+2026-01-14 04:06:05,573 [INFO] autodialer: Qo'ng'iroq muvaffaqiyatli!
+2026-01-14 04:07:29,078 [INFO] autodialer: 3 daqiqa o'tdi, Telegram xabar yuborish...
+2026-01-14 04:07:29,302 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 2 ta
+2026-01-14 04:07:30,825 [INFO] autodialer: Sotuvchi Milliy: 2 ta buyurtma
+2026-01-14 04:07:31,167 [INFO] services.telegram_service: Telegram xabar yuborildi: 248
+2026-01-14 04:12:58,352 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 04:12:58,352 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 04:12:58,352 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 04:12:58,352 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 04:12:58,352 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 04:12:58,353 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 04:12:58,353 [INFO] autodialer: ============================================================
+2026-01-14 04:12:58,353 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 04:12:58,353 [INFO] autodialer: ============================================================
+2026-01-14 04:12:58,353 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 04:12:58,353 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 04:12:58,354 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 04:12:58,354 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 04:12:58,356 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 04:12:58,357 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 04:12:58,357 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 04:12:58,357 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 04:12:58,357 [INFO] autodialer: ============================================================
+2026-01-14 04:12:58,357 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 04:12:58,357 [INFO] autodialer: ============================================================
+2026-01-14 04:12:58,714 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 04:12:58,913 [INFO] services.amocrm_service: Yangi leadlar: 2 ta, Jami: 2 ta
+2026-01-14 04:12:58,913 [INFO] autodialer: Yangi buyurtmalar: 2 ta, Jami: 2 ta
+2026-01-14 04:14:29,108 [INFO] autodialer: Qo'ng'iroq qilish: +998505019800, Buyurtmalar: 2
+2026-01-14 04:14:29,109 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 04:14:29,109 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998505019800
+2026-01-14 04:14:29,109 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998505019800, Audio: /tmp/autodialer/e0ffcc7a61c7dd9657f305bf2d97f1dc
+2026-01-14 04:14:29,111 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998505019800
+2026-01-14 04:14:38,414 [INFO] services.asterisk_service: Qo'ng'iroq muvaffaqiyatli: +998505019800
+2026-01-14 04:14:38,414 [INFO] autodialer: Qo'ng'iroq muvaffaqiyatli!
+2026-01-14 04:15:58,999 [INFO] autodialer: 3 daqiqa o'tdi, Telegram xabar yuborish...
+2026-01-14 04:15:59,187 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 2 ta
+2026-01-14 04:16:01,059 [INFO] autodialer: Sotuvchi Milliy: 2 ta buyurtma
+2026-01-14 04:16:01,530 [INFO] services.telegram_service: Telegram xabar yuborildi: 249
+2026-01-14 04:41:27,378 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 04:41:27,378 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 04:41:27,378 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 04:41:27,379 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 04:41:27,379 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 04:41:27,379 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 04:41:27,379 [INFO] autodialer: ============================================================
+2026-01-14 04:41:27,379 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 04:41:27,379 [INFO] autodialer: ============================================================
+2026-01-14 04:41:27,379 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 04:41:27,379 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 04:41:27,384 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 04:41:27,800 [INFO] services.tts_service: Audio fayllar WSL ga ko'chirildi: /tmp/autodialer/
+2026-01-14 04:41:27,801 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 04:41:27,804 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 04:41:27,805 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 04:41:27,806 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 04:41:27,806 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 04:41:27,806 [INFO] autodialer: ============================================================
+2026-01-14 04:41:27,806 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 04:41:27,806 [INFO] autodialer: ============================================================
+2026-01-14 04:41:28,157 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 04:41:28,443 [INFO] services.amocrm_service: Yangi leadlar: 2 ta, Jami: 2 ta
+2026-01-14 04:41:28,443 [INFO] autodialer: Yangi buyurtmalar: 2 ta, Jami: 2 ta
+2026-01-14 04:41:31,825 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 3 ta
+2026-01-14 04:41:31,826 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 3 ta
+2026-01-14 04:42:59,374 [INFO] autodialer: Qo'ng'iroq qilish: +998505019800, Buyurtmalar: 3
+2026-01-14 04:42:59,376 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 04:42:59,376 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998505019800
+2026-01-14 04:42:59,378 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998505019800, Audio: /tmp/autodialer/68a25f7d6dda918eb5a8ffc665756ac7
+2026-01-14 04:42:59,381 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998505019800
+2026-01-14 04:43:15,010 [INFO] services.asterisk_service: Qo'ng'iroq muvaffaqiyatli: +998505019800
+2026-01-14 04:43:15,011 [INFO] autodialer: Qo'ng'iroq muvaffaqiyatli!
+2026-01-14 04:44:28,552 [INFO] autodialer: 3 daqiqa o'tdi, Telegram xabar yuborish...
+2026-01-14 04:44:28,839 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 3 ta
+2026-01-14 04:44:31,449 [INFO] autodialer: Sotuvchi Milliy: 3 ta buyurtma
+2026-01-14 04:44:31,880 [INFO] services.telegram_service: Telegram xabar yuborildi: 250
+2026-01-14 04:44:58,162 [INFO] autodialer: Tekshirildi: 1 ta, Qoldi: 2 ta
+2026-01-14 04:44:58,163 [INFO] autodialer: Telegram xabarlarni o'chirish: 1 ta
+2026-01-14 04:44:58,577 [INFO] services.telegram_service: Telegram xabar o'chirildi: 250
+2026-01-14 04:44:58,577 [INFO] autodialer: Qolgan 2 ta buyurtma uchun yangi Telegram xabar...
+2026-01-14 04:44:58,810 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 2 ta
+2026-01-14 04:45:00,068 [INFO] autodialer: Sotuvchi Milliy: 2 ta buyurtma
+2026-01-14 04:45:00,225 [INFO] services.telegram_service: Telegram xabar yuborildi: 251
+2026-01-14 04:45:20,791 [INFO] autodialer: Tekshirildi: 1 ta, Qoldi: 1 ta
+2026-01-14 04:45:20,791 [INFO] autodialer: Telegram xabarlarni o'chirish: 1 ta
+2026-01-14 04:45:21,159 [INFO] services.telegram_service: Telegram xabar o'chirildi: 251
+2026-01-14 04:45:21,159 [INFO] autodialer: Qolgan 1 ta buyurtma uchun yangi Telegram xabar...
+2026-01-14 04:45:21,482 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 1 ta
+2026-01-14 04:45:22,431 [INFO] autodialer: Sotuvchi Milliy: 1 ta buyurtma
+2026-01-14 04:45:22,579 [INFO] services.telegram_service: Telegram xabar yuborildi: 252
+2026-01-14 04:45:32,773 [INFO] autodialer: Tekshirildi: 1 ta, Qoldi: 0 ta
+2026-01-14 04:45:32,773 [INFO] autodialer: Telegram xabarlarni o'chirish: 1 ta
+2026-01-14 04:45:32,891 [INFO] services.telegram_service: Telegram xabar o'chirildi: 252
+2026-01-14 04:45:32,892 [INFO] autodialer: Barcha buyurtmalar tekshirildi!
+2026-01-14 04:47:15,920 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 04:47:15,921 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 04:47:15,921 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 04:47:15,921 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 04:47:15,921 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 04:47:15,922 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 04:47:15,922 [INFO] autodialer: ============================================================
+2026-01-14 04:47:15,922 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 04:47:15,923 [INFO] autodialer: ============================================================
+2026-01-14 04:47:15,923 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 04:47:15,923 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 04:47:15,927 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 04:47:16,363 [INFO] services.tts_service: Audio fayllar WSL ga ko'chirildi: /tmp/autodialer/
+2026-01-14 04:47:16,363 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 04:47:16,366 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 04:47:16,367 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 04:47:16,367 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 04:47:16,367 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 04:47:16,367 [INFO] autodialer: ============================================================
+2026-01-14 04:47:16,367 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 04:47:16,367 [INFO] autodialer: ============================================================
+2026-01-14 04:47:17,016 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 04:50:16,904 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 04:50:16,905 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 04:50:16,905 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 04:50:16,905 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 04:50:16,905 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 04:50:16,906 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 04:50:16,906 [INFO] autodialer: ============================================================
+2026-01-14 04:50:16,906 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 04:50:16,906 [INFO] autodialer: ============================================================
+2026-01-14 04:50:16,906 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 04:50:16,906 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 04:50:16,909 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 04:50:17,348 [INFO] services.tts_service: Audio fayllar WSL ga ko'chirildi: /tmp/autodialer/
+2026-01-14 04:50:17,349 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 04:50:17,351 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 04:50:17,353 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 04:50:17,353 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 04:50:17,354 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 04:50:17,354 [INFO] autodialer: ============================================================
+2026-01-14 04:50:17,354 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 04:50:17,354 [INFO] autodialer: ============================================================
+2026-01-14 04:50:17,754 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 04:50:17,990 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 1 ta
+2026-01-14 04:50:17,990 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 1 ta
+2026-01-14 04:51:47,999 [INFO] autodialer: Qo'ng'iroq qilish: +998505019800, Buyurtmalar: 1
+2026-01-14 04:51:47,999 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 04:51:47,999 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998505019800
+2026-01-14 04:51:47,999 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998505019800, Audio: /tmp/autodialer/3f5f652ef7c02fd28a6d14c9aabc5952
+2026-01-14 04:51:48,000 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998505019800
+2026-01-14 04:52:03,895 [INFO] services.asterisk_service: Qo'ng'iroq muvaffaqiyatli: +998505019800
+2026-01-14 04:52:03,896 [INFO] autodialer: Qo'ng'iroq muvaffaqiyatli!
+2026-01-14 04:53:18,388 [INFO] autodialer: 3 daqiqa o'tdi, Telegram xabar yuborish...
+2026-01-14 04:53:18,675 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 1 ta
+2026-01-14 04:53:19,406 [INFO] autodialer: Sotuvchi Milliy: 1 ta buyurtma
+2026-01-14 04:53:19,949 [INFO] services.telegram_service: Telegram xabar yuborildi: 253

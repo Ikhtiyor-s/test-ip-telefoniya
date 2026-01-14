@@ -425,6 +425,7 @@ class AutodialerPro:
                 order_data = await self.amocrm.get_order_full_data(order_id)
                 self.stats.record_order(
                     order_id=order_id,
+                    order_number=order_data.get("order_number", str(order_id)),
                     seller_name=order_data.get("seller_name", "Noma'lum"),
                     seller_phone=order_data.get("seller_phone", "Noma'lum"),
                     client_name=order_data.get("client_name", "Noma'lum"),

@@ -54,6 +54,7 @@ class CallRecord:
 class OrderRecord:
     """Buyurtma yozuvi"""
     order_id: int
+    order_number: str  # AmoCRM buyurtma raqami (#1570)
     seller_name: str
     seller_phone: str
     client_name: str
@@ -69,6 +70,9 @@ class OrderRecord:
 
     @classmethod
     def from_dict(cls, data: dict) -> "OrderRecord":
+        # Eski ma'lumotlar uchun order_number ni qo'shish
+        if "order_number" not in data:
+            data["order_number"] = str(data.get("order_id", ""))
         return cls(**data)
 
 
@@ -194,6 +198,7 @@ class StatsService:
     def record_order(
         self,
         order_id: int,
+        order_number: str,
         seller_name: str,
         seller_phone: str,
         client_name: str,
@@ -208,6 +213,7 @@ class StatsService:
 
         record = OrderRecord(
             order_id=order_id,
+            order_number=order_number,
             seller_name=seller_name,
             seller_phone=seller_phone,
             client_name=client_name,
@@ -230,7 +236,7 @@ class StatsService:
             self._today_stats.rejected_orders += 1
 
         self._save_stats()
-        logger.info(f"Buyurtma qayd etildi: #{order_id} - {result.value}")
+        logger.info(f"Buyurtma qayd etildi: #{order_number} - {result.value}")
 
     def get_today_stats(self) -> DailyStats:
         """Bugungi statistikani olish"""

@@ -299,6 +299,16 @@ class AmoCRMService:
         result["lead_name"] = lead_data.get("name", "Noma'lum")
         result["price"] = lead_data.get("price", 0)
 
+        # Lead nomidan buyurtma raqamini ajratib olish
+        # Format: "#1570 | Bekzod Usarov | CASH | 1 010 000"
+        import re
+        lead_name = result["lead_name"]
+        order_num_match = re.search(r'#(\d+)', lead_name)
+        if order_num_match:
+            result["order_number"] = order_num_match.group(1)
+        else:
+            result["order_number"] = str(lead_id)  # Fallback - lead_id
+
         # NOTE dan ma'lumotlarni olish
         notes = await self.get_lead_notes(lead_id)
         for note in notes:

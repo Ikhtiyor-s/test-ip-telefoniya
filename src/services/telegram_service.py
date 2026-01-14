@@ -877,7 +877,7 @@ class TelegramStatsHandler:
             for i, order in enumerate(orders[-10:], 1):
                 time = order.timestamp.split("T")[1][:5]
                 price_str = f"{order.price:,.0f}".replace(",", " ") if order.price else "N/A"
-                text += f"""{i}. <b>#{order.order_id}</b>
+                text += f"""{i}. <b>#{order.order_number}</b>
    👤 {order.client_name}
    📦 {order.product_name}
    💰 {price_str} so'm
@@ -924,7 +924,7 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
             for i, order in enumerate(orders[-10:], 1):
                 time = order.timestamp.split("T")[1][:5]
                 price_str = f"{order.price:,.0f}".replace(",", " ") if order.price else "N/A"
-                text += f"""{i}. <b>#{order.order_id}</b>
+                text += f"""{i}. <b>#{order.order_number}</b>
    👤 {order.client_name}
    📦 {order.product_name}
    💰 {price_str} so'm

@@ -7,7 +7,7 @@ Qo'ng'iroqlar va buyurtmalar statistikasini saqlash va ko'rsatish
 
 import json
 import logging
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional
 from dataclasses import dataclass, field, asdict
@@ -294,3 +294,74 @@ class StatsService:
         self._today_stats = self._all_stats[today]
         self._save_stats()
         logger.info("Bugungi statistika tozalandi")
+
+    def get_period_stats(self, period: str) -> DailyStats:
+        """
+        Davr bo'yicha statistikani olish
+
+        Args:
+            period: "daily", "weekly", "monthly", "yearly"
+
+        Returns:
+            DailyStats: Jami statistika
+        """
+        today = date.today()
+
+        if period == "daily":
+            start_date = today
+        elif period == "weekly":
+            start_date = today - timedelta(days=7)
+        elif period == "monthly":
+            start_date = today - timedelta(days=30)
+        elif period == "yearly":
+            start_date = today - timedelta(days=365)
+        else:
+            start_date = today
+
+        # Jami statistikani hisoblash
+        combined = DailyStats(date=f"{start_date.isoformat()} - {today.isoformat()}")
+
+        for date_str, stats in self._all_stats.items():
+            try:
+                stat_date = date.fromisoformat(date_str)
+                if start_date <= stat_date <= today:
+                    combined.total_calls += stats.total_calls
+                    combined.answered_calls += stats.answered_calls
+                    combined.unanswered_calls += stats.unanswered_calls
+                    combined.calls_1_attempt += stats.calls_1_attempt
+                    combined.calls_2_attempts += stats.calls_2_attempts
+                    combined.calls_3_attempts += stats.calls_3_attempts
+                    combined.total_orders += stats.total_orders
+                    combined.accepted_orders += stats.accepted_orders
+                    combined.rejected_orders += stats.rejected_orders
+                    combined.accepted_without_telegram += stats.accepted_without_telegram
+                    combined.call_records.extend(stats.call_records)
+                    combined.order_records.extend(stats.order_records)
+            except ValueError:
+                continue
+
+        return combined
+
+    def get_period_calls_by_attempts(self, period: str, attempts: int) -> List[CallRecord]:
+        """Davr bo'yicha urinishlar soniga ko'ra qo'ng'iroqlar"""
+        stats = self.get_period_stats(period)
+        return [
+            CallRecord.from_dict(r) for r in stats.call_records
+            if r["attempts"] == attempts and r["result"] == CallResult.ANSWERED.value
+        ]
+
+    def get_period_orders_by_result(self, period: str, result: OrderResult) -> List[OrderRecord]:
+        """Davr bo'yicha natijaga ko'ra buyurtmalar"""
+        stats = self.get_period_stats(period)
+        return [
+            OrderRecord.from_dict(r) for r in stats.order_records
+            if r["result"] == result.value
+        ]
+
+    def get_period_orders_without_telegram(self, period: str) -> List[OrderRecord]:
+        """Davr bo'yicha Telegram'siz qabul qilingan buyurtmalar"""
+        stats = self.get_period_stats(period)
+        return [
+            OrderRecord.from_dict(r) for r in stats.order_records
+            if r["result"] == OrderResult.ACCEPTED.value and not r["telegram_sent"]
+        ]

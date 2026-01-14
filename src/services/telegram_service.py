@@ -24,6 +24,12 @@ CALLBACK_REJECTED = "rejected"
 CALLBACK_NO_TELEGRAM = "no_telegram"
 CALLBACK_BACK = "back"
 
+# Davr tugmalari
+CALLBACK_DAILY = "period_daily"
+CALLBACK_WEEKLY = "period_weekly"
+CALLBACK_MONTHLY = "period_monthly"
+CALLBACK_YEARLY = "period_yearly"
+
 
 class TelegramService:
     """
@@ -464,6 +470,7 @@ class TelegramStatsHandler:
         self._polling_task: Optional[asyncio.Task] = None
         self._running = False
         self._last_update_id = 0
+        self._current_period = "daily"  # Joriy davr
 
     def set_stats_service(self, stats_service):
         """Stats servisini sozlash"""
@@ -577,6 +584,19 @@ class TelegramStatsHandler:
             await self._show_orders_list(message_id, chat_id, "rejected")
         elif data == CALLBACK_NO_TELEGRAM:
             await self._show_no_telegram_orders(message_id, chat_id)
+        # Davr tugmalari
+        elif data == CALLBACK_DAILY:
+            self._current_period = "daily"
+            await self._show_main_stats(message_id, chat_id)
+        elif data == CALLBACK_WEEKLY:
+            self._current_period = "weekly"
+            await self._show_main_stats(message_id, chat_id)
+        elif data == CALLBACK_MONTHLY:
+            self._current_period = "monthly"
+            await self._show_main_stats(message_id, chat_id)
+        elif data == CALLBACK_YEARLY:
+            self._current_period = "yearly"
+            await self._show_main_stats(message_id, chat_id)
 
     async def _answer_callback(self, callback_id: str):
         """Callback query javob"""
@@ -588,15 +608,27 @@ class TelegramStatsHandler:
         except Exception as e:
             logger.error(f"answerCallbackQuery xatosi: {e}")
 
+    def _get_period_title(self) -> str:
+        """Davr sarlavhasini olish"""
+        titles = {
+            "daily": "BUGUNGI",
+            "weekly": "HAFTALIK (7 kun)",
+            "monthly": "OYLIK (30 kun)",
+            "yearly": "YILLIK (365 kun)"
+        }
+        return titles.get(self._current_period, "BUGUNGI")
+
     async def send_stats_message(self, chat_id: str = None) -> Optional[int]:
         """Statistika xabarini yuborish"""
         if not self.stats_service:
             return None
 
         chat_id = chat_id or self.telegram.default_chat_id
-        stats = self.stats_service.get_today_stats()
+        self._current_period = "daily"  # Har doim kunlik bilan boshlash
+        stats = self.stats_service.get_period_stats(self._current_period)
 
-        text = f"""📊 <b>BUGUNGI STATISTIKA</b>
+        title = self._get_period_title()
+        text = f"""📊 <b>{title} STATISTIKA</b>
 ━━━━━━━━━━━━━━━━━━━━
 
 📞 <b>QO'NG'IROQLAR:</b> {stats.total_calls} ta
@@ -610,7 +642,7 @@ class TelegramStatsHandler:
 ├ ❌ Bekor qilindi: {stats.rejected_orders}
 └ 🚀 Telegram'siz qabul: {stats.accepted_without_telegram}
 
-📅 Sana: {stats.date}
+📅 Davr: {stats.date}
 
 <i>Batafsil ko'rish uchun tugmalarni bosing:</i>"""
 
@@ -625,8 +657,24 @@ class TelegramStatsHandler:
 
     def _get_stats_keyboard(self, stats) -> dict:
         """Statistika inline keyboard"""
+        # Davr tugmalari - tanlangan davr belgilanadi
+        period_buttons = []
+        periods = [
+            ("📅 Kunlik", CALLBACK_DAILY, "daily"),
+            ("📆 Haftalik", CALLBACK_WEEKLY, "weekly"),
+            ("🗓 Oylik", CALLBACK_MONTHLY, "monthly"),
+            ("📊 Yillik", CALLBACK_YEARLY, "yearly")
+        ]
+        for label, callback, period in periods:
+            if period == self._current_period:
+                period_buttons.append({"text": f"✓ {label}", "callback_data": callback})
+            else:
+                period_buttons.append({"text": label, "callback_data": callback})
+
         return {
             "inline_keyboard": [
+                period_buttons[:2],  # Kunlik, Haftalik
+                period_buttons[2:],  # Oylik, Yillik
                 [
                     {"text": f"1️⃣ 1-urinish ({stats.calls_1_attempt})", "callback_data": CALLBACK_CALLS_1},
                     {"text": f"2️⃣ 2-urinish ({stats.calls_2_attempts})", "callback_data": CALLBACK_CALLS_2}
@@ -650,9 +698,10 @@ class TelegramStatsHandler:
         if not self.stats_service:
             return
 
-        stats = self.stats_service.get_today_stats()
+        stats = self.stats_service.get_period_stats(self._current_period)
+        title = self._get_period_title()
 
-        text = f"""📊 <b>BUGUNGI STATISTIKA</b>
+        text = f"""📊 <b>{title} STATISTIKA</b>
 ━━━━━━━━━━━━━━━━━━━━
 
 📞 <b>QO'NG'IROQLAR:</b> {stats.total_calls} ta
@@ -666,7 +715,7 @@ class TelegramStatsHandler:
 ├ ❌ Bekor qilindi: {stats.rejected_orders}
 └ 🚀 Telegram'siz qabul: {stats.accepted_without_telegram}
 
-📅 Sana: {stats.date}
+📅 Davr: {stats.date}
 
 <i>Batafsil ko'rish uchun tugmalarni bosing:</i>"""
 
@@ -685,7 +734,7 @@ class TelegramStatsHandler:
         if not self.stats_service:
             return
 
-        calls = self.stats_service.get_calls_by_attempts(attempts)
+        calls = self.stats_service.get_period_calls_by_attempts(self._current_period, attempts)
 
         if not calls:
             text = f"""📞 <b>{attempts}-URINISHDA JAVOB BERILGAN QO'NG'IROQLAR</b>
@@ -725,7 +774,7 @@ class TelegramStatsHandler:
         if not self.stats_service:
             return
 
-        stats = self.stats_service.get_today_stats()
+        stats = self.stats_service.get_period_stats(self._current_period)
         calls = [c for c in stats.call_records if c["result"] == "answered"]
 
         if not calls:
@@ -766,7 +815,7 @@ class TelegramStatsHandler:
         if not self.stats_service:
             return
 
-        stats = self.stats_service.get_today_stats()
+        stats = self.stats_service.get_period_stats(self._current_period)
         calls = [c for c in stats.call_records if c["result"] != "answered"]
 
         if not calls:
@@ -811,7 +860,7 @@ class TelegramStatsHandler:
 
         from .stats_service import OrderResult
         order_result = OrderResult.ACCEPTED if result == "accepted" else OrderResult.REJECTED
-        orders = self.stats_service.get_orders_by_result(order_result)
+        orders = self.stats_service.get_period_orders_by_result(self._current_period, order_result)
 
         title = "✅ QABUL QILINGAN" if result == "accepted" else "❌ BEKOR QILINGAN"
 
@@ -856,7 +905,7 @@ class TelegramStatsHandler:
         if not self.stats_service:
             return
 
-        orders = self.stats_service.get_orders_accepted_without_telegram()
+        orders = self.stats_service.get_period_orders_without_telegram(self._current_period)
 
         if not orders:
             text = """🚀 <b>TELEGRAM'SIZ QABUL QILINGAN</b>

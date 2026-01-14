@@ -603,8 +603,7 @@ class TelegramStatsHandler:
 ├ ✅ Javob berildi: {stats.answered_calls}
 ├ ❌ Javob berilmadi: {stats.unanswered_calls}
 ├ 1️⃣ 1-urinishda: {stats.calls_1_attempt}
-├ 2️⃣ 2-urinishda: {stats.calls_2_attempts}
-└ 3️⃣ 3+ urinishda: {stats.calls_3_attempts}
+└ 2️⃣ 2-urinishda: {stats.calls_2_attempts}
 
 📦 <b>BUYURTMALAR:</b> {stats.total_orders} ta
 ├ ✅ Qabul qilindi: {stats.accepted_orders}
@@ -630,8 +629,7 @@ class TelegramStatsHandler:
             "inline_keyboard": [
                 [
                     {"text": f"1️⃣ 1-urinish ({stats.calls_1_attempt})", "callback_data": CALLBACK_CALLS_1},
-                    {"text": f"2️⃣ 2-urinish ({stats.calls_2_attempts})", "callback_data": CALLBACK_CALLS_2},
-                    {"text": f"3️⃣ 3+ urinish ({stats.calls_3_attempts})", "callback_data": CALLBACK_CALLS_3}
+                    {"text": f"2️⃣ 2-urinish ({stats.calls_2_attempts})", "callback_data": CALLBACK_CALLS_2}
                 ],
                 [
                     {"text": f"✅ Javob ({stats.answered_calls})", "callback_data": CALLBACK_ANSWERED},
@@ -661,8 +659,7 @@ class TelegramStatsHandler:
 ├ ✅ Javob berildi: {stats.answered_calls}
 ├ ❌ Javob berilmadi: {stats.unanswered_calls}
 ├ 1️⃣ 1-urinishda: {stats.calls_1_attempt}
-├ 2️⃣ 2-urinishda: {stats.calls_2_attempts}
-└ 3️⃣ 3+ urinishda: {stats.calls_3_attempts}
+└ 2️⃣ 2-urinishda: {stats.calls_2_attempts}
 
 📦 <b>BUYURTMALAR:</b> {stats.total_orders} ta
 ├ ✅ Qabul qilindi: {stats.accepted_orders}

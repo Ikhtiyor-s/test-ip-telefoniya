@@ -511,7 +511,7 @@ class TelegramStatsHandler:
         params = {
             "offset": self._last_update_id + 1,
             "timeout": 30,
-            "allowed_updates": ["callback_query"]
+            "allowed_updates": ["callback_query", "message"]
         }
 
         try:
@@ -531,15 +531,27 @@ class TelegramStatsHandler:
 
     async def _handle_update(self, update: dict):
         """Update ni qayta ishlash"""
+        # /stats komandasi
+        message = update.get("message")
+        if message:
+            text = message.get("text", "")
+            chat_id = str(message.get("chat", {}).get("id", ""))
+
+            if text == "/stats" or text.startswith("/stats@"):
+                logger.info(f"/stats komandasi qabul qilindi: {chat_id}")
+                await self.send_stats_message(chat_id)
+            return
+
+        # Callback query
         callback_query = update.get("callback_query")
         if not callback_query:
             return
 
         callback_id = callback_query.get("id")
         data = callback_query.get("data", "")
-        message = callback_query.get("message", {})
-        message_id = message.get("message_id")
-        chat_id = str(message.get("chat", {}).get("id", ""))
+        callback_message = callback_query.get("message", {})
+        message_id = callback_message.get("message_id")
+        chat_id = str(callback_message.get("chat", {}).get("id", ""))
 
         logger.info(f"Callback query: {data}")
 

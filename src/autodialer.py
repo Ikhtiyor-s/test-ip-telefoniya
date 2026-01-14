@@ -235,11 +235,6 @@ class AutodialerPro:
         logger.info("AUTODIALER PRO ISHLAYAPTI")
         logger.info("=" * 60)
 
-        # Ishga tushganda statistika xabarini yuborish
-        if self.stats_handler:
-            await self.stats_handler.send_stats_message()
-            logger.info("Statistika xabari yuborildi")
-
         # Asosiy task
         self._tasks.append(asyncio.create_task(self._main_loop()))
 

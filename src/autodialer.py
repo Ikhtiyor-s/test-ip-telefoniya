@@ -37,7 +37,11 @@ from services import (
     CallManager,
     CallStatus,
     TelegramService,
-    TelegramNotificationManager
+    TelegramNotificationManager,
+    TelegramStatsHandler,
+    StatsService,
+    StatsCallResult,
+    OrderResult
 )
 
 # Logging
@@ -163,15 +167,20 @@ class AutodialerPro:
             retry_interval=retry_interval
         )
 
+        # Statistika servisi
+        self.stats = StatsService(data_dir="data")
+
         if telegram_token and telegram_chat_id:
             self.telegram = TelegramService(
                 bot_token=telegram_token,
                 default_chat_id=telegram_chat_id
             )
             self.notification_manager = TelegramNotificationManager(self.telegram)
+            self.stats_handler = TelegramStatsHandler(self.telegram, self.stats)
         else:
             self.telegram = None
             self.notification_manager = None
+            self.stats_handler = None
 
         logger.info("AutodialerPro yaratildi")
 
@@ -213,6 +222,11 @@ class AutodialerPro:
         logger.info("amoCRM polling boshlash...")
         await self.amocrm_poller.start()
 
+        # Stats handler polling boshlash
+        if self.stats_handler:
+            logger.info("Telegram stats handler boshlash...")
+            await self.stats_handler.start_polling()
+
         # Ishga tushganda sinxronizatsiya - amoCRM va Telegram
         await self._sync_on_startup()
 
@@ -220,6 +234,11 @@ class AutodialerPro:
         logger.info("=" * 60)
         logger.info("AUTODIALER PRO ISHLAYAPTI")
         logger.info("=" * 60)
+
+        # Ishga tushganda statistika xabarini yuborish
+        if self.stats_handler:
+            await self.stats_handler.send_stats_message()
+            logger.info("Statistika xabari yuborildi")
 
         # Asosiy task
         self._tasks.append(asyncio.create_task(self._main_loop()))
@@ -241,6 +260,8 @@ class AutodialerPro:
 
         # Servislarni yopish
         await self.amocrm_poller.stop()
+        if self.stats_handler:
+            await self.stats_handler.stop_polling()
         await self.ami.disconnect()
         await self.amocrm.close()
         if self.telegram:
@@ -399,6 +420,28 @@ class AutodialerPro:
         """Buyurtmalar tekshirildi callback"""
         logger.info(f"Tekshirildi: {resolved_count} ta, Qoldi: {remaining_count} ta")
 
+        # Qabul qilingan buyurtmalarni statistikaga yozish
+        # (Telegram yuborilgan yoki yuborilmaganini aniqlash)
+        telegram_was_sent = self.state.telegram_notified
+
+        # Har bir qabul qilingan buyurtma uchun statistika
+        for order_id in self.state.pending_order_ids[:resolved_count]:
+            try:
+                order_data = await self.amocrm.get_order_full_data(order_id)
+                self.stats.record_order(
+                    order_id=order_id,
+                    seller_name=order_data.get("seller_name", "Noma'lum"),
+                    seller_phone=order_data.get("seller_phone", "Noma'lum"),
+                    client_name=order_data.get("client_name", "Noma'lum"),
+                    product_name=order_data.get("product_name", "Noma'lum"),
+                    price=order_data.get("price", 0),
+                    result=OrderResult.ACCEPTED,  # TEKSHIRILMOQDA dan chiqdi = qabul qilindi
+                    call_attempts=self.state.call_attempts,
+                    telegram_sent=telegram_was_sent
+                )
+            except Exception as e:
+                logger.error(f"Buyurtma #{order_id} statistika yozishda xato: {e}")
+
         # Avvalgi xabarlarni o'chirish
         await self._delete_telegram_messages()
 
@@ -485,11 +528,29 @@ class AutodialerPro:
                 on_attempt=self._on_call_attempt
             )
 
+            # Statistikaga yozish
+            order_ids_for_call = [o.get("lead_id") for o in seller_data["orders"]]
             if result.is_answered:
                 logger.info(f"Qo'ng'iroq muvaffaqiyatli: {seller_name} ({seller_phone})")
+                self.stats.record_call(
+                    phone=seller_phone,
+                    seller_name=seller_name,
+                    order_count=order_count,
+                    attempts=self.state.call_attempts,
+                    result=StatsCallResult.ANSWERED,
+                    order_ids=order_ids_for_call
+                )
             else:
                 logger.warning(f"Qo'ng'iroq muvaffaqiyatsiz: {seller_name} ({seller_phone}) - {result.status}")
                 total_attempts = max(total_attempts, self.state.call_attempts)
+                self.stats.record_call(
+                    phone=seller_phone,
+                    seller_name=seller_name,
+                    order_count=order_count,
+                    attempts=self.state.call_attempts,
+                    result=StatsCallResult.NO_ANSWER,
+                    order_ids=order_ids_for_call
+                )
 
         # Telegram xabar uchun vaqtni belgilash (buyurtma tushganidan 3 daqiqa keyin)
         # Telegram xabar _check_and_process da yuboriladi

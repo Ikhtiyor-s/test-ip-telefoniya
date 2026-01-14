@@ -6,10 +6,23 @@ Xabar yuborish va boshqarish
 import logging
 import aiohttp
 import asyncio
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Callable
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+
+# Callback data prefixes
+CALLBACK_STATS = "stats"
+CALLBACK_CALLS_1 = "calls_1"
+CALLBACK_CALLS_2 = "calls_2"
+CALLBACK_CALLS_3 = "calls_3"
+CALLBACK_ANSWERED = "answered"
+CALLBACK_UNANSWERED = "unanswered"
+CALLBACK_ACCEPTED = "accepted"
+CALLBACK_REJECTED = "rejected"
+CALLBACK_NO_TELEGRAM = "no_telegram"
+CALLBACK_BACK = "back"
 
 
 class TelegramService:
@@ -436,3 +449,443 @@ class TelegramNotificationManager:
     def has_active_notification(self) -> bool:
         """Aktiv bildirishnoma bormi"""
         return len(self._active_message_ids) > 0
+
+
+class TelegramStatsHandler:
+    """
+    Telegram statistika handleri
+
+    Inline keyboard orqali statistika ko'rsatish va boshqarish
+    """
+
+    def __init__(self, telegram_service: TelegramService, stats_service=None):
+        self.telegram = telegram_service
+        self.stats_service = stats_service
+        self._polling_task: Optional[asyncio.Task] = None
+        self._running = False
+        self._last_update_id = 0
+
+    def set_stats_service(self, stats_service):
+        """Stats servisini sozlash"""
+        self.stats_service = stats_service
+
+    async def start_polling(self):
+        """Callback query polling boshlash"""
+        if self._running:
+            return
+
+        self._running = True
+        self._polling_task = asyncio.create_task(self._poll_updates())
+        logger.info("Telegram stats polling boshlandi")
+
+    async def stop_polling(self):
+        """Polling to'xtatish"""
+        self._running = False
+        if self._polling_task:
+            self._polling_task.cancel()
+            try:
+                await self._polling_task
+            except asyncio.CancelledError:
+                pass
+        logger.info("Telegram stats polling to'xtatildi")
+
+    async def _poll_updates(self):
+        """Updates polling"""
+        while self._running:
+            try:
+                updates = await self._get_updates()
+                for update in updates:
+                    await self._handle_update(update)
+                await asyncio.sleep(1)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Polling xatosi: {e}")
+                await asyncio.sleep(5)
+
+    async def _get_updates(self) -> List[dict]:
+        """Telegram updates olish"""
+        session = await self.telegram._get_session()
+        url = f"{self.telegram.base_url}/getUpdates"
+
+        params = {
+            "offset": self._last_update_id + 1,
+            "timeout": 30,
+            "allowed_updates": ["callback_query"]
+        }
+
+        try:
+            async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=35)) as response:
+                data = await response.json()
+                if data.get("ok"):
+                    updates = data.get("result", [])
+                    if updates:
+                        self._last_update_id = updates[-1]["update_id"]
+                    return updates
+        except asyncio.TimeoutError:
+            pass
+        except Exception as e:
+            logger.error(f"getUpdates xatosi: {e}")
+
+        return []
+
+    async def _handle_update(self, update: dict):
+        """Update ni qayta ishlash"""
+        callback_query = update.get("callback_query")
+        if not callback_query:
+            return
+
+        callback_id = callback_query.get("id")
+        data = callback_query.get("data", "")
+        message = callback_query.get("message", {})
+        message_id = message.get("message_id")
+        chat_id = str(message.get("chat", {}).get("id", ""))
+
+        logger.info(f"Callback query: {data}")
+
+        # Answer callback
+        await self._answer_callback(callback_id)
+
+        # Handle callback
+        if data == CALLBACK_BACK:
+            await self._show_main_stats(message_id, chat_id)
+        elif data == CALLBACK_CALLS_1:
+            await self._show_calls_list(message_id, chat_id, 1)
+        elif data == CALLBACK_CALLS_2:
+            await self._show_calls_list(message_id, chat_id, 2)
+        elif data == CALLBACK_CALLS_3:
+            await self._show_calls_list(message_id, chat_id, 3)
+        elif data == CALLBACK_ANSWERED:
+            await self._show_answered_calls(message_id, chat_id)
+        elif data == CALLBACK_UNANSWERED:
+            await self._show_unanswered_calls(message_id, chat_id)
+        elif data == CALLBACK_ACCEPTED:
+            await self._show_orders_list(message_id, chat_id, "accepted")
+        elif data == CALLBACK_REJECTED:
+            await self._show_orders_list(message_id, chat_id, "rejected")
+        elif data == CALLBACK_NO_TELEGRAM:
+            await self._show_no_telegram_orders(message_id, chat_id)
+
+    async def _answer_callback(self, callback_id: str):
+        """Callback query javob"""
+        session = await self.telegram._get_session()
+        url = f"{self.telegram.base_url}/answerCallbackQuery"
+
+        try:
+            await session.post(url, json={"callback_query_id": callback_id})
+        except Exception as e:
+            logger.error(f"answerCallbackQuery xatosi: {e}")
+
+    async def send_stats_message(self, chat_id: str = None) -> Optional[int]:
+        """Statistika xabarini yuborish"""
+        if not self.stats_service:
+            return None
+
+        chat_id = chat_id or self.telegram.default_chat_id
+        stats = self.stats_service.get_today_stats()
+
+        text = f"""📊 <b>BUGUNGI STATISTIKA</b>
+━━━━━━━━━━━━━━━━━━━━
+
+📞 <b>QO'NG'IROQLAR:</b> {stats.total_calls} ta
+├ ✅ Javob berildi: {stats.answered_calls}
+├ ❌ Javob berilmadi: {stats.unanswered_calls}
+├ 1️⃣ 1-urinishda: {stats.calls_1_attempt}
+├ 2️⃣ 2-urinishda: {stats.calls_2_attempts}
+└ 3️⃣ 3+ urinishda: {stats.calls_3_attempts}
+
+📦 <b>BUYURTMALAR:</b> {stats.total_orders} ta
+├ ✅ Qabul qilindi: {stats.accepted_orders}
+├ ❌ Bekor qilindi: {stats.rejected_orders}
+└ 🚀 Telegram'siz qabul: {stats.accepted_without_telegram}
+
+📅 Sana: {stats.date}
+
+<i>Batafsil ko'rish uchun tugmalarni bosing:</i>"""
+
+        keyboard = self._get_stats_keyboard(stats)
+
+        return await self.telegram.send_message(
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )
+
+    def _get_stats_keyboard(self, stats) -> dict:
+        """Statistika inline keyboard"""
+        return {
+            "inline_keyboard": [
+                [
+                    {"text": f"1️⃣ 1-urinish ({stats.calls_1_attempt})", "callback_data": CALLBACK_CALLS_1},
+                    {"text": f"2️⃣ 2-urinish ({stats.calls_2_attempts})", "callback_data": CALLBACK_CALLS_2},
+                    {"text": f"3️⃣ 3+ urinish ({stats.calls_3_attempts})", "callback_data": CALLBACK_CALLS_3}
+                ],
+                [
+                    {"text": f"✅ Javob ({stats.answered_calls})", "callback_data": CALLBACK_ANSWERED},
+                    {"text": f"❌ Javobsiz ({stats.unanswered_calls})", "callback_data": CALLBACK_UNANSWERED}
+                ],
+                [
+                    {"text": f"✅ Qabul ({stats.accepted_orders})", "callback_data": CALLBACK_ACCEPTED},
+                    {"text": f"❌ Bekor ({stats.rejected_orders})", "callback_data": CALLBACK_REJECTED}
+                ],
+                [
+                    {"text": f"🚀 Telegram'siz ({stats.accepted_without_telegram})", "callback_data": CALLBACK_NO_TELEGRAM}
+                ]
+            ]
+        }
+
+    async def _show_main_stats(self, message_id: int, chat_id: str):
+        """Asosiy statistika sahifasiga qaytish"""
+        if not self.stats_service:
+            return
+
+        stats = self.stats_service.get_today_stats()
+
+        text = f"""📊 <b>BUGUNGI STATISTIKA</b>
+━━━━━━━━━━━━━━━━━━━━
+
+📞 <b>QO'NG'IROQLAR:</b> {stats.total_calls} ta
+├ ✅ Javob berildi: {stats.answered_calls}
+├ ❌ Javob berilmadi: {stats.unanswered_calls}
+├ 1️⃣ 1-urinishda: {stats.calls_1_attempt}
+├ 2️⃣ 2-urinishda: {stats.calls_2_attempts}
+└ 3️⃣ 3+ urinishda: {stats.calls_3_attempts}
+
+📦 <b>BUYURTMALAR:</b> {stats.total_orders} ta
+├ ✅ Qabul qilindi: {stats.accepted_orders}
+├ ❌ Bekor qilindi: {stats.rejected_orders}
+└ 🚀 Telegram'siz qabul: {stats.accepted_without_telegram}
+
+📅 Sana: {stats.date}
+
+<i>Batafsil ko'rish uchun tugmalarni bosing:</i>"""
+
+        keyboard = self._get_stats_keyboard(stats)
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )
+
+    async def _show_calls_list(self, message_id: int, chat_id: str, attempts: int):
+        """Berilgan urinishlar soni bo'yicha qo'ng'iroqlar ro'yxati"""
+        if not self.stats_service:
+            return
+
+        calls = self.stats_service.get_calls_by_attempts(attempts)
+
+        if not calls:
+            text = f"""📞 <b>{attempts}-URINISHDA JAVOB BERILGAN QO'NG'IROQLAR</b>
+━━━━━━━━━━━━━━━━━━━━
+
+<i>Hozircha ma'lumot yo'q</i>"""
+        else:
+            text = f"""📞 <b>{attempts}-URINISHDA JAVOB BERILGAN QO'NG'IROQLAR</b>
+━━━━━━━━━━━━━━━━━━━━
+
+"""
+            for i, call in enumerate(calls[-10:], 1):  # Oxirgi 10 ta
+                time = call.timestamp.split("T")[1][:5]
+                text += f"""{i}. <b>{call.seller_name}</b>
+   📱 {call.phone}
+   📦 {call.order_count} ta buyurtma
+   ⏰ {time}
+
+"""
+
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "◀️ Orqaga", "callback_data": CALLBACK_BACK}]
+            ]
+        }
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )
+
+    async def _show_answered_calls(self, message_id: int, chat_id: str):
+        """Javob berilgan qo'ng'iroqlar"""
+        if not self.stats_service:
+            return
+
+        stats = self.stats_service.get_today_stats()
+        calls = [c for c in stats.call_records if c["result"] == "answered"]
+
+        if not calls:
+            text = """✅ <b>JAVOB BERILGAN QO'NG'IROQLAR</b>
+━━━━━━━━━━━━━━━━━━━━
+
+<i>Hozircha ma'lumot yo'q</i>"""
+        else:
+            text = f"""✅ <b>JAVOB BERILGAN QO'NG'IROQLAR</b> ({len(calls)} ta)
+━━━━━━━━━━━━━━━━━━━━
+
+"""
+            for i, call in enumerate(calls[-10:], 1):
+                time = call["timestamp"].split("T")[1][:5]
+                text += f"""{i}. <b>{call["seller_name"]}</b>
+   📱 {call["phone"]}
+   📦 {call["order_count"]} ta | 🔄 {call["attempts"]} urinish
+   ⏰ {time}
+
+"""
+
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "◀️ Orqaga", "callback_data": CALLBACK_BACK}]
+            ]
+        }
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )
+
+    async def _show_unanswered_calls(self, message_id: int, chat_id: str):
+        """Javob berilmagan qo'ng'iroqlar"""
+        if not self.stats_service:
+            return
+
+        stats = self.stats_service.get_today_stats()
+        calls = [c for c in stats.call_records if c["result"] != "answered"]
+
+        if not calls:
+            text = """❌ <b>JAVOB BERILMAGAN QO'NG'IROQLAR</b>
+━━━━━━━━━━━━━━━━━━━━
+
+<i>Hozircha ma'lumot yo'q</i>"""
+        else:
+            text = f"""❌ <b>JAVOB BERILMAGAN QO'NG'IROQLAR</b> ({len(calls)} ta)
+━━━━━━━━━━━━━━━━━━━━
+
+"""
+            for i, call in enumerate(calls[-10:], 1):
+                time = call["timestamp"].split("T")[1][:5]
+                status = "❌ Javobsiz" if call["result"] == "no_answer" else "🔴 " + call["result"]
+                text += f"""{i}. <b>{call["seller_name"]}</b>
+   📱 {call["phone"]}
+   📦 {call["order_count"]} ta | 🔄 {call["attempts"]} urinish
+   {status}
+   ⏰ {time}
+
+"""
+
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "◀️ Orqaga", "callback_data": CALLBACK_BACK}]
+            ]
+        }
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )
+
+    async def _show_orders_list(self, message_id: int, chat_id: str, result: str):
+        """Buyurtmalar ro'yxati"""
+        if not self.stats_service:
+            return
+
+        from .stats_service import OrderResult
+        order_result = OrderResult.ACCEPTED if result == "accepted" else OrderResult.REJECTED
+        orders = self.stats_service.get_orders_by_result(order_result)
+
+        title = "✅ QABUL QILINGAN" if result == "accepted" else "❌ BEKOR QILINGAN"
+
+        if not orders:
+            text = f"""<b>{title} BUYURTMALAR</b>
+━━━━━━━━━━━━━━━━━━━━
+
+<i>Hozircha ma'lumot yo'q</i>"""
+        else:
+            text = f"""<b>{title} BUYURTMALAR</b> ({len(orders)} ta)
+━━━━━━━━━━━━━━━━━━━━
+
+"""
+            for i, order in enumerate(orders[-10:], 1):
+                time = order.timestamp.split("T")[1][:5]
+                price_str = f"{order.price:,.0f}".replace(",", " ") if order.price else "N/A"
+                text += f"""{i}. <b>#{order.order_id}</b>
+   👤 {order.client_name}
+   📦 {order.product_name}
+   💰 {price_str} so'm
+   🏪 {order.seller_name}
+   ⏰ {time}
+
+"""
+
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "◀️ Orqaga", "callback_data": CALLBACK_BACK}]
+            ]
+        }
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )
+
+    async def _show_no_telegram_orders(self, message_id: int, chat_id: str):
+        """Telegram yuborilmasdan qabul qilingan buyurtmalar"""
+        if not self.stats_service:
+            return
+
+        orders = self.stats_service.get_orders_accepted_without_telegram()
+
+        if not orders:
+            text = """🚀 <b>TELEGRAM'SIZ QABUL QILINGAN</b>
+━━━━━━━━━━━━━━━━━━━━
+
+<i>Hozircha ma'lumot yo'q</i>
+
+Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
+        else:
+            text = f"""🚀 <b>TELEGRAM'SIZ QABUL QILINGAN</b> ({len(orders)} ta)
+━━━━━━━━━━━━━━━━━━━━
+
+<i>Bu buyurtmalar 3 daqiqa ichida qabul qilingan</i>
+
+"""
+            for i, order in enumerate(orders[-10:], 1):
+                time = order.timestamp.split("T")[1][:5]
+                price_str = f"{order.price:,.0f}".replace(",", " ") if order.price else "N/A"
+                text += f"""{i}. <b>#{order.order_id}</b>
+   👤 {order.client_name}
+   📦 {order.product_name}
+   💰 {price_str} so'm
+   🏪 {order.seller_name}
+   📞 {order.call_attempts} marta qo'ng'iroq
+   ⏰ {time}
+
+"""
+
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "◀️ Orqaga", "callback_data": CALLBACK_BACK}]
+            ]
+        }
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )

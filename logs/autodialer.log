@@ -1653,3 +1653,112 @@ connector: <aiohttp.connector.TCPConnector object at 0x000002B26CD9FF70>
 2026-01-14 09:33:51,245 [INFO] autodialer: Yangi buyurtmalar: 2 ta, Jami: 2 ta
 2026-01-14 09:33:51,429 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 2 ta
 2026-01-14 09:33:52,697 [INFO] autodialer: Sotuvchi S - Kafe: 1 ta buyurtma
+2026-01-14 09:34:13,751 [ERROR] services.telegram_service: Telegram ulanish xatosi: Cannot connect to host api.telegram.org:443 ssl:default [Multiple exceptions: [WinError 1231] Сетевая папка недоступна. За информацией о разрешении проблем в сети обратитесь к справочной системе Windows, [WinError 121] Превышен таймаут семафора]
+2026-01-14 09:34:13,754 [INFO] autodialer: Sotuvchi Doniyorbek oshxonasi: 1 ta buyurtma
+2026-01-14 09:34:34,806 [ERROR] services.telegram_service: Telegram ulanish xatosi: Cannot connect to host api.telegram.org:443 ssl:default [Multiple exceptions: [WinError 121] Превышен таймаут семафора, [WinError 1231] Сетевая папка недоступна. За информацией о разрешении проблем в сети обратитесь к справочной системе Windows]
+2026-01-14 09:34:34,806 [INFO] autodialer: Sinxronizatsiya tugadi: 2 ta buyurtma uchun Telegram xabar yuborildi
+2026-01-14 09:34:34,806 [INFO] autodialer: ============================================================
+2026-01-14 09:34:34,806 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 09:34:34,806 [INFO] autodialer: ============================================================
+2026-01-14 09:35:22,173 [INFO] autodialer: Qo'ng'iroq tayyorlash: 2 ta buyurtma
+2026-01-14 09:35:42,403 [INFO] services.telegram_service: Callback query: unanswered
+2026-01-14 09:35:42,635 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 283
+2026-01-14 09:35:44,676 [INFO] services.telegram_service: Callback query: back
+2026-01-14 09:35:44,900 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 283
+2026-01-14 09:35:46,770 [INFO] services.telegram_service: Callback query: accepted
+2026-01-14 09:35:46,996 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 283
+2026-01-14 09:35:48,977 [INFO] services.telegram_service: Callback query: back
+2026-01-14 09:35:49,202 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 283
+2026-01-14 09:35:50,490 [INFO] services.telegram_service: Callback query: answered
+2026-01-14 09:35:50,738 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 283
+2026-01-14 09:35:53,032 [INFO] services.telegram_service: Callback query: back
+2026-01-14 09:35:53,850 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 283
+2026-01-14 09:35:56,146 [INFO] services.telegram_service: Callback query: rejected
+2026-01-14 09:35:56,373 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 283
+2026-01-14 09:35:58,132 [INFO] services.telegram_service: Callback query: back
+2026-01-14 09:35:58,361 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 283
+2026-01-14 09:36:00,439 [INFO] autodialer: Qo'ng'iroq: S - Kafe (+998932543733), 1 ta buyurtma
+2026-01-14 09:36:00,440 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 09:36:00,441 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998932543733
+2026-01-14 09:36:00,441 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998932543733, Audio: /tmp/autodialer/3f5f652ef7c02fd28a6d14c9aabc5952
+2026-01-14 09:36:00,444 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998932543733
+2026-01-14 09:36:01,091 [INFO] services.telegram_service: Callback query: calls_1
+2026-01-14 09:36:01,524 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 283
+2026-01-14 09:36:14,090 [INFO] services.asterisk_service: Qo'ng'iroq muvaffaqiyatli: +998932543733
+2026-01-14 09:36:14,091 [INFO] autodialer: Qo'ng'iroq muvaffaqiyatli: S - Kafe (+998932543733)
+2026-01-14 09:36:14,095 [INFO] services.stats_service: Qo'ng'iroq qayd etildi: +998932543733 - answered (1 urinish)
+2026-01-14 09:36:14,096 [INFO] autodialer: Qo'ng'iroq: Doniyorbek oshxonasi (+998930824736), 1 ta buyurtma
+2026-01-14 09:36:14,097 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 09:36:14,097 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998930824736
+2026-01-14 09:36:14,098 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998930824736, Audio: /tmp/autodialer/3f5f652ef7c02fd28a6d14c9aabc5952
+2026-01-14 09:36:14,101 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998930824736
+2026-01-14 09:36:29,329 [INFO] services.asterisk_service: Qayta urinish 0s dan keyin...
+2026-01-14 09:36:29,330 [INFO] autodialer: Qo'ng'iroq urinishi: 2/2
+2026-01-14 09:36:29,330 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/2: +998930824736
+2026-01-14 09:36:29,332 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998930824736, Audio: /tmp/autodialer/3f5f652ef7c02fd28a6d14c9aabc5952
+2026-01-14 09:36:29,335 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998930824736
+2026-01-14 09:36:39,613 [INFO] services.telegram_service: Callback query: back
+2026-01-14 09:36:39,845 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 283
+2026-01-14 09:36:43,764 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998930824736
+2026-01-14 09:36:43,765 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: Doniyorbek oshxonasi (+998930824736) - CallStatus.FAILED
+2026-01-14 09:36:43,770 [INFO] services.stats_service: Qo'ng'iroq qayd etildi: +998930824736 - no_answer (2 urinish)
+2026-01-14 09:36:44,052 [INFO] services.telegram_service: Callback query: calls_1
+2026-01-14 09:36:44,294 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 283
+2026-01-14 09:36:51,842 [INFO] autodialer: 3 daqiqa o'tdi, Telegram xabar yuborish...
+2026-01-14 09:36:52,054 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 2 ta
+2026-01-14 09:36:53,581 [INFO] autodialer: Sotuvchi S - Kafe: 1 ta buyurtma
+2026-01-14 09:36:59,609 [INFO] services.telegram_service: Callback query: back
+2026-01-14 09:36:59,843 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 283
+2026-01-14 09:37:08,957 [INFO] services.telegram_service: Telegram xabar yuborildi: 285
+2026-01-14 09:37:08,958 [INFO] autodialer: Sotuvchi Doniyorbek oshxonasi: 1 ta buyurtma
+2026-01-14 09:37:09,080 [INFO] services.telegram_service: Telegram xabar yuborildi: 286
+2026-01-14 09:37:58,210 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 3 ta
+2026-01-14 09:37:58,211 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 3 ta
+2026-01-14 09:38:34,763 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 4 ta
+2026-01-14 09:38:34,764 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 4 ta
+2026-01-14 09:39:04,609 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 5 ta
+2026-01-14 09:39:04,610 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 5 ta
+2026-01-14 09:39:29,080 [INFO] autodialer: Qo'ng'iroq tayyorlash: 1 ta buyurtma
+2026-01-14 09:39:29,903 [INFO] autodialer: Qo'ng'iroq: V Coffee (+998881664756), 1 ta buyurtma
+2026-01-14 09:39:29,904 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 09:39:29,905 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998881664756
+2026-01-14 09:39:29,906 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998881664756, Audio: /tmp/autodialer/3f5f652ef7c02fd28a6d14c9aabc5952
+2026-01-14 09:39:29,910 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998881664756
+2026-01-14 09:39:59,920 [INFO] services.asterisk_service: Qayta urinish 0s dan keyin...
+2026-01-14 09:39:59,920 [INFO] autodialer: Qo'ng'iroq urinishi: 2/2
+2026-01-14 09:39:59,921 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/2: +998881664756
+2026-01-14 09:39:59,922 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998881664756, Audio: /tmp/autodialer/3f5f652ef7c02fd28a6d14c9aabc5952
+2026-01-14 09:39:59,926 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998881664756
+2026-01-14 09:40:29,937 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998881664756
+2026-01-14 09:40:29,938 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: V Coffee (+998881664756) - CallStatus.FAILED
+2026-01-14 09:40:29,943 [INFO] services.stats_service: Qo'ng'iroq qayd etildi: +998881664756 - no_answer (2 urinish)
+2026-01-14 09:40:59,150 [INFO] autodialer: 3 daqiqa o'tdi, Telegram xabar yuborish...
+2026-01-14 09:40:59,457 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 5 ta
+2026-01-14 09:41:04,139 [INFO] autodialer: Sotuvchi V Coffee: 1 ta buyurtma
+2026-01-14 09:41:04,495 [INFO] services.telegram_service: Telegram xabar yuborildi: 287
+2026-01-14 09:41:04,495 [INFO] autodialer: Sotuvchi Qandolat: 1 ta buyurtma
+2026-01-14 09:41:04,623 [INFO] services.telegram_service: Telegram xabar yuborildi: 288
+2026-01-14 09:41:04,623 [INFO] autodialer: Sotuvchi Milliy: 1 ta buyurtma
+2026-01-14 09:41:04,758 [INFO] services.telegram_service: Telegram xabar yuborildi: 289
+2026-01-14 09:41:04,758 [INFO] autodialer: Sotuvchi S - Kafe: 1 ta buyurtma
+2026-01-14 09:41:04,886 [INFO] services.telegram_service: Telegram xabar yuborildi: 290
+2026-01-14 09:41:04,886 [INFO] autodialer: Sotuvchi Doniyorbek oshxonasi: 1 ta buyurtma
+2026-01-14 09:41:05,035 [INFO] services.telegram_service: Telegram xabar yuborildi: 291
+2026-01-14 09:43:09,869 [INFO] services.telegram_service: Callback query: accepted
+2026-01-14 09:43:10,118 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 283
+2026-01-14 09:43:16,466 [INFO] services.telegram_service: Callback query: back
+2026-01-14 09:43:16,822 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 283
+2026-01-14 09:43:20,257 [INFO] services.telegram_service: Callback query: answered
+2026-01-14 09:43:20,619 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 283
+2026-01-14 09:43:24,627 [INFO] services.telegram_service: Callback query: back
+2026-01-14 09:43:24,887 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 283
+2026-01-14 09:44:25,557 [INFO] services.telegram_service: /stats komandasi qabul qilindi: -5219407458
+2026-01-14 09:44:25,684 [INFO] services.telegram_service: Telegram xabar yuborildi: 293
+2026-01-14 09:44:34,492 [INFO] services.telegram_service: Callback query: answered
+2026-01-14 09:44:34,797 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 293
+2026-01-14 09:44:53,948 [INFO] services.telegram_service: Callback query: back
+2026-01-14 09:44:54,307 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 293
+2026-01-14 09:44:57,976 [INFO] services.telegram_service: Callback query: unanswered
+2026-01-14 09:44:58,251 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 293
+2026-01-14 09:45:02,535 [INFO] services.telegram_service: Callback query: back
+2026-01-14 09:45:02,787 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 293

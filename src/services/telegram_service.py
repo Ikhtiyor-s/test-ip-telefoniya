@@ -266,7 +266,7 @@ class TelegramService:
 """
         # Har bir buyurtma (mijoz)
         for i, order in enumerate(orders, 1):
-            lead_id = order.get("lead_id", "N/A")
+            order_number = order.get("order_number", order.get("lead_id", "N/A"))
             client_name = order.get("client_name", "Noma'lum")
             client_phone = order.get("client_phone", "Noma'lum")
             product_name = order.get("product_name", "Noma'lum")
@@ -280,7 +280,7 @@ class TelegramService:
                 price_str = "Noma'lum"
 
             text += f"""
-<b>{i}. Buyurtma #{lead_id}</b>
+<b>{i}. Buyurtma #{order_number}</b>
    Mijoz: {client_name}
    Tel: {client_phone}
    Mahsulot: {product_name}

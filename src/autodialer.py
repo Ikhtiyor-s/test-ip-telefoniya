@@ -419,8 +419,17 @@ class AutodialerPro:
         # (Telegram yuborilgan yoki yuborilmaganini aniqlash)
         telegram_was_sent = self.state.telegram_notified
 
+        # Allaqachon qayd etilgan buyurtmalar ro'yxati
+        if not hasattr(self, '_recorded_orders'):
+            self._recorded_orders = set()
+
         # Har bir qabul qilingan buyurtma uchun statistika
         for order_id in self.state.pending_order_ids[:resolved_count]:
+            # Agar bu buyurtma allaqachon qayd etilgan bo'lsa, o'tkazib yuborish
+            if order_id in self._recorded_orders:
+                logger.debug(f"Buyurtma #{order_id} allaqachon qayd etilgan, o'tkazib yuborilmoqda")
+                continue
+
             try:
                 order_data = await self.amocrm.get_order_full_data(order_id)
                 self.stats.record_order(
@@ -435,6 +444,8 @@ class AutodialerPro:
                     call_attempts=self.state.call_attempts,
                     telegram_sent=telegram_was_sent
                 )
+                # Qayd etilgan deb belgilash
+                self._recorded_orders.add(order_id)
             except Exception as e:
                 logger.error(f"Buyurtma #{order_id} statistika yozishda xato: {e}")
 

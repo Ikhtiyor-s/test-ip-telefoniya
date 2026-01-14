@@ -1762,3 +1762,387 @@ connector: <aiohttp.connector.TCPConnector object at 0x000002B26CD9FF70>
 2026-01-14 09:44:58,251 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 293
 2026-01-14 09:45:02,535 [INFO] services.telegram_service: Callback query: back
 2026-01-14 09:45:02,787 [INFO] services.telegram_service: Telegram xabar tahrirlandi: 293
+2026-01-14 09:48:27,998 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 09:48:27,998 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 09:48:27,999 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 09:48:27,999 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 09:48:27,999 [INFO] services.stats_service: Statistika yuklandi: 1 kun
+2026-01-14 09:48:27,999 [INFO] services.stats_service: StatsService ishga tushdi
+2026-01-14 09:48:27,999 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 09:48:27,999 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 09:48:28,000 [INFO] autodialer: ============================================================
+2026-01-14 09:48:28,000 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 09:48:28,000 [INFO] autodialer: ============================================================
+2026-01-14 09:48:28,000 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 09:48:28,000 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 09:48:28,001 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 09:48:28,364 [INFO] services.tts_service: Audio fayllar WSL ga ko'chirildi: /tmp/autodialer/
+2026-01-14 09:48:28,364 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 09:48:28,366 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 09:48:28,368 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 09:48:28,368 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 09:48:28,368 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 09:48:28,368 [INFO] autodialer: Telegram stats handler boshlash...
+2026-01-14 09:48:28,369 [INFO] services.telegram_service: Telegram stats polling boshlandi
+2026-01-14 09:48:28,369 [INFO] autodialer: Sinxronizatsiya: amoCRM va Telegram tekshirilmoqda...
+2026-01-14 09:48:49,428 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [Multiple exceptions: [WinError 121] Превышен таймаут семафора, [WinError 1231] Сетевая папка недоступна. За информацией о разрешении проблем в сети обратитесь к справочной системе Windows]
+2026-01-14 09:49:10,733 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [Превышен таймаут семафора]
+2026-01-14 09:49:10,733 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [Превышен таймаут семафора]
+2026-01-14 09:49:10,734 [INFO] autodialer: Sinxronizatsiya: TEKSHIRILMOQDA da buyurtmalar yo'q
+2026-01-14 09:49:10,734 [INFO] autodialer: Telegram: eski xabarlarni tozalash...
+2026-01-14 09:49:11,057 [INFO] autodialer: Telegram: o'chiriladigan eski xabar topilmadi
+2026-01-14 09:49:11,059 [INFO] autodialer: ============================================================
+2026-01-14 09:49:11,059 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 09:49:11,059 [INFO] autodialer: ============================================================
+2026-01-14 09:49:17,105 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 09:49:17,310 [INFO] services.amocrm_service: Yangi leadlar: 5 ta, Jami: 5 ta
+2026-01-14 09:49:17,311 [INFO] autodialer: Yangi buyurtmalar: 5 ta, Jami: 5 ta
+2026-01-14 09:50:47,759 [INFO] autodialer: Qo'ng'iroq tayyorlash: 5 ta buyurtma
+2026-01-14 09:50:51,134 [INFO] autodialer: Qo'ng'iroq: Milliy (+998505019800), 1 ta buyurtma
+2026-01-14 09:50:51,135 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 09:50:51,136 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998505019800
+2026-01-14 09:50:51,137 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998505019800, Audio: /tmp/autodialer/3f5f652ef7c02fd28a6d14c9aabc5952
+2026-01-14 09:50:51,142 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998505019800
+2026-01-14 09:51:17,393 [INFO] services.asterisk_service: Qo'ng'iroq muvaffaqiyatli: +998505019800
+2026-01-14 09:51:17,393 [INFO] autodialer: Qo'ng'iroq muvaffaqiyatli: Milliy (+998505019800)
+2026-01-14 09:51:17,395 [INFO] services.stats_service: Qo'ng'iroq qayd etildi: +998505019800 - answered (1 urinish)
+2026-01-14 09:51:17,395 [INFO] autodialer: Qo'ng'iroq: Doniyorbek oshxonasi (+998930824736), 1 ta buyurtma
+2026-01-14 09:51:17,395 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 09:51:17,395 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998930824736
+2026-01-14 09:51:17,395 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998930824736, Audio: /tmp/autodialer/3f5f652ef7c02fd28a6d14c9aabc5952
+2026-01-14 09:51:17,397 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998930824736
+2026-01-14 09:51:32,462 [INFO] services.asterisk_service: Qayta urinish 0s dan keyin...
+2026-01-14 09:51:32,462 [INFO] autodialer: Qo'ng'iroq urinishi: 2/2
+2026-01-14 09:51:32,462 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/2: +998930824736
+2026-01-14 09:51:32,463 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998930824736, Audio: /tmp/autodialer/3f5f652ef7c02fd28a6d14c9aabc5952
+2026-01-14 09:51:32,465 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998930824736
+2026-01-14 09:51:46,603 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998930824736
+2026-01-14 09:51:46,603 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: Doniyorbek oshxonasi (+998930824736) - CallStatus.FAILED
+2026-01-14 09:51:46,606 [INFO] services.stats_service: Qo'ng'iroq qayd etildi: +998930824736 - no_answer (2 urinish)
+2026-01-14 09:51:46,606 [INFO] autodialer: Qo'ng'iroq: V Coffee (+998881664756), 1 ta buyurtma
+2026-01-14 09:51:46,606 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 09:51:46,606 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998881664756
+2026-01-14 09:51:46,607 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998881664756, Audio: /tmp/autodialer/3f5f652ef7c02fd28a6d14c9aabc5952
+2026-01-14 09:51:46,608 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998881664756
+2026-01-14 09:52:11,819 [INFO] services.asterisk_service: Qo'ng'iroq muvaffaqiyatli: +998881664756
+2026-01-14 09:52:11,820 [INFO] autodialer: Qo'ng'iroq muvaffaqiyatli: V Coffee (+998881664756)
+2026-01-14 09:52:11,825 [INFO] services.stats_service: Qo'ng'iroq qayd etildi: +998881664756 - answered (1 urinish)
+2026-01-14 09:52:11,826 [INFO] autodialer: Qo'ng'iroq: S - Kafe (+998932543733), 1 ta buyurtma
+2026-01-14 09:52:11,827 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 09:52:11,827 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998932543733
+2026-01-14 09:52:11,828 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998932543733, Audio: /tmp/autodialer/3f5f652ef7c02fd28a6d14c9aabc5952
+2026-01-14 09:52:11,832 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998932543733
+2026-01-14 09:52:28,996 [INFO] services.asterisk_service: Qo'ng'iroq muvaffaqiyatli: +998932543733
+2026-01-14 09:52:28,997 [INFO] autodialer: Qo'ng'iroq muvaffaqiyatli: S - Kafe (+998932543733)
+2026-01-14 09:52:29,006 [INFO] services.stats_service: Qo'ng'iroq qayd etildi: +998932543733 - answered (1 urinish)
+2026-01-14 09:52:29,007 [INFO] autodialer: Qo'ng'iroq: Qandolat (+998946577675), 1 ta buyurtma
+2026-01-14 09:52:29,009 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 09:52:29,009 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998946577675
+2026-01-14 09:52:29,010 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998946577675, Audio: /tmp/autodialer/3f5f652ef7c02fd28a6d14c9aabc5952
+2026-01-14 09:52:29,015 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998946577675
+2026-01-14 09:52:59,022 [INFO] services.asterisk_service: Qayta urinish 0s dan keyin...
+2026-01-14 09:52:59,024 [INFO] autodialer: Qo'ng'iroq urinishi: 2/2
+2026-01-14 09:52:59,024 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/2: +998946577675
+2026-01-14 09:52:59,024 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998946577675, Audio: /tmp/autodialer/3f5f652ef7c02fd28a6d14c9aabc5952
+2026-01-14 09:52:59,076 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998946577675
+2026-01-14 09:52:59,077 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998946577675
+2026-01-14 09:52:59,077 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: Qandolat (+998946577675) - CallStatus.FAILED
+2026-01-14 09:52:59,080 [INFO] services.stats_service: Qo'ng'iroq qayd etildi: +998946577675 - no_answer (2 urinish)
+2026-01-14 09:53:00,093 [INFO] autodialer: 3 daqiqa o'tdi, Telegram xabar yuborish...
+2026-01-14 09:53:00,452 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 5 ta
+2026-01-14 09:53:06,841 [INFO] autodialer: Sotuvchi V Coffee: 1 ta buyurtma
+2026-01-14 09:53:08,218 [INFO] services.telegram_service: Telegram xabar yuborildi: 294
+2026-01-14 09:53:08,218 [INFO] autodialer: Sotuvchi Qandolat: 1 ta buyurtma
+2026-01-14 09:53:08,544 [INFO] services.telegram_service: Telegram xabar yuborildi: 295
+2026-01-14 09:53:08,545 [INFO] autodialer: Sotuvchi Milliy: 1 ta buyurtma
+2026-01-14 09:53:08,666 [INFO] services.telegram_service: Telegram xabar yuborildi: 296
+2026-01-14 09:53:08,666 [INFO] autodialer: Sotuvchi S - Kafe: 1 ta buyurtma
+2026-01-14 09:53:08,795 [INFO] services.telegram_service: Telegram xabar yuborildi: 297
+2026-01-14 09:53:08,796 [INFO] autodialer: Sotuvchi Doniyorbek oshxonasi: 1 ta buyurtma
+2026-01-14 09:53:08,922 [INFO] services.telegram_service: Telegram xabar yuborildi: 298
+2026-01-14 14:13:28,628 [ERROR] services.asterisk_service: AMI read xatosi: [WinError 1236] Подключение к сети было разорвано локальной системой
+2026-01-14 14:13:28,629 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 14:13:28,629 [INFO] autodialer: Tekshirildi: 5 ta, Qoldi: 0 ta
+2026-01-14 14:13:28,631 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 14:13:28,634 [INFO] services.stats_service: Buyurtma qayd etildi: #48767425 - accepted
+2026-01-14 14:13:28,669 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 14:13:28,673 [INFO] services.stats_service: Buyurtma qayd etildi: #48766871 - accepted
+2026-01-14 14:13:28,675 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 14:13:28,678 [INFO] services.stats_service: Buyurtma qayd etildi: #48767449 - accepted
+2026-01-14 14:13:28,750 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 14:13:28,753 [INFO] services.stats_service: Buyurtma qayd etildi: #48767287 - accepted
+2026-01-14 14:13:28,759 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 14:13:28,762 [INFO] services.stats_service: Buyurtma qayd etildi: #48767437 - accepted
+2026-01-14 14:13:28,762 [INFO] autodialer: Telegram xabarlarni o'chirish: 5 ta
+2026-01-14 14:13:28,764 [ERROR] services.telegram_service: Telegram delete xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 14:13:28,767 [ERROR] services.telegram_service: Telegram delete xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 14:13:28,771 [ERROR] services.telegram_service: Telegram delete xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 14:13:28,783 [ERROR] services.telegram_service: Telegram delete xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 14:13:28,800 [ERROR] services.telegram_service: Telegram delete xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 14:13:28,800 [INFO] autodialer: Barcha buyurtmalar tekshirildi!
+2026-01-14 14:13:29,639 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 14:13:30,650 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 14:13:31,655 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 14:13:31,827 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 14:13:32,661 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:03:35,702 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:03:35,706 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:03:36,708 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:03:37,710 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:03:38,726 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:03:38,726 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:03:39,745 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:03:40,752 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:03:41,733 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:03:41,770 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:03:42,808 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:04,887 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [Multiple exceptions: [WinError 121] Превышен таймаут семафора, [WinError 1231] Сетевая папка недоступна. За информацией о разрешении проблем в сети обратитесь к справочной системе Windows]
+2026-01-14 18:04:12,768 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [Multiple exceptions: [WinError 1231] Сетевая папка недоступна. За информацией о разрешении проблем в сети обратитесь к справочной системе Windows, [WinError 1236] Подключение к сети было разорвано локальной системой]
+2026-01-14 18:04:12,769 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [Подключение к сети было разорвано локальной системой]
+2026-01-14 18:04:13,794 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [Сетевая папка недоступна. За информацией о разрешении проблем в сети обратитесь к справочной системе Windows]
+2026-01-14 18:04:14,809 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [Сетевая папка недоступна. За информацией о разрешении проблем в сети обратитесь к справочной системе Windows]
+2026-01-14 18:04:15,776 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:15,820 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [Сетевая папка недоступна. За информацией о разрешении проблем в сети обратитесь к справочной системе Windows]
+2026-01-14 18:04:16,836 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:17,845 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:18,798 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:18,857 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:19,864 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:20,887 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:21,811 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:21,907 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:22,920 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:23,918 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:24,819 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:24,923 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:25,916 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:26,934 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:27,819 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:27,944 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:28,959 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:29,972 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:30,838 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:30,986 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:32,019 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:33,048 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:33,849 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:34,054 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:35,064 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:36,083 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:36,877 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:37,086 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:38,088 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:39,102 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:39,899 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:40,114 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:41,124 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:42,141 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:42,926 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Cannot connect to host welltech.amocrm.ru:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:43,137 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:44,152 [ERROR] services.telegram_service: getUpdates xatosi: Cannot connect to host api.telegram.org:443 ssl:default [getaddrinfo failed]
+2026-01-14 18:04:46,399 [INFO] services.amocrm_service: Yangi leadlar: 13 ta, Jami: 13 ta
+2026-01-14 18:04:46,400 [INFO] autodialer: Yangi buyurtmalar: 13 ta, Jami: 13 ta
+2026-01-14 18:06:17,078 [INFO] autodialer: Qo'ng'iroq tayyorlash: 13 ta buyurtma
+2026-01-14 18:06:28,677 [INFO] autodialer: Qo'ng'iroq: S - Kafe (+998932543733), 3 ta buyurtma
+2026-01-14 18:06:28,679 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 18:06:28,680 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998932543733
+2026-01-14 18:06:28,680 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998932543733, Audio: /tmp/autodialer/68a25f7d6dda918eb5a8ffc665756ac7
+2026-01-14 18:06:28,682 [ERROR] autodialer: Main loop xatosi: [WinError 1236] Подключение к сети было разорвано локальной системой
+2026-01-14 18:06:38,115 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 18:06:38,116 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 18:06:38,117 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 18:06:38,117 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 18:06:38,121 [INFO] services.stats_service: Statistika yuklandi: 1 kun
+2026-01-14 18:06:38,122 [INFO] services.stats_service: StatsService ishga tushdi
+2026-01-14 18:06:38,123 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 18:06:38,123 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 18:06:38,123 [INFO] autodialer: ============================================================
+2026-01-14 18:06:38,124 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 18:06:38,124 [INFO] autodialer: ============================================================
+2026-01-14 18:06:38,124 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 18:06:38,125 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 18:06:38,132 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 18:06:38,566 [INFO] services.tts_service: Audio fayllar WSL ga ko'chirildi: /tmp/autodialer/
+2026-01-14 18:06:38,566 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 18:06:38,572 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 18:06:38,574 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 18:06:38,574 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 18:06:38,574 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 18:06:38,575 [INFO] autodialer: Telegram stats handler boshlash...
+2026-01-14 18:06:38,575 [INFO] services.telegram_service: Telegram stats polling boshlandi
+2026-01-14 18:06:38,575 [INFO] autodialer: Sinxronizatsiya: amoCRM va Telegram tekshirilmoqda...
+2026-01-14 18:06:39,297 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 18:06:39,627 [INFO] services.amocrm_service: Yangi leadlar: 13 ta, Jami: 13 ta
+2026-01-14 18:06:39,628 [INFO] autodialer: Yangi buyurtmalar: 13 ta, Jami: 13 ta
+2026-01-14 18:06:39,978 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 18:06:40,273 [INFO] autodialer: Sinxronizatsiya: 13 ta buyurtma topildi, Telegram xabar yuborilmoqda...
+2026-01-14 18:06:40,508 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 13 ta
+2026-01-14 18:06:51,249 [INFO] autodialer: Sotuvchi Doniyorbek oshxonasi: 5 ta buyurtma
+2026-01-14 18:06:58,774 [INFO] services.telegram_service: Telegram xabar yuborildi: 299
+2026-01-14 18:06:58,775 [INFO] autodialer: Sotuvchi S - Kafe: 3 ta buyurtma
+2026-01-14 18:06:58,913 [INFO] services.telegram_service: Telegram xabar yuborildi: 300
+2026-01-14 18:06:58,914 [INFO] autodialer: Sotuvchi Cooking: 1 ta buyurtma
+2026-01-14 18:06:59,053 [INFO] services.telegram_service: Telegram xabar yuborildi: 301
+2026-01-14 18:06:59,054 [INFO] autodialer: Sotuvchi Noma'lum: 1 ta buyurtma
+2026-01-14 18:06:59,260 [INFO] services.telegram_service: Telegram xabar yuborildi: 302
+2026-01-14 18:06:59,261 [INFO] autodialer: Sotuvchi V Coffee: 1 ta buyurtma
+2026-01-14 18:06:59,432 [INFO] services.telegram_service: Telegram xabar yuborildi: 303
+2026-01-14 18:06:59,434 [INFO] autodialer: Sotuvchi Qandolat: 1 ta buyurtma
+2026-01-14 18:07:04,683 [INFO] services.telegram_service: Telegram xabar yuborildi: 304
+2026-01-14 18:07:04,685 [INFO] autodialer: Sotuvchi Milliy: 1 ta buyurtma
+2026-01-14 18:07:04,831 [INFO] services.telegram_service: Telegram xabar yuborildi: 305
+2026-01-14 18:07:04,832 [INFO] autodialer: Sinxronizatsiya tugadi: 13 ta buyurtma uchun Telegram xabar yuborildi
+2026-01-14 18:07:04,832 [INFO] autodialer: ============================================================
+2026-01-14 18:07:04,833 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 18:07:04,833 [INFO] autodialer: ============================================================
+2026-01-14 18:11:18,328 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 14 ta
+2026-01-14 18:11:18,332 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 14 ta
+2026-01-14 18:12:48,750 [INFO] autodialer: Qo'ng'iroq tayyorlash: 1 ta buyurtma
+2026-01-14 18:12:49,769 [INFO] autodialer: Qo'ng'iroq: S - Kafe (+998932543733), 1 ta buyurtma
+2026-01-14 18:12:49,770 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 18:12:49,770 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998932543733
+2026-01-14 18:12:49,770 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998932543733, Audio: /tmp/autodialer/3f5f652ef7c02fd28a6d14c9aabc5952
+2026-01-14 18:12:49,775 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998932543733
+2026-01-14 18:13:18,567 [INFO] services.asterisk_service: Qayta urinish 0s dan keyin...
+2026-01-14 18:13:18,568 [INFO] autodialer: Qo'ng'iroq urinishi: 2/2
+2026-01-14 18:13:18,569 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/2: +998932543733
+2026-01-14 18:13:18,570 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998932543733, Audio: /tmp/autodialer/3f5f652ef7c02fd28a6d14c9aabc5952
+2026-01-14 18:13:18,574 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998932543733
+2026-01-14 18:13:18,575 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998932543733
+2026-01-14 18:13:18,576 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: S - Kafe (+998932543733) - CallStatus.FAILED
+2026-01-14 18:13:18,586 [INFO] services.stats_service: Qo'ng'iroq qayd etildi: +998932543733 - no_answer (2 urinish)
+2026-01-14 18:14:19,085 [INFO] autodialer: 3 daqiqa o'tdi, Telegram xabar yuborish...
+2026-01-14 18:14:19,470 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 14 ta
+2026-01-14 18:14:33,972 [INFO] autodialer: Sotuvchi S - Kafe: 4 ta buyurtma
+2026-01-14 18:14:34,356 [INFO] services.telegram_service: Telegram xabar yuborildi: 306
+2026-01-14 18:14:34,356 [INFO] autodialer: Sotuvchi Doniyorbek oshxonasi: 5 ta buyurtma
+2026-01-14 18:14:34,490 [INFO] services.telegram_service: Telegram xabar yuborildi: 307
+2026-01-14 18:14:34,492 [INFO] autodialer: Sotuvchi Cooking: 1 ta buyurtma
+2026-01-14 18:14:34,726 [INFO] services.telegram_service: Telegram xabar yuborildi: 308
+2026-01-14 18:14:34,727 [INFO] autodialer: Sotuvchi Noma'lum: 1 ta buyurtma
+2026-01-14 18:14:34,935 [INFO] services.telegram_service: Telegram xabar yuborildi: 309
+2026-01-14 18:14:34,936 [INFO] autodialer: Sotuvchi V Coffee: 1 ta buyurtma
+2026-01-14 18:14:35,170 [INFO] services.telegram_service: Telegram xabar yuborildi: 310
+2026-01-14 18:14:35,170 [INFO] autodialer: Sotuvchi Qandolat: 1 ta buyurtma
+2026-01-14 18:14:39,448 [INFO] services.telegram_service: Telegram xabar yuborildi: 311
+2026-01-14 18:14:39,449 [INFO] autodialer: Sotuvchi Milliy: 1 ta buyurtma
+2026-01-14 18:14:39,673 [INFO] services.telegram_service: Telegram xabar yuborildi: 312
+2026-01-14 18:15:53,476 [INFO] autodialer: Tekshirildi: 1 ta, Qoldi: 13 ta
+2026-01-14 18:15:54,308 [INFO] services.stats_service: Buyurtma qayd etildi: #1594 - accepted
+2026-01-14 18:15:54,308 [INFO] autodialer: Telegram xabarlarni o'chirish: 14 ta
+2026-01-14 18:15:57,682 [INFO] services.telegram_service: Telegram xabar o'chirildi: 299
+2026-01-14 18:15:57,810 [INFO] services.telegram_service: Telegram xabar o'chirildi: 300
+2026-01-14 18:15:57,934 [INFO] services.telegram_service: Telegram xabar o'chirildi: 301
+2026-01-14 18:15:58,082 [INFO] services.telegram_service: Telegram xabar o'chirildi: 302
+2026-01-14 18:15:58,266 [INFO] services.telegram_service: Telegram xabar o'chirildi: 303
+2026-01-14 18:15:58,456 [INFO] services.telegram_service: Telegram xabar o'chirildi: 304
+2026-01-14 18:15:58,641 [INFO] services.telegram_service: Telegram xabar o'chirildi: 305
+2026-01-14 18:15:58,786 [INFO] services.telegram_service: Telegram xabar o'chirildi: 306
+2026-01-14 18:15:58,912 [INFO] services.telegram_service: Telegram xabar o'chirildi: 307
+2026-01-14 18:15:59,047 [INFO] services.telegram_service: Telegram xabar o'chirildi: 308
+2026-01-14 18:15:59,185 [INFO] services.telegram_service: Telegram xabar o'chirildi: 309
+2026-01-14 18:15:59,305 [INFO] services.telegram_service: Telegram xabar o'chirildi: 310
+2026-01-14 18:15:59,436 [INFO] services.telegram_service: Telegram xabar o'chirildi: 311
+2026-01-14 18:15:59,561 [INFO] services.telegram_service: Telegram xabar o'chirildi: 312
+2026-01-14 18:15:59,561 [INFO] autodialer: Qolgan 13 ta buyurtma uchun yangi Telegram xabar...
+2026-01-14 18:16:00,336 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 13 ta
+2026-01-14 18:16:16,160 [INFO] autodialer: Sotuvchi Doniyorbek oshxonasi: 5 ta buyurtma
+2026-01-14 18:16:16,514 [INFO] services.telegram_service: Telegram xabar yuborildi: 313
+2026-01-14 18:16:16,514 [INFO] autodialer: Sotuvchi S - Kafe: 3 ta buyurtma
+2026-01-14 18:16:16,676 [INFO] services.telegram_service: Telegram xabar yuborildi: 314
+2026-01-14 18:16:16,676 [INFO] autodialer: Sotuvchi Cooking: 1 ta buyurtma
+2026-01-14 18:16:16,813 [INFO] services.telegram_service: Telegram xabar yuborildi: 315
+2026-01-14 18:16:16,814 [INFO] autodialer: Sotuvchi Noma'lum: 1 ta buyurtma
+2026-01-14 18:16:16,950 [INFO] services.telegram_service: Telegram xabar yuborildi: 316
+2026-01-14 18:16:16,951 [INFO] autodialer: Sotuvchi V Coffee: 1 ta buyurtma
+2026-01-14 18:16:17,087 [INFO] services.telegram_service: Telegram xabar yuborildi: 317
+2026-01-14 18:16:17,087 [INFO] autodialer: Sotuvchi Qandolat: 1 ta buyurtma
+2026-01-14 18:16:24,297 [INFO] services.telegram_service: Telegram xabar yuborildi: 318
+2026-01-14 18:16:24,298 [INFO] autodialer: Sotuvchi Milliy: 1 ta buyurtma
+2026-01-14 18:16:24,498 [INFO] services.telegram_service: Telegram xabar yuborildi: 319
+2026-01-14 18:20:18,071 [INFO] autodialer: Tekshirildi: 3 ta, Qoldi: 10 ta
+2026-01-14 18:20:19,211 [INFO] services.stats_service: Buyurtma qayd etildi: #1594 - accepted
+2026-01-14 18:20:19,211 [INFO] autodialer: Telegram xabarlarni o'chirish: 7 ta
+2026-01-14 18:20:19,605 [INFO] services.telegram_service: Telegram xabar o'chirildi: 313
+2026-01-14 18:20:19,810 [INFO] services.telegram_service: Telegram xabar o'chirildi: 314
+2026-01-14 18:20:19,962 [INFO] services.telegram_service: Telegram xabar o'chirildi: 315
+2026-01-14 18:20:20,128 [INFO] services.telegram_service: Telegram xabar o'chirildi: 316
+2026-01-14 18:20:20,302 [INFO] services.telegram_service: Telegram xabar o'chirildi: 317
+2026-01-14 18:20:20,429 [INFO] services.telegram_service: Telegram xabar o'chirildi: 318
+2026-01-14 18:20:20,576 [INFO] services.telegram_service: Telegram xabar o'chirildi: 319
+2026-01-14 18:20:20,576 [INFO] autodialer: Qolgan 10 ta buyurtma uchun yangi Telegram xabar...
+2026-01-14 18:20:21,002 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 9 ta
+2026-01-14 18:20:43,979 [INFO] autodialer: Sotuvchi Doniyorbek oshxonasi: 5 ta buyurtma
+2026-01-14 18:20:59,484 [INFO] services.telegram_service: Telegram xabar yuborildi: 320
+2026-01-14 18:20:59,485 [INFO] autodialer: Sotuvchi S - Kafe: 2 ta buyurtma
+2026-01-14 18:20:59,614 [INFO] services.telegram_service: Telegram xabar yuborildi: 321
+2026-01-14 18:20:59,615 [INFO] autodialer: Sotuvchi Cooking: 1 ta buyurtma
+2026-01-14 18:20:59,756 [INFO] services.telegram_service: Telegram xabar yuborildi: 322
+2026-01-14 18:20:59,756 [INFO] autodialer: Sotuvchi Noma'lum: 1 ta buyurtma
+2026-01-14 18:20:59,895 [INFO] services.telegram_service: Telegram xabar yuborildi: 323
+2026-01-14 18:21:03,392 [INFO] autodialer: Tekshirildi: 1 ta, Qoldi: 9 ta
+2026-01-14 18:21:04,463 [INFO] services.stats_service: Buyurtma qayd etildi: #1594 - accepted
+2026-01-14 18:21:04,463 [INFO] autodialer: Telegram xabarlarni o'chirish: 4 ta
+2026-01-14 18:21:04,655 [INFO] services.telegram_service: Telegram xabar o'chirildi: 320
+2026-01-14 18:21:04,832 [INFO] services.telegram_service: Telegram xabar o'chirildi: 321
+2026-01-14 18:21:04,977 [INFO] services.telegram_service: Telegram xabar o'chirildi: 322
+2026-01-14 18:21:05,131 [INFO] services.telegram_service: Telegram xabar o'chirildi: 323
+2026-01-14 18:21:05,131 [INFO] autodialer: Qolgan 9 ta buyurtma uchun yangi Telegram xabar...
+2026-01-14 18:21:05,400 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 9 ta
+2026-01-14 18:21:13,368 [INFO] autodialer: Sotuvchi Doniyorbek oshxonasi: 5 ta buyurtma
+2026-01-14 18:21:13,604 [INFO] services.telegram_service: Telegram xabar yuborildi: 324
+2026-01-14 18:21:13,605 [INFO] autodialer: Sotuvchi S - Kafe: 2 ta buyurtma
+2026-01-14 18:21:13,845 [INFO] services.telegram_service: Telegram xabar yuborildi: 325
+2026-01-14 18:21:13,846 [INFO] autodialer: Sotuvchi Cooking: 1 ta buyurtma
+2026-01-14 18:21:14,072 [INFO] services.telegram_service: Telegram xabar yuborildi: 326
+2026-01-14 18:21:14,072 [INFO] autodialer: Sotuvchi Noma'lum: 1 ta buyurtma
+2026-01-14 18:21:14,232 [INFO] services.telegram_service: Telegram xabar yuborildi: 327
+2026-01-14 18:22:55,064 [INFO] autodialer: Tekshirildi: 1 ta, Qoldi: 8 ta
+2026-01-14 18:22:56,079 [INFO] services.stats_service: Buyurtma qayd etildi: #1594 - accepted
+2026-01-14 18:22:56,079 [INFO] autodialer: Telegram xabarlarni o'chirish: 4 ta
+2026-01-14 18:22:56,584 [INFO] services.telegram_service: Telegram xabar o'chirildi: 324
+2026-01-14 18:22:56,702 [INFO] services.telegram_service: Telegram xabar o'chirildi: 325
+2026-01-14 18:22:56,820 [INFO] services.telegram_service: Telegram xabar o'chirildi: 326
+2026-01-14 18:22:56,947 [INFO] services.telegram_service: Telegram xabar o'chirildi: 327
+2026-01-14 18:22:56,947 [INFO] autodialer: Qolgan 8 ta buyurtma uchun yangi Telegram xabar...
+2026-01-14 18:22:57,269 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 7 ta
+2026-01-14 18:23:04,993 [INFO] autodialer: Sotuvchi Doniyorbek oshxonasi: 4 ta buyurtma
+2026-01-14 18:23:05,145 [INFO] services.telegram_service: Telegram xabar yuborildi: 328
+2026-01-14 18:23:05,145 [INFO] autodialer: Sotuvchi Cooking: 1 ta buyurtma
+2026-01-14 18:23:05,311 [INFO] services.telegram_service: Telegram xabar yuborildi: 329
+2026-01-14 18:23:05,311 [INFO] autodialer: Sotuvchi S - Kafe: 1 ta buyurtma
+2026-01-14 18:23:05,445 [INFO] services.telegram_service: Telegram xabar yuborildi: 330
+2026-01-14 18:23:05,445 [INFO] autodialer: Sotuvchi Noma'lum: 1 ta buyurtma
+2026-01-14 18:23:05,572 [INFO] services.telegram_service: Telegram xabar yuborildi: 331
+2026-01-14 18:23:09,385 [INFO] autodialer: Tekshirildi: 6 ta, Qoldi: 2 ta
+2026-01-14 18:23:10,262 [INFO] services.stats_service: Buyurtma qayd etildi: #1594 - accepted
+2026-01-14 18:23:10,263 [INFO] autodialer: Telegram xabarlarni o'chirish: 4 ta
+2026-01-14 18:23:10,419 [INFO] services.telegram_service: Telegram xabar o'chirildi: 328
+2026-01-14 18:23:10,582 [INFO] services.telegram_service: Telegram xabar o'chirildi: 329
+2026-01-14 18:23:10,761 [INFO] services.telegram_service: Telegram xabar o'chirildi: 330
+2026-01-14 18:23:10,945 [INFO] services.telegram_service: Telegram xabar o'chirildi: 331
+2026-01-14 18:23:10,945 [INFO] autodialer: Qolgan 2 ta buyurtma uchun yangi Telegram xabar...
+2026-01-14 18:23:11,206 [INFO] autodialer: Qolgan buyurtmalar uchun Telegram: 1 ta
+2026-01-14 18:23:12,131 [INFO] autodialer: Sotuvchi Doniyorbek oshxonasi: 1 ta buyurtma
+2026-01-14 18:23:12,344 [INFO] services.telegram_service: Telegram xabar yuborildi: 332
+2026-01-14 18:23:15,534 [INFO] autodialer: Tekshirildi: 2 ta, Qoldi: 0 ta
+2026-01-14 18:23:16,328 [INFO] services.stats_service: Buyurtma qayd etildi: #1594 - accepted
+2026-01-14 18:23:16,328 [INFO] autodialer: Telegram xabarlarni o'chirish: 1 ta
+2026-01-14 18:23:16,482 [INFO] services.telegram_service: Telegram xabar o'chirildi: 332
+2026-01-14 18:23:16,483 [INFO] autodialer: Barcha buyurtmalar tekshirildi!
+2026-01-14 18:24:11,644 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 1 ta
+2026-01-14 18:24:11,645 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 1 ta
+2026-01-14 18:25:41,811 [INFO] autodialer: Qo'ng'iroq tayyorlash: 1 ta buyurtma
+2026-01-14 18:25:42,740 [INFO] autodialer: Qo'ng'iroq: Milliy (+998948679300), 1 ta buyurtma
+2026-01-14 18:25:42,742 [INFO] autodialer: Qo'ng'iroq urinishi: 1/2
+2026-01-14 18:25:42,742 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 1/2: +998948679300
+2026-01-14 18:25:42,743 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998948679300, Audio: /tmp/autodialer/3f5f652ef7c02fd28a6d14c9aabc5952
+2026-01-14 18:25:42,747 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998948679300
+2026-01-14 18:26:08,179 [INFO] services.asterisk_service: Qayta urinish 0s dan keyin...
+2026-01-14 18:26:08,180 [INFO] autodialer: Qo'ng'iroq urinishi: 2/2
+2026-01-14 18:26:08,180 [INFO] services.asterisk_service: Qo'ng'iroq urinishi 2/2: +998948679300
+2026-01-14 18:26:08,181 [INFO] services.asterisk_service: Qo'ng'iroq boshlanmoqda: 998948679300, Audio: /tmp/autodialer/3f5f652ef7c02fd28a6d14c9aabc5952
+2026-01-14 18:26:08,183 [INFO] services.asterisk_service: Qo'ng'iroq yuborildi: 998948679300
+2026-01-14 18:26:33,270 [WARNING] services.asterisk_service: Barcha urinishlar tugadi: +998948679300
+2026-01-14 18:26:33,271 [WARNING] autodialer: Qo'ng'iroq muvaffaqiyatsiz: Milliy (+998948679300) - CallStatus.FAILED
+2026-01-14 18:26:33,282 [INFO] services.stats_service: Qo'ng'iroq qayd etildi: +998948679300 - no_answer (2 urinish)

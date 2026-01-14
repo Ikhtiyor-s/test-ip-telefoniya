@@ -255,6 +255,9 @@ class AutodialerPro:
         Agar TEKSHIRILMOQDA statusida buyurtmalar bo'lsa:
         - Telegram ga yangi xabar yuborish
         - Holatni tiklash
+
+        Agar buyurtmalar yo'q bo'lsa:
+        - Telegramdagi eski xabarlarni o'chirish
         """
         logger.info("Sinxronizatsiya: amoCRM va Telegram tekshirilmoqda...")
 
@@ -264,6 +267,9 @@ class AutodialerPro:
 
             if not leads:
                 logger.info("Sinxronizatsiya: TEKSHIRILMOQDA da buyurtmalar yo'q")
+                # Telegramdagi eski xabarlarni o'chirish
+                await self._cleanup_old_telegram_messages()
+                self.state.reset()
                 return
 
             count = len(leads)
@@ -286,6 +292,62 @@ class AutodialerPro:
 
         except Exception as e:
             logger.error(f"Sinxronizatsiya xatosi: {e}")
+
+    async def _cleanup_old_telegram_messages(self):
+        """
+        Telegramdagi eski buyurtma xabarlarini o'chirish
+
+        So'nggi 10 ta xabarni tekshirib, buyurtma xabarlarini o'chiradi
+        """
+        if not self.telegram:
+            return
+
+        try:
+            logger.info("Telegram: eski xabarlarni tozalash...")
+
+            # So'nggi xabarlarni olish (getUpdates orqali)
+            import aiohttp
+            url = f"https://api.telegram.org/bot{self.telegram.bot_token}/getUpdates"
+            params = {"limit": 100, "offset": -100}
+
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params=params) as response:
+                    data = await response.json()
+
+                    if not data.get("ok"):
+                        return
+
+                    results = data.get("result", [])
+                    deleted_count = 0
+
+                    for update in results:
+                        message = update.get("message") or update.get("channel_post")
+                        if not message:
+                            continue
+
+                        # Faqat bizning guruhdan
+                        chat_id = str(message.get("chat", {}).get("id", ""))
+                        if chat_id != self.telegram.default_chat_id:
+                            continue
+
+                        # Buyurtma xabari ekanligini tekshirish
+                        text = message.get("text", "")
+                        if "DIQQAT!" in text and "buyurtma" in text.lower():
+                            msg_id = message.get("message_id")
+                            try:
+                                await self.telegram.delete_message(msg_id)
+                                deleted_count += 1
+                                logger.debug(f"Eski xabar o'chirildi: {msg_id}")
+                            except:
+                                pass
+
+                    if deleted_count > 0:
+                        logger.info(f"Telegram: {deleted_count} ta eski xabar o'chirildi")
+                    else:
+                        logger.info("Telegram: o'chiriladigan eski xabar topilmadi")
+
+        except Exception as e:
+            logger.error(f"Telegram tozalash xatosi: {e}")
 
     async def _main_loop(self):
         """Asosiy ishlash sikli"""

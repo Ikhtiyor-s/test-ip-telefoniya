@@ -213,6 +213,9 @@ class AutodialerPro:
         logger.info("amoCRM polling boshlash...")
         await self.amocrm_poller.start()
 
+        # Ishga tushganda sinxronizatsiya - amoCRM va Telegram
+        await self._sync_on_startup()
+
         # Asosiy loop
         logger.info("=" * 60)
         logger.info("AUTODIALER PRO ISHLAYAPTI")
@@ -244,6 +247,45 @@ class AutodialerPro:
             await self.telegram.close()
 
         logger.info("Autodialer to'xtatildi")
+
+    async def _sync_on_startup(self):
+        """
+        Ishga tushganda amoCRM va Telegram ni sinxronlashtirish
+
+        Agar TEKSHIRILMOQDA statusida buyurtmalar bo'lsa:
+        - Telegram ga yangi xabar yuborish
+        - Holatni tiklash
+        """
+        logger.info("Sinxronizatsiya: amoCRM va Telegram tekshirilmoqda...")
+
+        try:
+            # TEKSHIRILMOQDA dagi buyurtmalarni olish
+            leads = await self.amocrm.get_leads_by_status()
+
+            if not leads:
+                logger.info("Sinxronizatsiya: TEKSHIRILMOQDA da buyurtmalar yo'q")
+                return
+
+            count = len(leads)
+            order_ids = [lead["id"] for lead in leads]
+
+            logger.info(f"Sinxronizatsiya: {count} ta buyurtma topildi, Telegram xabar yuborilmoqda...")
+
+            # Holatni tiklash
+            self.state.pending_orders_count = count
+            self.state.pending_order_ids = order_ids
+            self.state.last_new_order_time = datetime.now()
+            self.state.waiting_for_call = True
+            self.state.call_started = True  # Qo'ng'iroq qilmaslik uchun
+            self.state.telegram_notified = True  # Telegram yuborilgan
+
+            # Telegram xabar yuborish
+            await self._send_telegram_for_remaining()
+
+            logger.info(f"Sinxronizatsiya tugadi: {count} ta buyurtma uchun Telegram xabar yuborildi")
+
+        except Exception as e:
+            logger.error(f"Sinxronizatsiya xatosi: {e}")
 
     async def _main_loop(self):
         """Asosiy ishlash sikli"""
@@ -338,6 +380,7 @@ class AutodialerPro:
 
     async def _on_call_attempt(self, attempt: int, max_attempts: int):
         """Qo'ng'iroq urinishi callback"""
+        self.state.call_attempts = attempt
         logger.info(f"Qo'ng'iroq urinishi: {attempt}/{max_attempts}")
 
     async def _send_telegram_alert(self):
@@ -439,7 +482,7 @@ class AutodialerPro:
                 logger.info(f"Sotuvchi {seller_data['seller_name']}: {len(seller_data['orders'])} ta buyurtma")
                 await self.notification_manager.notify_seller_orders(
                     seller_data,
-                    0  # Qo'ng'iroq urinishlari soni
+                    self.state.call_attempts  # Qo'ng'iroq urinishlari soni
                 )
             except Exception as e:
                 logger.error(f"Sotuvchi {seller_phone} xabar yuborishda xato: {e}")

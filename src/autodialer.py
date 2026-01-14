@@ -547,8 +547,13 @@ class AutodialerPro:
                     order_ids=order_ids_for_call
                 )
 
-        # Telegram xabar uchun vaqtni belgilash (buyurtma tushganidan 3 daqiqa keyin)
-        # Telegram xabar _check_and_process da yuboriladi
+        # Barcha qo'ng'iroqlar tugadi
+        # Agar javob berilgan bo'lsa - state tozalash va Telegram yubormaslik
+        if total_attempts == 0:
+            logger.info("Barcha qo'ng'iroqlar muvaffaqiyatli, state tozalanmoqda")
+            self.state.reset()
+            # Telegram xabarlarni o'chirish
+            await self._delete_telegram_messages()
 
     async def _on_call_attempt(self, attempt: int, max_attempts: int):
         """Qo'ng'iroq urinishi callback"""

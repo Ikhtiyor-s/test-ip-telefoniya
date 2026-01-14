@@ -1129,3 +1129,51 @@ connector: <aiohttp.connector.TCPConnector object at 0x000002B26CD9FF70>
 2026-01-14 05:08:43,315 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
 2026-01-14 05:08:43,507 [INFO] services.amocrm_service: Yangi leadlar: 1 ta, Jami: 1 ta
 2026-01-14 05:08:43,507 [INFO] autodialer: Yangi buyurtmalar: 1 ta, Jami: 1 ta
+2026-01-14 05:17:37,808 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 05:17:37,808 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 05:17:37,808 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 05:17:37,808 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 05:17:37,808 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 05:17:37,808 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 05:17:37,808 [INFO] autodialer: ============================================================
+2026-01-14 05:17:37,808 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 05:17:37,808 [INFO] autodialer: ============================================================
+2026-01-14 05:17:37,808 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 05:17:37,809 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 05:17:37,810 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 05:17:38,086 [INFO] services.tts_service: Audio fayllar WSL ga ko'chirildi: /tmp/autodialer/
+2026-01-14 05:17:38,086 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 05:17:38,089 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 05:17:38,090 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 05:17:38,090 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 05:17:38,091 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 05:17:38,091 [INFO] autodialer: ============================================================
+2026-01-14 05:17:38,091 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 05:17:38,091 [INFO] autodialer: ============================================================
+2026-01-14 05:17:38,528 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 05:20:20,659 [ERROR] services.amocrm_service: amoCRM ulanish xatosi: Server disconnected
+2026-01-14 05:21:05,298 [INFO] services.tts_service: TTS servisi ishga tushdi: edge
+2026-01-14 05:21:05,298 [INFO] services.amocrm_service: amoCRM servisi ishga tushdi: welltech
+2026-01-14 05:21:05,298 [INFO] services.amocrm_service: amoCRM Poller yaratildi: 3s interval
+2026-01-14 05:21:05,298 [INFO] services.asterisk_service: Asterisk AMI yaratildi: 172.29.124.85:5038
+2026-01-14 05:21:05,298 [INFO] services.telegram_service: Telegram servisi ishga tushdi
+2026-01-14 05:21:05,298 [INFO] autodialer: AutodialerPro yaratildi
+2026-01-14 05:21:05,298 [INFO] autodialer: ============================================================
+2026-01-14 05:21:05,298 [INFO] autodialer: AUTODIALER PRO ISHGA TUSHMOQDA
+2026-01-14 05:21:05,299 [INFO] autodialer: ============================================================
+2026-01-14 05:21:05,299 [INFO] autodialer: TTS xabarlarini tayyorlash...
+2026-01-14 05:21:05,299 [INFO] services.tts_service: TTS xabarlarini oldindan yaratish: 1-20
+2026-01-14 05:21:05,300 [INFO] services.tts_service: TTS oldindan yaratish tugadi
+2026-01-14 05:21:05,567 [INFO] services.tts_service: Audio fayllar WSL ga ko'chirildi: /tmp/autodialer/
+2026-01-14 05:21:05,567 [INFO] autodialer: Asterisk AMI ga ulanish...
+2026-01-14 05:21:05,569 [INFO] services.asterisk_service: AMI ulanish muvaffaqiyatli
+2026-01-14 05:21:05,571 [WARNING] autodialer: SIP registratsiya: MUVAFFAQIYATSIZ
+2026-01-14 05:21:05,571 [INFO] autodialer: amoCRM polling boshlash...
+2026-01-14 05:21:05,571 [INFO] services.amocrm_service: amoCRM Polling boshlandi
+2026-01-14 05:21:05,571 [INFO] autodialer: Sinxronizatsiya: amoCRM va Telegram tekshirilmoqda...
+2026-01-14 05:21:05,861 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 05:21:05,883 [INFO] services.amocrm_service: Pipeline topildi: nonbor-order-manage (ID: 10154618), Status: Tekshirilmoqda (ID: 80442678)
+2026-01-14 05:21:06,038 [INFO] autodialer: Sinxronizatsiya: TEKSHIRILMOQDA da buyurtmalar yo'q
+2026-01-14 05:21:06,038 [INFO] autodialer: ============================================================
+2026-01-14 05:21:06,038 [INFO] autodialer: AUTODIALER PRO ISHLAYAPTI
+2026-01-14 05:21:06,038 [INFO] autodialer: ============================================================

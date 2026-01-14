@@ -399,11 +399,41 @@ class TelegramNotificationManager:
     - Dublikatlarni oldini olish
     """
 
-    def __init__(self, telegram_service: TelegramService):
+    def __init__(self, telegram_service: TelegramService, data_dir: str = "data"):
         self.telegram = telegram_service
         self._active_message_ids: list = []  # Barcha yuborilgan xabarlar
         self._last_count = 0
         self._message_sent_at: Optional[datetime] = None
+
+        # Xabar ID larini saqlash uchun fayl
+        from pathlib import Path
+        import json
+        self.data_dir = Path(data_dir)
+        self.data_dir.mkdir(exist_ok=True)
+        self.messages_file = self.data_dir / "telegram_messages.json"
+        self._load_messages()
+
+    def _load_messages(self):
+        """Saqlangan xabar ID larini yuklash"""
+        if self.messages_file.exists():
+            try:
+                import json
+                with open(self.messages_file, "r") as f:
+                    data = json.load(f)
+                    self._active_message_ids = data.get("message_ids", [])
+                    logger.info(f"Telegram xabar ID lar yuklandi: {len(self._active_message_ids)} ta")
+            except Exception as e:
+                logger.error(f"Telegram xabar ID lar yuklashda xato: {e}")
+                self._active_message_ids = []
+
+    def _save_messages(self):
+        """Xabar ID larni faylga saqlash"""
+        try:
+            import json
+            with open(self.messages_file, "w") as f:
+                json.dump({"message_ids": self._active_message_ids}, f, indent=2)
+        except Exception as e:
+            logger.error(f"Telegram xabar ID lar saqlashda xato: {e}")
 
     async def notify_seller_orders(
         self,
@@ -422,6 +452,7 @@ class TelegramNotificationManager:
         if message_id:
             self._active_message_ids.append(message_id)
             self._message_sent_at = datetime.now()
+            self._save_messages()  # Faylga saqlash
 
     async def notify_resolved(self, resolved_count: int, remaining_count: int):
         """
@@ -435,6 +466,7 @@ class TelegramNotificationManager:
                 await self.telegram.delete_message(msg_id)
             self._active_message_ids = []
             self._message_sent_at = None
+            self._save_messages()  # Faylga saqlash
 
         self._last_count = remaining_count
 
@@ -444,12 +476,14 @@ class TelegramNotificationManager:
             await self.telegram.delete_message(msg_id)
         self._active_message_ids = []
         self._message_sent_at = None
+        self._save_messages()  # Faylga saqlash
 
     def clear_notification(self):
         """Bildirishnoma holatini tozalash"""
         self._active_message_ids = []
         self._last_count = 0
         self._message_sent_at = None
+        self._save_messages()  # Faylga saqlash
 
     @property
     def has_active_notification(self) -> bool:

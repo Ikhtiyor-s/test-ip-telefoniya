@@ -413,29 +413,83 @@ class AutodialerPro:
             await self._send_telegram_for_remaining()
 
     async def _make_call(self):
-        """Sotuvchiga qo'ng'iroq qilish (barcha urinishlar)"""
-        count = self.state.pending_orders_count
+        """Har bir sotuvchiga alohida qo'ng'iroq qilish"""
+        order_ids = self.state.pending_order_ids
 
-        logger.info(f"Qo'ng'iroq qilish: {self.seller_phone}, Buyurtmalar: {count}")
+        logger.info(f"Qo'ng'iroq tayyorlash: {len(order_ids)} ta buyurtma")
 
-        # TTS audio olish
-        audio_path = await self.tts.generate_order_message(count)
-        if not audio_path:
-            logger.error("TTS audio yaratilmadi!")
-            self.state.call_attempts = self.max_call_attempts  # Telegram yuborish uchun
-            return
+        # Barcha buyurtmalarni olish va sotuvchi bo'yicha guruhlash
+        sellers = {}
+        for order_id in order_ids:
+            try:
+                order_data = await self.amocrm.get_order_full_data(order_id)
+                seller_phone = order_data.get("seller_phone", "Noma'lum")
 
-        # Qo'ng'iroq qilish - barcha urinishlar (retry bilan)
-        result = await self.call_manager.make_call_with_retry(
-            phone_number=self.seller_phone,
-            audio_file=str(audio_path),
-            on_attempt=self._on_call_attempt
-        )
+                # Telefon raqamini formatlash
+                if seller_phone and seller_phone != "Noma'lum":
+                    # Faqat raqamlarni olish
+                    phone_digits = ''.join(filter(str.isdigit, seller_phone))
+                    if len(phone_digits) >= 9:
+                        # +998 formatiga o'tkazish
+                        if len(phone_digits) == 9:
+                            seller_phone = f"+998{phone_digits}"
+                        elif len(phone_digits) == 12 and phone_digits.startswith("998"):
+                            seller_phone = f"+{phone_digits}"
+                        else:
+                            seller_phone = f"+{phone_digits}"
+                    else:
+                        seller_phone = None
 
-        if result.is_answered:
-            logger.info("Qo'ng'iroq muvaffaqiyatli!")
-        else:
-            logger.warning(f"Qo'ng'iroq muvaffaqiyatsiz: {result.status}")
+                if not seller_phone:
+                    logger.warning(f"Buyurtma #{order_id}: sotuvchi telefoni topilmadi, default ishlatiladi")
+                    seller_phone = self.seller_phone
+
+                if seller_phone not in sellers:
+                    sellers[seller_phone] = {
+                        "seller_name": order_data.get("seller_name", "Noma'lum"),
+                        "seller_phone": seller_phone,
+                        "orders": []
+                    }
+                sellers[seller_phone]["orders"].append(order_data)
+
+            except Exception as e:
+                logger.error(f"Buyurtma #{order_id} ma'lumotini olishda xato: {e}")
+
+        if not sellers:
+            logger.warning("Hech qanday sotuvchi topilmadi, default raqamga qo'ng'iroq")
+            sellers[self.seller_phone] = {
+                "seller_name": "Noma'lum",
+                "seller_phone": self.seller_phone,
+                "orders": []
+            }
+
+        # Har bir sotuvchiga alohida qo'ng'iroq
+        total_attempts = 0
+        for seller_phone, seller_data in sellers.items():
+            order_count = len(seller_data["orders"])
+            seller_name = seller_data["seller_name"]
+
+            logger.info(f"Qo'ng'iroq: {seller_name} ({seller_phone}), {order_count} ta buyurtma")
+
+            # TTS audio olish
+            audio_path = await self.tts.generate_order_message(order_count)
+            if not audio_path:
+                logger.error(f"TTS audio yaratilmadi: {seller_phone}")
+                total_attempts = self.max_call_attempts
+                continue
+
+            # Qo'ng'iroq qilish - barcha urinishlar (retry bilan)
+            result = await self.call_manager.make_call_with_retry(
+                phone_number=seller_phone,
+                audio_file=str(audio_path),
+                on_attempt=self._on_call_attempt
+            )
+
+            if result.is_answered:
+                logger.info(f"Qo'ng'iroq muvaffaqiyatli: {seller_name} ({seller_phone})")
+            else:
+                logger.warning(f"Qo'ng'iroq muvaffaqiyatsiz: {seller_name} ({seller_phone}) - {result.status}")
+                total_attempts = max(total_attempts, self.state.call_attempts)
 
         # Telegram xabar uchun vaqtni belgilash (buyurtma tushganidan 3 daqiqa keyin)
         # Telegram xabar _check_and_process da yuboriladi

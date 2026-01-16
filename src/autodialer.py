@@ -418,7 +418,7 @@ class AutodialerPro:
 
             # MUHIM: Agar Telegram xabarlari mavjud bo'lsa, telegram_notified = True qilish
             # Bu autodialer qayta ishga tushganda kerak - oldingi Telegram xabarlari saqlanadi
-            if self.telegram.has_active_notification():
+            if self.telegram.has_active_notification:
                 self.state.telegram_notified = True
                 logger.info(f"Sinxronizatsiya: Telegram xabarlari mavjud, telegram_notified = True")
 

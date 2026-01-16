@@ -1,0 +1,49 @@
+═══════════════════════════════════════════════════════════
+DIALPLAN MUAMMOSINI TUZATISH - Qo'llanma
+═══════════════════════════════════════════════════════════
+
+MUAMMO:
+--------
+Siz qo'ng'iroqqa javob berdingiz, lekin sistema "javob berilmadi" deb
+qayta-qayta qo'ng'iroq qilmoqda.
+
+SABAB:
+------
+Asterisk dialplan da Answer() bor. Bu Originate qo'ng'iroqlari uchun
+NOTO'G'RI! Chunki Originate sizning javob berganingizni o'zi tekshiradi.
+
+YECHIM:
+-------
+1. WSL terminalini oching
+2. Quyidagi buyruqlarni bajaring:
+
+# 1. Dialplan faylini yaratish
+cat > /tmp/extensions_autodialer.conf << 'EOF'
+[autodialer-dynamic]
+exten => _X.,1,NoOp(AutoDialer qongiroq: ${EXTEN})
+exten => _X.,n,Wait(1)
+exten => _X.,n,Playback(${AUDIO_FILE})
+exten => _X.,n,Wait(2)
+exten => _X.,n,Hangup()
+EOF
+
+# 2. Asterisk ga ko'chirish
+sudo cp /tmp/extensions_autodialer.conf /etc/asterisk/
+
+# 3. Extensions.conf ga include qo'shish
+echo '#include "extensions_autodialer.conf"' | sudo tee -a /etc/asterisk/extensions.conf
+
+# 4. Dialplan reload
+sudo asterisk -rx "dialplan reload"
+
+# 5. Tekshirish
+sudo asterisk -rx "dialplan show autodialer-dynamic"
+
+NATIJA:
+-------
+Endi Answer() yo'q, shuning uchun:
+- Siz javob berganingizda, Asterisk buni biladi
+- Audio to'g'ri o'ynaydi
+- Sistema qayta qo'ng'iroq qilmaydi
+
+═══════════════════════════════════════════════════════════

@@ -22,14 +22,14 @@ async def main():
     print(f"Login response: {response.decode()}")
 
     # Dialplan yaratish - Command orqali
+    # MUHIM: Originate uchun Answer() kerak emas - faqat audio o'ynatish
     dialplan_commands = [
         "dialplan remove context autodialer-dynamic",
-        'dialplan add extension _X.,1,NoOp(AutoDialer) into autodialer-dynamic',
-        'dialplan add extension _X.,2,Answer() into autodialer-dynamic',
-        'dialplan add extension _X.,3,Wait(1) into autodialer-dynamic',
-        'dialplan add extension _X.,4,Playback(${AUDIO_FILE}) into autodialer-dynamic',
-        'dialplan add extension _X.,5,Wait(2) into autodialer-dynamic',
-        'dialplan add extension _X.,6,Hangup() into autodialer-dynamic',
+        'dialplan add extension _X.,1,NoOp(AutoDialer - Sotuvchiga qongiroq) into autodialer-dynamic',
+        'dialplan add extension _X.,2,Wait(1) into autodialer-dynamic',
+        'dialplan add extension _X.,3,Playback(${AUDIO_FILE}) into autodialer-dynamic',
+        'dialplan add extension _X.,4,Wait(2) into autodialer-dynamic',
+        'dialplan add extension _X.,5,Hangup() into autodialer-dynamic',
     ]
 
     for i, cmd in enumerate(dialplan_commands, start=10):

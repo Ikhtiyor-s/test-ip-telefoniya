@@ -697,13 +697,16 @@ class AutodialerPro:
             self.state.last_telegram_order_ids = set()
             self.state.reset()
         else:
-            # Qolgan buyurtmalar - faqat holatni yangilash
-            # MUHIM: Telegram faqat 180s timer orqali yuboriladi (_check_and_process da)
-            # Bu yerda Telegram YANGILANMAYDI - 180s kutiladi
+            # Qolgan buyurtmalar - holatni yangilash va Telegram ni yangilash
             self.state.pending_orders_count = remaining_count
-            logger.info(f"Qolgan {remaining_count} ta buyurtma, 180s timer davom etmoqda (Telegram yangilanmaydi)")
-            # DEPRECATED: Telegram bu yerda YANGILANMAYDI
-            # await self._send_telegram_for_remaining()
+            logger.info(f"Qolgan {remaining_count} ta buyurtma, Telegram yangilanmoqda")
+
+            # MUHIM: Buyurtma QABUL/BEKOR qilinganda Telegram DARHOL yangilanadi
+            # (180s timer faqat YANGI buyurtmalar uchun ishlaydi)
+            # Agar Telegram xabar allaqachon yuborilgan bo'lsa, yangilash kerak
+            if self.state.telegram_notified:
+                logger.info(f"Telegram xabar yangilanmoqda: {remaining_count} ta buyurtma qoldi")
+                await self._send_telegram_for_remaining()
 
     async def _make_call(self):
         """Har bir sotuvchiga alohida qo'ng'iroq qilish"""

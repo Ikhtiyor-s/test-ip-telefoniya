@@ -125,26 +125,33 @@ class AmoCRMService:
         TEKSHIRILMOQDA statusidagi barcha leadlarni olish
 
         Returns:
-            Leadlar ro'yxati
+            Leadlar ro'yxati yoki None agar xato yuz bergan bo'lsa
         """
-        if not await self.get_pipeline_and_status():
-            return []
+        try:
+            if not await self.get_pipeline_and_status():
+                return []
 
-        params = {
-            "filter[statuses][0][pipeline_id]": self._pipeline_id,
-            "filter[statuses][0][status_id]": self._status_id,
-            "limit": 250,
-            "order[created_at]": "desc"
-        }
+            params = {
+                "filter[statuses][0][pipeline_id]": self._pipeline_id,
+                "filter[statuses][0][status_id]": self._status_id,
+                "limit": 250,
+                "order[created_at]": "desc"
+            }
 
-        data = await self._make_request("GET", "leads", params=params)
-        if not data:
-            return []
+            data = await self._make_request("GET", "leads", params=params)
+            if not data:
+                # MUHIM: Agar request xato bo'lsa, None qaytarish ([] emas!)
+                # [] - buyurtmalar yo'q, None - xato yuz bergan
+                return None
 
-        leads = data.get("_embedded", {}).get("leads", [])
-        logger.debug(f"TEKSHIRILMOQDA leadlar: {len(leads)} ta")
+            leads = data.get("_embedded", {}).get("leads", [])
+            logger.debug(f"TEKSHIRILMOQDA leadlar: {len(leads)} ta")
 
-        return leads
+            return leads
+        except Exception as e:
+            logger.error(f"get_leads_by_status xatosi: {e}")
+            # Xato yuz berganda None qaytarish
+            return None
 
     async def get_pending_orders_count(self) -> int:
         """
@@ -161,21 +168,34 @@ class AmoCRMService:
         Yangi leadlarni tekshirish
 
         Returns:
-            (jami_soni, yangi_lead_idlar)
+            (jami_soni, barcha_hozirgi_lead_idlar) or (None, None) agar xato yuz bergan bo'lsa
+            DIQQAT: Ikkinchi qiymat BARCHA hozirgi leadlar, faqat yangi emas!
         """
-        leads = await self.get_leads_by_status()
-        current_ids = {lead["id"] for lead in leads}
+        try:
+            leads = await self.get_leads_by_status()
 
-        # Yangi leadlar
-        new_ids = current_ids - self._known_leads
+            # MUHIM: Agar xato yuz bergan bo'lsa (None qaytgan), None qaytarish
+            # Bu internet uzilib qolgan yoki boshqa xatolarni handle qiladi
+            if leads is None:
+                return None, None
 
-        # Cache yangilash
-        self._known_leads = current_ids
+            current_ids = {lead["id"] for lead in leads}
 
-        if new_ids:
-            logger.info(f"Yangi leadlar: {len(new_ids)} ta, Jami: {len(leads)} ta")
+            # Yangi leadlar (faqat log uchun)
+            new_ids = current_ids - self._known_leads
 
-        return len(leads), list(new_ids)
+            # Cache yangilash
+            self._known_leads = current_ids
+
+            if new_ids:
+                logger.info(f"Yangi leadlar: {len(new_ids)} ta, Jami: {len(leads)} ta")
+
+            # BARCHA hozirgi lead IDlarni qaytarish (faqat yangi emas!)
+            return len(leads), list(current_ids)
+        except Exception as e:
+            logger.error(f"check_for_new_leads xatosi: {e}")
+            # Xato yuz berganda None qaytarish - bu poller tomonidan handle qilinadi
+            return None, None
 
     async def check_status_changed(self) -> bool:
         """
@@ -235,33 +255,37 @@ class AmoCRMService:
 
         import re
 
-        # BIZNES bo'limini topish
-        biznes_match = re.search(r'BIZNES:\s*\n\s*Nomi:\s*(.+?)(?:\n|$)', text)
+        # BIZNES bo'limini topish - FAQAT birinchi qator
+        biznes_match = re.search(r'BIZNES:\s*\n\s*Nomi:\s*([^\n]+)', text)
         if biznes_match:
             result["seller_name"] = biznes_match.group(1).strip()
 
-        tel_match = re.search(r'BIZNES:.*?Tel:\s*(\d+)', text, re.DOTALL)
+        # Tel raqam - FAQAT birinchi qator
+        tel_match = re.search(r'BIZNES:[^\n]*\n[^\n]*\n\s*Tel:\s*(\d+)', text)
         if tel_match:
             result["seller_phone"] = tel_match.group(1).strip()
 
-        manzil_match = re.search(r'Manzil:\s*(.+?)(?:\n\s*Viloyat|$)', text, re.DOTALL)
+        # Manzil - FAQAT birinchi qator (MUHIM!)
+        manzil_match = re.search(r'Manzil:\s*([^\n]+)', text)
         if manzil_match:
             result["seller_address"] = manzil_match.group(1).strip()
 
-        # MIJOZ bo'limini topish
-        mijoz_match = re.search(r'MIJOZ:\s*\n\s*Username:\s*(\d+)', text)
+        # MIJOZ bo'limini topish - FAQAT birinchi qator
+        mijoz_match = re.search(r'MIJOZ:\s*\n\s*Username:\s*([^\n]+)', text)
         if mijoz_match:
             result["client_username"] = mijoz_match.group(1).strip()
 
-        # MAHSULOTLAR
-        product_match = re.search(r'MAHSULOTLAR:\s*\n\s*\d+\.\s*(.+?)(?:\n|$)', text)
+        # MAHSULOTLAR - FAQAT birinchi mahsulot
+        product_match = re.search(r'MAHSULOTLAR:\s*\n\s*\d+\.\s*([^\n]+)', text)
         if product_match:
             result["product_name"] = product_match.group(1).strip()
 
+        # Miqdor - FAQAT birinchi qiymat
         quantity_match = re.search(r'Miqdor:\s*(\d+)\s*ta', text)
         if quantity_match:
             result["quantity"] = int(quantity_match.group(1))
 
+        # Narx - FAQAT birinchi qiymat
         price_match = re.search(r'Narx:\s*([\d\s]+)\s*so', text)
         if price_match:
             result["order_price"] = int(price_match.group(1).replace(" ", "").replace("\xa0", ""))
@@ -418,12 +442,20 @@ class AmoCRMPoller:
             try:
                 count, new_ids = await self.amocrm.check_for_new_leads()
 
+                # MUHIM: Faqat muvaffaqiyatli so'rovdan keyin count ni yangilash
+                # Agar count None bo'lsa (xato yuz bergan), o'tkazib yuborish
+                if count is None:
+                    await asyncio.sleep(self.polling_interval)
+                    continue
+
                 # Yangi buyurtmalar keldi
                 if new_ids and self.on_new_orders:
                     await self.on_new_orders(count, new_ids)
 
                 # Buyurtmalar kamaydi (status o'zgardi)
-                if count < self._last_count and self.on_orders_resolved:
+                # MUHIM: Faqat count < self._last_count bo'lganda va _last_count > 0 bo'lganda
+                # Bu internet uzilib qolgan holatda xato triggered bo'lishini oldini oladi
+                if self._last_count > 0 and count < self._last_count and self.on_orders_resolved:
                     resolved_count = self._last_count - count
                     await self.on_orders_resolved(resolved_count, count)
 

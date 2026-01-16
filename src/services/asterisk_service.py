@@ -5,6 +5,7 @@ Qo'ng'iroqlarni boshqarish va kuzatish
 
 import logging
 import asyncio
+import re
 from typing import Optional, Callable, Dict, Any
 from dataclasses import dataclass
 from enum import Enum
@@ -71,6 +72,7 @@ class AsteriskAMI:
         self._pending_actions: Dict[str, asyncio.Future] = {}
         self._event_handlers: Dict[str, Callable] = {}
         self._read_task: Optional[asyncio.Task] = None
+        self._ping_task: Optional[asyncio.Task] = None
 
         logger.info(f"Asterisk AMI yaratildi: {host}:{port}")
 
@@ -95,6 +97,9 @@ class AsteriskAMI:
             # Event o'qish taskini boshlash
             self._read_task = asyncio.create_task(self._read_events())
 
+            # Ping taskini boshlash (har 30 soniyada keepalive)
+            self._ping_task = asyncio.create_task(self._ping_loop())
+
             logger.info("AMI ulanish muvaffaqiyatli")
             return True
 
@@ -104,6 +109,13 @@ class AsteriskAMI:
 
     async def disconnect(self):
         """AMI dan uzilish"""
+        if self._ping_task:
+            self._ping_task.cancel()
+            try:
+                await self._ping_task
+            except asyncio.CancelledError:
+                pass
+
         if self._read_task:
             self._read_task.cancel()
             try:
@@ -121,6 +133,51 @@ class AsteriskAMI:
 
         self._connected = False
         logger.info("AMI uzildi")
+
+    def _validate_and_clean_phone(self, phone: str) -> str:
+        """
+        Telefon raqamini validatsiya qilish va tozalash
+
+        Args:
+            phone: Telefon raqami (+998901234567, 998901234567, 901234567 formatida)
+
+        Returns:
+            Tozalangan raqam (faqat raqamlar)
+
+        Raises:
+            ValueError: Noto'g'ri format
+        """
+        if not phone:
+            raise ValueError("Telefon raqami bo'sh bo'lishi mumkin emas")
+
+        # Barcha bo'sh joylar va maxsus belgilarni olib tashlash
+        clean = re.sub(r'[^\d]', '', phone)
+
+        # O'zbekiston raqamlarini validatsiya qilish
+        # 998901234567 (12 raqam) yoki 901234567 (9 raqam) formatida bo'lishi kerak
+        if len(clean) == 9:
+            # 9 raqamli format - 998 ni qo'shish
+            clean = f"998{clean}"
+        elif len(clean) == 12:
+            # 12 raqamli format - 998 bilan boshlanishi kerak
+            if not clean.startswith("998"):
+                raise ValueError(f"Noto'g'ri mamlakat kodi: {phone}. Faqat O'zbekiston raqamlari (+998)")
+        else:
+            raise ValueError(f"Noto'g'ri raqam uzunligi: {phone}. 9 yoki 12 raqam bo'lishi kerak")
+
+        # O'zbekiston operator kodlarini tekshirish (90, 91, 93, 94, 95, 97, 98, 99, 33, 88)
+        operator_code = clean[3:5]
+        valid_operators = ['90', '91', '93', '94', '95', '97', '98', '99', '33', '88']
+
+        if operator_code not in valid_operators:
+            raise ValueError(f"Noto'g'ri operator kodi: {operator_code}. Telefon: {phone}")
+
+        # Final validatsiya - faqat raqamlar
+        if not clean.isdigit():
+            raise ValueError(f"Raqamda faqat sonlar bo'lishi kerak: {phone}")
+
+        logger.debug(f"Telefon validatsiya: {phone} -> {clean}")
+        return clean
 
     async def _login(self) -> bool:
         """AMI login"""
@@ -166,6 +223,20 @@ class AsteriskAMI:
 
         return False
 
+    async def _ping_loop(self):
+        """AMI ulanishni faol tutish uchun ping yuborish"""
+        while self._connected:
+            try:
+                await asyncio.sleep(30)  # Har 30 soniyada
+                if self._connected and self._writer:
+                    await self._send_action("Ping")
+                    logger.debug("AMI Ping yuborildi")
+            except asyncio.CancelledError:
+                logger.debug("Ping loop bekor qilindi")
+                break
+            except Exception as e:
+                logger.warning(f"Ping xatosi: {e}")
+
     async def _send_action(self, action: str, **params) -> Optional[Dict]:
         """AMI action yuborish"""
         if not self._writer:
@@ -206,22 +277,45 @@ class AsteriskAMI:
 
         while self._connected:
             try:
-                data = await self._reader.read(4096)
+                # Timeout bilan o'qish (60 soniya - ping har 30s yuboriladi)
+                data = await asyncio.wait_for(
+                    self._reader.read(4096),
+                    timeout=60.0
+                )
+
                 if not data:
+                    logger.error("AMI ulanish uzildi (bo'sh ma'lumot)")
+                    self._connected = False
                     break
 
-                buffer += data.decode()
+                buffer += data.decode('utf-8', errors='ignore')
 
                 # Xabarlarni ajratish
                 while "\r\n\r\n" in buffer:
                     message, buffer = buffer.split("\r\n\r\n", 1)
                     await self._handle_message(message)
 
+            except asyncio.TimeoutError:
+                # Read timeout - bu oddiy hodisa, davom etamiz
+                logger.debug("AMI read timeout (60s) - davom etmoqda")
+                continue
             except asyncio.CancelledError:
+                logger.debug("AMI read task bekor qilindi")
                 break
+            except UnicodeDecodeError as e:
+                logger.error(f"AMI decode xatosi: {e}")
+                continue
             except Exception as e:
-                logger.error(f"AMI read xatosi: {e}")
+                logger.error(f"AMI read xatosi: {e}", exc_info=True)
+                self._connected = False
                 break
+
+        self._connected = False
+        logger.warning("AMI event o'qish tugadi - ulanish uzildi")
+
+        # Ping taskni to'xtatish
+        if self._ping_task and not self._ping_task.done():
+            self._ping_task.cancel()
 
     async def _handle_message(self, message: str):
         """AMI xabarni qayta ishlash"""
@@ -281,13 +375,19 @@ class AsteriskAMI:
         if not self._connected:
             return CallResult(status=CallStatus.FAILED, error="AMI not connected")
 
-        # Raqamni tozalash
-        clean_number = phone_number.replace("+", "").replace(" ", "").replace("-", "")
+        # Raqamni tozalash va validatsiya
+        try:
+            clean_number = self._validate_and_clean_phone(phone_number)
+        except ValueError as e:
+            logger.error(f"Telefon validatsiya xatosi: {e}")
+            return CallResult(status=CallStatus.FAILED, error=str(e))
 
-        # Audio faylni /tmp/autodialer/ pathga convert qilish
+        # Audio faylni Asterisk sounds pathga convert qilish
         # Windows pathdan faqat fayl nomini olish
+        import os
+        sounds_path = os.getenv("ASTERISK_SOUNDS_PATH", "/tmp/autodialer")
         audio_filename = Path(str(audio_file)).stem  # extension siz fayl nomi
-        wsl_audio_path = f"/tmp/autodialer/{audio_filename}"
+        wsl_audio_path = f"{sounds_path}/{audio_filename}"
 
         # Channel variable
         channel_vars = f"AUDIO_FILE={wsl_audio_path}"
@@ -301,7 +401,7 @@ class AsteriskAMI:
             "Originate",
             Channel=f"PJSIP/{clean_number}@sarkor-endpoint",
             Context=context,
-            Exten=clean_number,
+            Exten=audio_filename,  # Audio fayl nomi (hash) - dialplan uchun
             Priority="1",
             CallerID=f"WellTech <+998783337984>",
             Timeout="30000",
@@ -319,14 +419,17 @@ class AsteriskAMI:
 
     async def check_registration(self) -> bool:
         """SIP registratsiya holatini tekshirish"""
+        # PJSIPQualify orqali endpoint mavjudligini tekshirish
         response = await self._send_action(
-            "Command",
-            Command="pjsip show registrations"
+            "PJSIPQualify",
+            Endpoint="sarkor-endpoint"
         )
 
         if response:
-            output = response.get("Output", "")
-            return "Registered" in output
+            resp_status = response.get("Response", "")
+            logger.debug(f"SIP registration check response: {response}")
+            # Success yoki endpoint mavjud bo'lsa - ishlayapti
+            return resp_status == "Success"
 
         return False
 
@@ -376,19 +479,23 @@ class CallManager:
 
     async def _on_hangup(self, data: dict):
         """Qo'ng'iroq tugatildi"""
+        channel = data.get("Channel", "")
         cause = data.get("Cause", "")
         cause_txt = data.get("Cause-txt", "")
 
-        logger.debug(f"Hangup: {cause} - {cause_txt}")
+        logger.debug(f"Hangup: channel={channel}, cause={cause} - {cause_txt}")
 
-        if self._call_in_progress:
+        # Faqat PJSIP channel uchun qo'ng'iroqni tugat
+        # Local channel (Async originate uchun) ni e'tiborsiz qoldir
+        if self._call_in_progress and channel.startswith("PJSIP/"):
             self._call_completed_event.set()
 
     async def _on_dial_end(self, data: dict):
         """Dial tugadi"""
         dial_status = data.get("DialStatus", "")
+        channel = data.get("Channel", "")
 
-        logger.debug(f"DialEnd: {dial_status}")
+        logger.debug(f"DialEnd: channel={channel}, status={dial_status}")
 
         status_map = {
             "ANSWER": CallStatus.ANSWERED,
@@ -403,6 +510,10 @@ class CallManager:
             status=status_map.get(dial_status, CallStatus.FAILED),
             dial_status=dial_status
         )
+
+        # DialEnd kelganda qo'ng'iroq tugadi
+        if self._call_in_progress:
+            self._call_completed_event.set()
 
     async def make_call_with_retry(
         self,

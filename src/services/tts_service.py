@@ -237,45 +237,74 @@ class TTSService:
 
     async def sync_to_wsl(self):
         """
-        Audio fayllarni WSL /tmp/autodialer/ katalogiga ko'chirish
-        Asterisk uchun kerak
+        Audio fayllarni Asterisk katalogiga ko'chirish
+
+        PLATFORM env ga qarab:
+        - wsl: WSL /tmp/autodialer/ ga ko'chirish (Windows development)
+        - linux: To'g'ridan-to'g'ri ASTERISK_SOUNDS_PATH ga ko'chirish (Production)
         """
         import subprocess
+        import shutil
 
         cache_dir = self.audio_dir / "cache"
         if not cache_dir.exists():
             logger.warning("Cache katalogi topilmadi")
             return
 
+        # Platform va yo'lni aniqlash
+        platform = os.getenv("PLATFORM", "wsl").lower()
+        sounds_path = os.getenv("ASTERISK_SOUNDS_PATH", "/tmp/autodialer")
+
         try:
-            # WSL da katalog yaratish
-            subprocess.run(
-                ["wsl", "mkdir", "-p", "/tmp/autodialer"],
-                capture_output=True,
-                timeout=10
-            )
+            import glob
+            wav_files = glob.glob(str(cache_dir / "*.wav"))
 
-            # Fayllarni ko'chirish
-            cache_path_wsl = str(cache_dir).replace("\\", "/")
-            # C:/Users/... -> /mnt/c/Users/...
-            if len(cache_path_wsl) > 1 and cache_path_wsl[1] == ":":
-                cache_path_wsl = f"/mnt/{cache_path_wsl[0].lower()}{cache_path_wsl[2:]}"
+            if not wav_files:
+                logger.warning(f"Hech qanday .wav fayl topilmadi: {cache_dir}")
+                return
 
-            result = subprocess.run(
-                ["wsl", "bash", "-c", f"cp {cache_path_wsl}/*.wav /tmp/autodialer/"],
-                capture_output=True,
-                timeout=30
-            )
+            if platform == "linux":
+                # PRODUCTION: To'g'ridan-to'g'ri Linux da
+                # Katalog yaratish
+                os.makedirs(sounds_path, exist_ok=True)
 
-            if result.returncode == 0:
-                logger.info("Audio fayllar WSL ga ko'chirildi: /tmp/autodialer/")
+                # Fayllarni ko'chirish
+                for wav_file in wav_files:
+                    dest = os.path.join(sounds_path, os.path.basename(wav_file))
+                    shutil.copy2(wav_file, dest)
+
+                logger.info(f"Audio fayllar ko'chirildi: {len(wav_files)} ta fayl -> {sounds_path}")
+
             else:
-                logger.warning(f"WSL ga ko'chirishda xato: {result.stderr.decode()}")
+                # WSL (Windows development)
+                # WSL da katalog yaratish
+                subprocess.run(
+                    ["wsl", "mkdir", "-p", sounds_path],
+                    capture_output=True,
+                    timeout=10
+                )
+
+                # Har bir faylni xavfsiz ko'chirish
+                for wav_file in wav_files:
+                    wav_file_wsl = str(wav_file).replace("\\", "/")
+                    if len(wav_file_wsl) > 1 and wav_file_wsl[1] == ":":
+                        wav_file_wsl = f"/mnt/{wav_file_wsl[0].lower()}{wav_file_wsl[2:]}"
+
+                    result = subprocess.run(
+                        ["wsl", "cp", wav_file_wsl, f"{sounds_path}/"],
+                        capture_output=True,
+                        timeout=10
+                    )
+
+                    if result.returncode != 0:
+                        logger.warning(f"Fayl ko'chirishda xato {wav_file}: {result.stderr.decode()}")
+
+                logger.info(f"Audio fayllar WSL ga ko'chirildi: {len(wav_files)} ta fayl")
 
         except subprocess.TimeoutExpired:
             logger.error("WSL buyrug'i timeout")
         except Exception as e:
-            logger.error(f"WSL sync xatosi: {e}")
+            logger.error(f"Audio sync xatosi: {e}")
 
 
 # Async import uchun

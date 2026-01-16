@@ -115,9 +115,11 @@ class TelegramService:
         data = {
             "chat_id": chat_id,
             "text": text,
-            "parse_mode": parse_mode,
             "disable_notification": disable_notification
         }
+
+        if parse_mode:
+            data["parse_mode"] = parse_mode
 
         if reply_markup:
             data["reply_markup"] = reply_markup
@@ -205,8 +207,14 @@ class TelegramService:
                     logger.info(f"Telegram xabar o'chirildi: {message_id}")
                     return True
                 else:
-                    logger.error(f"Telegram o'chirish xatosi: {result.get('description')}")
-                    return False
+                    error_desc = result.get('description', '')
+                    # Agar xabar topilmasa - bu xato emas, oddiy debug log
+                    if "message to delete not found" in error_desc.lower():
+                        logger.debug(f"Telegram xabar {message_id} allaqachon o'chirilgan")
+                        return True  # Bu success deb hisoblaymiz
+                    else:
+                        logger.error(f"Telegram o'chirish xatosi: {error_desc}")
+                        return False
 
         except Exception as e:
             logger.error(f"Telegram delete xatosi: {e}")
@@ -239,13 +247,49 @@ class TelegramService:
         return await self.send_message(
             text=text,
             chat_id=chat_id,
-            parse_mode="HTML"
+            parse_mode="HTML"  # HTML link ishlashi uchun
         )
 
+    async def send_all_sellers_alert(
+        self,
+        sellers_data: dict,
+        call_attempts: int = 0,
+        chat_id: str = None
+    ) -> Optional[int]:
+        """
+        HAR BIR sotuvchi uchun ALOHIDA xabar yuborish
+
+        Args:
+            sellers_data: Dictionary of sellers {seller_phone: {seller_name, seller_phone, seller_address, orders}}
+            call_attempts: Qo'ng'iroq urinishlari
+            chat_id: Chat ID
+
+        Returns:
+            Birinchi xabar ID (backward compatibility uchun)
+        """
+        first_message_id = None
+
+        # HAR BIR SOTUVCHI UCHUN ALOHIDA XABAR
+        for seller_phone, seller_data in sellers_data.items():
+            message_id = await self.send_seller_orders_alert(
+                seller_data,
+                call_attempts,
+                chat_id
+            )
+            if message_id and first_message_id is None:
+                first_message_id = message_id
+
+            logger.info(f"Sotuvchi {seller_phone} uchun alohida xabar yuborildi: {message_id}")
+
+        return first_message_id
+
     def _format_seller_orders_alert(self, seller_orders: dict, call_attempts: int = 0) -> str:
-        """Sotuvchi buyurtmalari xabarini formatlash"""
+        """Sotuvchi buyurtmalari xabarini formatlash - HAR BIR SOTUVCHI UCHUN ALOHIDA"""
         seller_name = seller_orders.get("seller_name", "Noma'lum")
         seller_phone = seller_orders.get("seller_phone", "Noma'lum")
+        # Sotuvchi telefon raqamiga + qo'shish
+        if seller_phone and seller_phone != "Noma'lum" and not str(seller_phone).startswith('+'):
+            seller_phone = '+' + str(seller_phone)
         seller_address = seller_orders.get("seller_address", "Noma'lum")
         orders = seller_orders.get("orders", [])
         orders_count = len(orders)
@@ -255,20 +299,23 @@ class TelegramService:
         total_price_str = f"{total_price:,.0f}".replace(",", " ") + " so'm"
 
         # Header
-        text = f"""🚨 <b>DIQQAT! {orders_count} ta buyurtma qabul qilinmadi!</b>
+        text = f"""🚨 DIQQAT! {orders_count} ta buyurtma qabul qilinmadi!
 
-<b>SOTUVCHI:</b>
+SOTUVCHI:
   Nomi: {seller_name}
   Tel: {seller_phone}
   Manzil: {seller_address}
 
-<b>━━━ BUYURTMALAR ━━━</b>
+━━━ BUYURTMALAR ━━━
 """
         # Har bir buyurtma (mijoz)
         for i, order in enumerate(orders, 1):
             order_number = order.get("order_number", order.get("lead_id", "N/A"))
             client_name = order.get("client_name", "Noma'lum")
             client_phone = order.get("client_phone", "Noma'lum")
+            # Mijoz telefon raqamiga + qo'shish
+            if client_phone and client_phone != "Noma'lum" and not str(client_phone).startswith('+'):
+                client_phone = '+' + str(client_phone)
             product_name = order.get("product_name", "Noma'lum")
             quantity = order.get("quantity", 1)
             price = order.get("price", 0)
@@ -280,7 +327,7 @@ class TelegramService:
                 price_str = "Noma'lum"
 
             text += f"""
-<b>{i}. Buyurtma #{order_number}</b>
+{i}. Buyurtma #{order_number}
    Mijoz: {client_name}
    Tel: {client_phone}
    Mahsulot: {product_name}
@@ -290,15 +337,107 @@ class TelegramService:
 
         # Footer
         text += f"""
-<b>━━━━━━━━━━━━━━━━━━━━━</b>
-📦 Jami: <b>{orders_count}</b> ta buyurtma
-💰 Umumiy: <b>{total_price_str}</b>
+━━━━━━━━━━━━━━━━━━━━━
+📦 Jami: {orders_count} ta buyurtma
+💰 Umumiy: {total_price_str}
 
 ❌ Buyurtmalarni qabul qilmayapti!
 📞 {call_attempts} marta qo'ng'iroq qilindi.
 🔴 Zudlik bilan bog'laning!
 
-📱 <a href="https://welltech.amocrm.ru/leads/pipeline/10154618">Buyurtmalarni ko'rish</a>"""
+📱 <a href="https://welltech.amocrm.ru">Buyurtmalarni ko'rish</a>"""
+
+        return text
+
+    def _format_all_sellers_alert(self, sellers_data: dict, call_attempts: int = 0) -> str:
+        """
+        BARCHA sotuvchilar buyurtmalarini BITTA xabarda formatlash
+
+        Args:
+            sellers_data: Dictionary of sellers {seller_phone: {seller_name, seller_phone, seller_address, orders}}
+            call_attempts: Qo'ng'iroq urinishlari soni
+
+        Returns:
+            Formatted text message
+        """
+        # Jami buyurtmalar va umumiy narxni hisoblash
+        total_orders_count = 0
+        total_price_all = 0
+
+        for seller_data in sellers_data.values():
+            orders = seller_data.get("orders", [])
+            total_orders_count += len(orders)
+            total_price_all += sum(o.get("price", 0) or 0 for o in orders)
+
+        total_price_str = f"{total_price_all:,.0f}".replace(",", " ") + " so'm"
+
+        # Header
+        text = f"""🚨 DIQQAT! {total_orders_count} ta buyurtma qabul qilinmadi!
+{len(sellers_data)} ta sotuvchida buyurtmalar kutmoqda.
+
+"""
+
+        # Har bir sotuvchi uchun alohida bo'lim
+        for seller_idx, (seller_phone, seller_data) in enumerate(sellers_data.items(), 1):
+            seller_name = seller_data.get("seller_name", "Noma'lum")
+            seller_phone_display = seller_data.get("seller_phone", "Noma'lum")
+            seller_address = seller_data.get("seller_address", "Noma'lum")
+            orders = seller_data.get("orders", [])
+            orders_count = len(orders)
+
+            # Sotuvchi narxi
+            seller_total_price = sum(o.get("price", 0) or 0 for o in orders)
+            seller_price_str = f"{seller_total_price:,.0f}".replace(",", " ") + " so'm"
+
+            # Sotuvchi header
+            text += f"""━━━━━━━━━━━━━━━━━━━━
+📍 SOTUVCHI #{seller_idx}
+  Nomi: {seller_name}
+  Tel: {seller_phone_display}
+  Manzil: {seller_address}
+  Buyurtmalar: {orders_count} ta
+
+"""
+
+            # Har bir buyurtma
+            for i, order in enumerate(orders, 1):
+                order_number = order.get("order_number", order.get("lead_id", "N/A"))
+                client_name = order.get("client_name", "Noma'lum")
+                client_phone = order.get("client_phone", "Noma'lum")
+                product_name = order.get("product_name", "Noma'lum")
+                quantity = order.get("quantity", 1)
+                price = order.get("price", 0)
+
+                # Narxni formatlash
+                if isinstance(price, (int, float)) and price:
+                    price_str = f"{price:,.0f}".replace(",", " ") + " so'm"
+                else:
+                    price_str = "Noma'lum"
+
+                text += f"""  {i}. Buyurtma #{order_number}
+     Mijoz: {client_name}
+     Tel: {client_phone}
+     Mahsulot: {product_name}
+     Miqdor: {quantity} ta
+     Narx: {price_str}
+
+"""
+
+            # Sotuvchi footer
+            text += f"""  💰 Sotuvchi jami: {seller_price_str}
+
+"""
+
+        # Umumiy footer
+        text += f"""━━━━━━━━━━━━━━━━━━━━
+📦 JAMI: {total_orders_count} ta buyurtma
+💰 UMUMIY: {total_price_str}
+
+❌ Buyurtmalarni qabul qilmayapti!
+📞 {call_attempts} marta qo'ng'iroq qilindi.
+🔴 Zudlik bilan bog'laning!
+
+📱 Buyurtmalarni ko'rish (https://welltech.amocrm.ru/leads/pipeline/10154618)"""
 
         return text
 
@@ -402,6 +541,7 @@ class TelegramNotificationManager:
     def __init__(self, telegram_service: TelegramService, data_dir: str = "data"):
         self.telegram = telegram_service
         self._active_message_ids: list = []  # Barcha yuborilgan xabarlar
+        self._seller_message_ids: dict = {}  # Sotuvchi telefon -> xabar ID mapping
         self._last_count = 0
         self._message_sent_at: Optional[datetime] = None
 
@@ -421,17 +561,40 @@ class TelegramNotificationManager:
                 with open(self.messages_file, "r") as f:
                     data = json.load(f)
                     self._active_message_ids = data.get("message_ids", [])
+                    self._seller_message_ids = data.get("seller_message_ids", {})
+                    # MUHIM: combined_message_id ni ham yuklash
+                    self._combined_message_id = data.get("combined_message_id", None)
+
+                    # Eski xabar ID larni tozalash - faqat seller_message_ids yoki combined_message_id da bor bo'lganlarni saqlash
+                    valid_message_ids = set(self._seller_message_ids.values())
+                    if self._combined_message_id:
+                        valid_message_ids.add(self._combined_message_id)
+                    old_count = len(self._active_message_ids)
+                    self._active_message_ids = [msg_id for msg_id in self._active_message_ids if msg_id in valid_message_ids]
+
+                    if old_count != len(self._active_message_ids):
+                        logger.info(f"Eski xabar ID lar tozalandi: {old_count} -> {len(self._active_message_ids)}")
+                        self._save_messages()  # Tozalangan listni saqlash
+
                     logger.info(f"Telegram xabar ID lar yuklandi: {len(self._active_message_ids)} ta")
             except Exception as e:
                 logger.error(f"Telegram xabar ID lar yuklashda xato: {e}")
                 self._active_message_ids = []
+                self._seller_message_ids = {}
+                self._combined_message_id = None
 
     def _save_messages(self):
         """Xabar ID larni faylga saqlash"""
         try:
             import json
+            # MUHIM: combined_message_id ni ham saqlash
+            combined_id = getattr(self, '_combined_message_id', None)
             with open(self.messages_file, "w") as f:
-                json.dump({"message_ids": self._active_message_ids}, f, indent=2)
+                json.dump({
+                    "message_ids": self._active_message_ids,
+                    "seller_message_ids": self._seller_message_ids,
+                    "combined_message_id": combined_id
+                }, f, indent=2)
         except Exception as e:
             logger.error(f"Telegram xabar ID lar saqlashda xato: {e}")
 
@@ -465,6 +628,8 @@ class TelegramNotificationManager:
             for msg_id in self._active_message_ids:
                 await self.telegram.delete_message(msg_id)
             self._active_message_ids = []
+            self._seller_message_ids = {}
+            self._combined_message_id = None  # MUHIM: combined_message_id ni ham tozalash
             self._message_sent_at = None
             self._save_messages()  # Faylga saqlash
 
@@ -475,12 +640,16 @@ class TelegramNotificationManager:
         for msg_id in self._active_message_ids:
             await self.telegram.delete_message(msg_id)
         self._active_message_ids = []
+        self._seller_message_ids = {}
+        self._combined_message_id = None  # MUHIM: combined_message_id ni ham tozalash
         self._message_sent_at = None
         self._save_messages()  # Faylga saqlash
 
     def clear_notification(self):
         """Bildirishnoma holatini tozalash"""
         self._active_message_ids = []
+        self._seller_message_ids = {}
+        self._combined_message_id = None  # MUHIM: combined_message_id ni ham tozalash
         self._last_count = 0
         self._message_sent_at = None
         self._save_messages()  # Faylga saqlash

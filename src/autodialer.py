@@ -905,21 +905,13 @@ class AutodialerPro:
             logger.info("180s timer davom etmoqda (Telegram uchun)")
             # State ni tozalash (lekin last_communicated_orders saqlanadi)
             self.state.reset()
-        elif self.state.global_retry_count >= self.max_call_attempts:
-            # Maksimal urinishlar soni tugadi
-            logger.warning(f"Maksimal {self.max_call_attempts} marta urinish tugadi, {uncommunicated_count} ta buyurtma uchun javob olinmadi")
-            logger.info("180s timer davom etmoqda (Telegram uchun)")
+        else:
+            # Javob berilmadi - QAYTA QO'NG'IROQ QILINMAYDI
+            # Faqat 2 marta qo'ng'iroq qilinadi, keyin to'xtaydi
+            logger.warning(f"{total_attempts} ta qo'ng'iroqqa javob berilmadi, {uncommunicated_count} ta buyurtma uchun")
+            logger.info("Qayta qo'ng'iroq qilinmaydi - 180s timer davom etmoqda (Telegram uchun)")
             # State ni tozalash
             self.state.reset()
-        else:
-            # Javob berilmagan buyurtmalar bor va hali urinishlar qolgan
-            self.state.global_retry_count += 1
-            logger.info(f"{total_attempts} ta qo'ng'iroqqa javob berilmadi, {uncommunicated_count} ta buyurtma uchun")
-            logger.info(f"90s dan keyin qayta qo'ng'iroq qilinadi (urinish {self.state.global_retry_count}/{self.max_call_attempts})")
-            self.state.last_new_order_time = datetime.now()
-            self.state.waiting_for_call = True
-            self.state.call_started = False
-            self.state.call_attempts = 0
 
     async def _on_call_attempt(self, attempt: int, max_attempts: int):
         """Qo'ng'iroq urinishi callback"""

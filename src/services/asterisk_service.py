@@ -485,17 +485,17 @@ class CallManager:
 
         logger.debug(f"Hangup: channel={channel}, cause={cause} - {cause_txt}")
 
-        # Faqat PJSIP channel uchun qo'ng'iroqni tugat
-        # Local channel (Async originate uchun) ni e'tiborsiz qoldir
-        if self._call_in_progress and channel.startswith("PJSIP/"):
-            self._call_completed_event.set()
+        # Hangup eventini e'tiborsiz qoldiramiz
+        # DialEnd eventi qo'ng'iroq natijasini to'g'ri beradi
+        # Hangup ko'p marta kelishi mumkin (Local channel, PJSIP channel)
+        pass
 
     async def _on_dial_end(self, data: dict):
         """Dial tugadi"""
         dial_status = data.get("DialStatus", "")
         channel = data.get("Channel", "")
 
-        logger.debug(f"DialEnd: channel={channel}, status={dial_status}")
+        logger.info(f"DialEnd keldi: channel={channel}, status={dial_status}")
 
         status_map = {
             "ANSWER": CallStatus.ANSWERED,

@@ -255,7 +255,7 @@ class TelegramService:
         sellers_data: dict,
         call_attempts: int = 0,
         chat_id: str = None
-    ) -> Optional[int]:
+    ) -> tuple[Optional[int], dict]:
         """
         HAR BIR sotuvchi uchun ALOHIDA xabar yuborish
 
@@ -265,9 +265,10 @@ class TelegramService:
             chat_id: Chat ID
 
         Returns:
-            Birinchi xabar ID (backward compatibility uchun)
+            Tuple of (first_message_id, seller_message_ids dict)
         """
         first_message_id = None
+        seller_message_ids = {}  # {seller_phone: message_id}
 
         # HAR BIR SOTUVCHI UCHUN ALOHIDA XABAR
         for seller_phone, seller_data in sellers_data.items():
@@ -276,12 +277,14 @@ class TelegramService:
                 call_attempts,
                 chat_id
             )
-            if message_id and first_message_id is None:
-                first_message_id = message_id
+            if message_id:
+                seller_message_ids[seller_phone] = message_id
+                if first_message_id is None:
+                    first_message_id = message_id
 
             logger.info(f"Sotuvchi {seller_phone} uchun alohida xabar yuborildi: {message_id}")
 
-        return first_message_id
+        return first_message_id, seller_message_ids
 
     def _format_seller_orders_alert(self, seller_orders: dict, call_attempts: int = 0) -> str:
         """Sotuvchi buyurtmalari xabarini formatlash - HAR BIR SOTUVCHI UCHUN ALOHIDA"""

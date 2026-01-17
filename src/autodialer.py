@@ -1048,17 +1048,26 @@ class AutodialerPro:
                 }
             sellers[seller_phone]["orders"].append(order)
 
-        # MUHIM: Eski BIRLASHGAN xabarni o'chirish (agar mavjud bo'lsa)
-        # Avval har bir sotuvchi uchun alohida xabar yuborilgan edi
-        # Endi BITTA xabar yuboriladi - barcha sotuvchilar uchun
+        # MUHIM: Eski xabarlarni o'chirish (agar mavjud bo'lsa)
         if not hasattr(self.notification_manager, '_combined_message_id'):
             self.notification_manager._combined_message_id = None
 
-        # Eski birlashgan xabarni o'chirish
+        # Eski sotuvchi xabarlarini O'CHIRISH
+        if self.notification_manager._seller_message_ids:
+            for seller_phone, msg_id in list(self.notification_manager._seller_message_ids.items()):
+                try:
+                    await self.telegram.delete_message(msg_id)
+                    if msg_id in self.notification_manager._active_message_ids:
+                        self.notification_manager._active_message_ids.remove(msg_id)
+                    logger.info(f"Eski sotuvchi xabari o'chirildi: {seller_phone} ({msg_id})")
+                except Exception as e:
+                    logger.error(f"Sotuvchi xabarini o'chirishda xato: {e}")
+            self.notification_manager._seller_message_ids = {}
+
+        # Eski birlashgan xabarni ham o'chirish (agar mavjud bo'lsa)
         if self.notification_manager._combined_message_id:
             try:
                 await self.telegram.delete_message(self.notification_manager._combined_message_id)
-                # Eski ID ni active_message_ids dan o'chirish
                 if self.notification_manager._combined_message_id in self.notification_manager._active_message_ids:
                     self.notification_manager._active_message_ids.remove(self.notification_manager._combined_message_id)
                 logger.info(f"Eski birlashgan xabar o'chirildi ({self.notification_manager._combined_message_id})")
@@ -1066,23 +1075,31 @@ class AutodialerPro:
                 logger.error(f"Eski birlashgan xabarni o'chirishda xato: {e}")
             self.notification_manager._combined_message_id = None
 
-        # BARCHA sotuvchilar uchun BITTA xabar yuborish
+        # BARCHA sotuvchilar uchun ALOHIDA xabar yuborish
         try:
             total_orders = sum(len(s["orders"]) for s in sellers.values())
-            logger.info(f"BARCHA sotuvchilar uchun BITTA xabar yuborilmoqda: {len(sellers)} ta sotuvchi, {total_orders} ta buyurtma")
+            logger.info(f"BARCHA sotuvchilar uchun xabar yuborilmoqda: {len(sellers)} ta sotuvchi, {total_orders} ta buyurtma")
 
-            # Yangi birlashgan xabar yuborish
-            message_id = await self.telegram.send_all_sellers_alert(
+            # Yangi xabarlarni yuborish (har bir sotuvchi uchun alohida)
+            first_message_id, seller_message_ids = await self.telegram.send_all_sellers_alert(
                 sellers,
                 self.state.call_attempts
             )
 
-            if message_id:
-                # Birlashgan xabar ID ni saqlash
-                self.notification_manager._combined_message_id = message_id
-                self.notification_manager._active_message_ids.append(message_id)
+            if first_message_id:
+                # Birinchi xabar ID ni saqlash (backward compatibility)
+                self.notification_manager._combined_message_id = first_message_id
+
+                # Barcha sotuvchi xabar ID larini saqlash
+                self.notification_manager._seller_message_ids = seller_message_ids
+
+                # Active message IDs ga qo'shish
+                for msg_id in seller_message_ids.values():
+                    if msg_id not in self.notification_manager._active_message_ids:
+                        self.notification_manager._active_message_ids.append(msg_id)
+
                 self.notification_manager._save_messages()
-                logger.info(f"Yangi birlashgan xabar yaratildi ({message_id})")
+                logger.info(f"Yangi xabarlar yaratildi: {len(seller_message_ids)} ta sotuvchi uchun")
 
         except Exception as e:
             logger.error(f"Birlashgan xabar yuborishda xato: {e}")

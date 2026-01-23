@@ -545,6 +545,7 @@ class TelegramNotificationManager:
         self.telegram = telegram_service
         self._active_message_ids: list = []  # Barcha yuborilgan xabarlar
         self._seller_message_ids: dict = {}  # Sotuvchi telefon -> xabar ID mapping
+        self._pending_deletions: list = []  # O'chirilmagan xabarlar (retry uchun)
         self._last_count = 0
         self._message_sent_at: Optional[datetime] = None
 
@@ -565,6 +566,7 @@ class TelegramNotificationManager:
                     data = json.load(f)
                     self._active_message_ids = data.get("message_ids", [])
                     self._seller_message_ids = data.get("seller_message_ids", {})
+                    self._pending_deletions = data.get("pending_deletions", [])
                     # MUHIM: combined_message_id ni ham yuklash
                     self._combined_message_id = data.get("combined_message_id", None)
 
@@ -579,11 +581,12 @@ class TelegramNotificationManager:
                         logger.info(f"Eski xabar ID lar tozalandi: {old_count} -> {len(self._active_message_ids)}")
                         self._save_messages()  # Tozalangan listni saqlash
 
-                    logger.info(f"Telegram xabar ID lar yuklandi: {len(self._active_message_ids)} ta")
+                    logger.info(f"Telegram xabar ID lar yuklandi: {len(self._active_message_ids)} ta, pending: {len(self._pending_deletions)} ta")
             except Exception as e:
                 logger.error(f"Telegram xabar ID lar yuklashda xato: {e}")
                 self._active_message_ids = []
                 self._seller_message_ids = {}
+                self._pending_deletions = []
                 self._combined_message_id = None
 
     def _save_messages(self):
@@ -596,7 +599,8 @@ class TelegramNotificationManager:
                 json.dump({
                     "message_ids": self._active_message_ids,
                     "seller_message_ids": self._seller_message_ids,
-                    "combined_message_id": combined_id
+                    "combined_message_id": combined_id,
+                    "pending_deletions": self._pending_deletions
                 }, f, indent=2)
         except Exception as e:
             logger.error(f"Telegram xabar ID lar saqlashda xato: {e}")
@@ -625,28 +629,73 @@ class TelegramNotificationManager:
         Buyurtmalar tekshirildi xabari
 
         Agar hammasi tekshirilgan bo'lsa - barcha aktiv xabarlarni o'chiradi
+        Agar o'chirish muvaffaqiyatsiz bo'lsa - pending_deletions ga qo'shadi
         """
         if remaining_count == 0 and self._active_message_ids:
             # Barcha aktiv xabarlarni o'chirish
+            failed_ids = []
             for msg_id in self._active_message_ids:
-                await self.telegram.delete_message(msg_id)
+                success = await self.telegram.delete_message(msg_id)
+                if not success:
+                    failed_ids.append(msg_id)
+                    logger.warning(f"Xabar o'chirilmadi, pending ga qo'shildi: {msg_id}")
+
+            # Muvaffaqiyatsiz o'chirishlarni pending ga qo'shish
+            if failed_ids:
+                for msg_id in failed_ids:
+                    if msg_id not in self._pending_deletions:
+                        self._pending_deletions.append(msg_id)
+                logger.info(f"Pending deletions: {len(self._pending_deletions)} ta xabar")
+
             self._active_message_ids = []
             self._seller_message_ids = {}
-            self._combined_message_id = None  # MUHIM: combined_message_id ni ham tozalash
+            self._combined_message_id = None
             self._message_sent_at = None
-            self._save_messages()  # Faylga saqlash
+            self._save_messages()
 
         self._last_count = remaining_count
 
     async def delete_all_notifications(self):
         """Barcha aktiv xabarlarni o'chirish"""
+        failed_ids = []
         for msg_id in self._active_message_ids:
-            await self.telegram.delete_message(msg_id)
+            success = await self.telegram.delete_message(msg_id)
+            if not success:
+                failed_ids.append(msg_id)
+
+        if failed_ids:
+            for msg_id in failed_ids:
+                if msg_id not in self._pending_deletions:
+                    self._pending_deletions.append(msg_id)
+            logger.warning(f"O'chirilmagan xabarlar pending ga qo'shildi: {len(failed_ids)} ta")
+
         self._active_message_ids = []
         self._seller_message_ids = {}
-        self._combined_message_id = None  # MUHIM: combined_message_id ni ham tozalash
+        self._combined_message_id = None
         self._message_sent_at = None
-        self._save_messages()  # Faylga saqlash
+        self._save_messages()
+
+    async def retry_pending_deletions(self):
+        """Pending deletions ro'yxatidagi xabarlarni qayta o'chirishga urinish"""
+        if not self._pending_deletions:
+            return
+
+        logger.info(f"Pending deletions retry: {len(self._pending_deletions)} ta xabar")
+        still_pending = []
+        for msg_id in self._pending_deletions:
+            success = await self.telegram.delete_message(msg_id)
+            if not success:
+                still_pending.append(msg_id)
+            else:
+                logger.info(f"Pending xabar muvaffaqiyatli o'chirildi: {msg_id}")
+
+        self._pending_deletions = still_pending
+        self._save_messages()
+
+        if still_pending:
+            logger.warning(f"Hali o'chirilmagan xabarlar: {len(still_pending)} ta")
+        else:
+            logger.info("Barcha pending xabarlar muvaffaqiyatli o'chirildi")
 
     def clear_notification(self):
         """Bildirishnoma holatini tozalash"""

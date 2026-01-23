@@ -2,7 +2,7 @@
 Autodialer Pro - Asosiy Servis
 ================================================================================
 
-Professional autodialer tizimi - amoCRM buyurtmalarini kuzatish va
+Professional autodialer tizimi - Nonbor API buyurtmalarini kuzatish va
 sotuvchilarga avtomatik qo'ng'iroq qilish
 
 Jarayon:
@@ -32,8 +32,8 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 
 from services import (
     TTSService,
-    AmoCRMService,
-    AmoCRMPoller,
+    NonborService,
+    NonborPoller,
     AsteriskAMI,
     CallManager,
     CallStatus,
@@ -187,9 +187,6 @@ class AutodialerPro:
 
     def __init__(
         self,
-        # amoCRM
-        amocrm_subdomain: str,
-        amocrm_token: str,
         # Sarkor SIP
         sip_host: str = "127.0.0.1",
         ami_port: int = 5038,
@@ -227,14 +224,10 @@ class AutodialerPro:
         # Servislar
         self.tts = TTSService(self.audio_dir, provider="edge")
 
-        self.amocrm = AmoCRMService(
-            subdomain=amocrm_subdomain,
-            access_token=amocrm_token,
-            status_name="TEKSHIRILMOQDA"
-        )
+        self.nonbor = NonborService(status_name="CHECKING")
 
-        self.amocrm_poller = AmoCRMPoller(
-            amocrm_service=self.amocrm,
+        self.nonbor_poller = NonborPoller(
+            nonbor_service=self.nonbor,
             polling_interval=3,
             on_new_orders=self._on_new_orders,
             on_orders_resolved=self._on_orders_resolved
@@ -254,14 +247,18 @@ class AutodialerPro:
         )
 
         # Statistika servisi
-        self.stats = StatsService(data_dir="data")
+        # Data katalogi - loyiha ildiziga nisbatan
+        project_root = Path(__file__).parent.parent
+        data_dir = str(project_root / "data")
+
+        self.stats = StatsService(data_dir=data_dir)
 
         if telegram_token and telegram_chat_id:
             self.telegram = TelegramService(
                 bot_token=telegram_token,
                 default_chat_id=telegram_chat_id
             )
-            self.notification_manager = TelegramNotificationManager(self.telegram)
+            self.notification_manager = TelegramNotificationManager(self.telegram, data_dir=data_dir)
             self.stats_handler = TelegramStatsHandler(self.telegram, self.stats)
         else:
             self.telegram = None
@@ -304,16 +301,16 @@ class AutodialerPro:
             else:
                 logger.warning("SIP registratsiya: MUVAFFAQIYATSIZ")
 
-        # amoCRM polling boshlash
-        logger.info("amoCRM polling boshlash...")
-        await self.amocrm_poller.start()
+        # Nonbor API polling boshlash
+        logger.info("Nonbor API polling boshlash...")
+        await self.nonbor_poller.start()
 
         # Stats handler polling boshlash
         if self.stats_handler:
             logger.info("Telegram stats handler boshlash...")
             await self.stats_handler.start_polling()
 
-        # Ishga tushganda sinxronizatsiya - amoCRM va Telegram
+        # Ishga tushganda sinxronizatsiya - Nonbor API va Telegram
         await self._sync_on_startup()
 
         # Asosiy loop
@@ -340,11 +337,11 @@ class AutodialerPro:
             task.cancel()
 
         # Servislarni yopish
-        await self.amocrm_poller.stop()
+        await self.nonbor_poller.stop()
         if self.stats_handler:
             await self.stats_handler.stop_polling()
         await self.ami.disconnect()
-        await self.amocrm.close()
+        await self.nonbor.close()
         if self.telegram:
             await self.telegram.close()
 
@@ -352,23 +349,23 @@ class AutodialerPro:
 
     async def _sync_on_startup(self):
         """
-        Ishga tushganda amoCRM va Telegram ni sinxronlashtirish
+        Ishga tushganda Nonbor API va Telegram ni sinxronlashtirish
 
-        Agar TEKSHIRILMOQDA statusida buyurtmalar bo'lsa:
+        Agar CHECKING statusida buyurtmalar bo'lsa:
         - Telegram ga yangi xabar yuborish
         - Holatni tiklash
 
         Agar buyurtmalar yo'q bo'lsa:
         - Telegramdagi eski xabarlarni o'chirish
         """
-        logger.info("Sinxronizatsiya: amoCRM va Telegram tekshirilmoqda...")
+        logger.info("Sinxronizatsiya: Nonbor API va Telegram tekshirilmoqda...")
 
         try:
-            # TEKSHIRILMOQDA dagi buyurtmalarni olish
-            leads = await self.amocrm.get_leads_by_status()
+            # CHECKING dagi buyurtmalarni olish
+            leads = await self.nonbor.get_leads_by_status()
 
             if not leads:
-                logger.info("Sinxronizatsiya: TEKSHIRILMOQDA da buyurtmalar yo'q")
+                logger.info("Sinxronizatsiya: CHECKING da buyurtmalar yo'q")
                 # Telegramdagi eski xabarlarni o'chirish (fayldan yuklangan ID lar)
                 if self.notification_manager and self.notification_manager._active_message_ids:
                     logger.info(f"Telegram: {len(self.notification_manager._active_message_ids)} ta eski xabarni o'chirish...")
@@ -391,10 +388,13 @@ class AutodialerPro:
             # Eng eski buyurtmaning vaqtini topish (created_at dan)
             oldest_time = datetime.now()
             for lead in leads:
-                # created_at - UNIX timestamp (sekund)
                 created_at = lead.get("created_at")
                 if created_at:
-                    lead_time = datetime.fromtimestamp(created_at)
+                    from datetime import timezone
+                    try:
+                        lead_time = datetime.fromisoformat(created_at.replace("Z", "+00:00")).replace(tzinfo=None)
+                    except (ValueError, AttributeError):
+                        lead_time = datetime.now()
                     if lead_time < oldest_time:
                         oldest_time = lead_time
 
@@ -403,15 +403,16 @@ class AutodialerPro:
             self.state.call_started = True  # Qo'ng'iroq qilmaslik uchun
 
             # Buyurtmalar uchun timestamp qo'shish (180s timer uchun)
-            # Har bir buyurtmaning created_at vaqtini ishlatamiz
             for lead in leads:
                 order_id = lead["id"]
                 if order_id not in self.state.order_timestamps:
                     created_at = lead.get("created_at")
                     if created_at:
-                        self.state.order_timestamps[order_id] = datetime.fromtimestamp(created_at)
+                        try:
+                            self.state.order_timestamps[order_id] = datetime.fromisoformat(created_at.replace("Z", "+00:00")).replace(tzinfo=None)
+                        except (ValueError, AttributeError):
+                            self.state.order_timestamps[order_id] = datetime.now()
                     else:
-                        # Agar created_at yo'q bo'lsa, hozirgi vaqtni ishlatamiz
                         self.state.order_timestamps[order_id] = datetime.now()
 
             # 180s timer avtomatik ishlaydi - Telegram xabar 180s dan keyin yuboriladi
@@ -609,21 +610,25 @@ class AutodialerPro:
                 del self.state.last_communicated_orders[seller_phone]
                 logger.debug(f"Sotuvchi {seller_phone}: barcha buyurtmalari hal qilindi, tozalandi")
 
-        # 180s TIMER: Telegram FAQAT _check_and_process() da yuboriladi
-        # MUHIM: Bu yerda Telegram HECH QACHON yangilanmaydi - faqat log yoziladi
-        # 180s timer _check_and_process() da ishlaydi
-        if len(truly_new_ids) > 0:
-            # Yangi buyurtmalar keldi - 180s kutish kerak
-            logger.info(f"Yangi buyurtmalar: {len(truly_new_ids)} ta, 180s kutilmoqda (Telegram bu yerda yangilanmaydi)")
+        # TELEGRAM YANGILASH: Agar birinchi Telegram xabar allaqachon yuborilgan bo'lsa,
+        # buyurtmalar o'zgarganda DARHOL yangilash (eski o'chiriladi, yangi yuboriladi)
+        if self.state.telegram_notified and (len(truly_new_ids) > 0 or len(removed_ids) > 0):
+            if len(truly_new_ids) > 0:
+                logger.info(f"Telegram DARHOL yangilanmoqda: {len(truly_new_ids)} ta yangi buyurtma qo'shildi")
+            if len(removed_ids) > 0:
+                logger.info(f"Telegram DARHOL yangilanmoqda: {len(removed_ids)} ta buyurtma hal qilindi")
+            await self._send_telegram_for_remaining(force_all=True)
+        elif len(truly_new_ids) > 0:
+            # Birinchi Telegram hali yuborilmagan - 180s kutish kerak
+            logger.info(f"Yangi buyurtmalar: {len(truly_new_ids)} ta, 180s kutilmoqda (birinchi Telegram hali yuborilmagan)")
         elif len(removed_ids) > 0:
-            # Buyurtmalar hal qilindi - 180s timer _check_and_process() da yangilaydi
-            logger.info(f"Hal qilingan buyurtmalar: {len(removed_ids)} ta (Telegram _check_and_process() da yangilanadi)")
+            logger.info(f"Hal qilingan buyurtmalar: {len(removed_ids)} ta")
         else:
-            # Hech qanday o'zgarish yo'q
             logger.debug(f"O'zgarish yo'q")
 
-    async def _on_orders_resolved(self, resolved_count: int, remaining_count: int):
+    async def _on_orders_resolved(self, resolved_ids: list, remaining_count: int):
         """Buyurtmalar tekshirildi callback"""
+        resolved_count = len(resolved_ids)
         logger.info(f"Tekshirildi: {resolved_count} ta, Qoldi: {remaining_count} ta")
 
         # Qabul qilingan buyurtmalarni statistikaga yozish
@@ -634,7 +639,7 @@ class AutodialerPro:
         affected_sellers = set()
 
         # Har bir qabul qilingan buyurtma uchun statistika
-        resolved_order_ids = self.state.pending_order_ids[:resolved_count]
+        resolved_order_ids = resolved_ids
         for order_id in resolved_order_ids:
             # Agar bu buyurtma allaqachon qayd etilgan bo'lsa, o'tkazib yuborish
             if self._recorded_orders.contains(order_id):
@@ -642,7 +647,7 @@ class AutodialerPro:
                 continue
 
             try:
-                order_data = await self.amocrm.get_order_full_data(order_id)
+                order_data = await self.nonbor.get_order_full_data(order_id)
                 seller_phone = order_data.get("seller_phone", "Noma'lum")
                 affected_sellers.add(seller_phone)
 
@@ -705,6 +710,11 @@ class AutodialerPro:
         else:
             # Qolgan buyurtmalar - holatni yangilash va Telegram ni yangilash
             self.state.pending_orders_count = remaining_count
+            # Resolved ID larni pending dan o'chirish
+            self.state.pending_order_ids = [
+                oid for oid in self.state.pending_order_ids
+                if oid not in resolved_order_ids
+            ]
             logger.info(f"Qolgan {remaining_count} ta buyurtma, Telegram yangilanmoqda")
 
             # MUHIM: Buyurtma QABUL/BEKOR qilinganda Telegram DARHOL yangilanadi
@@ -712,7 +722,7 @@ class AutodialerPro:
             # Agar Telegram xabar allaqachon yuborilgan bo'lsa, yangilash kerak
             if self.state.telegram_notified:
                 logger.info(f"Telegram xabar yangilanmoqda: {remaining_count} ta buyurtma qoldi")
-                await self._send_telegram_for_remaining()
+                await self._send_telegram_for_remaining(force_all=True)
 
     async def _make_call(self):
         """Har bir sotuvchiga alohida qo'ng'iroq qilish"""
@@ -728,10 +738,12 @@ class AutodialerPro:
 
         # MUHIM: Qo'ng'iroq qilishdan oldin statusni tekshirish
         # Buyurtmalar qabul qilingan bo'lishi mumkin (TEKSHIRILMOQDA dan chiqgan)
-        current_leads = await self.amocrm.get_leads_by_status()
+        current_leads = await self.nonbor.get_leads_by_status()
+        if current_leads is None:
+            current_leads = []
         current_lead_ids = {lead["id"] for lead in current_leads}
 
-        logger.info(f"amoCRM dan hozirgi TEKSHIRILMOQDA statusidagi buyurtmalar: {len(current_lead_ids)} ta")
+        logger.info(f"Nonbor API dan hozirgi CHECKING statusidagi buyurtmalar: {len(current_lead_ids)} ta")
 
         # Faqat hali TEKSHIRILMOQDA statusida bo'lgan buyurtmalar uchun qo'ng'iroq qilish
         order_ids = [oid for oid in order_ids if oid in current_lead_ids]
@@ -752,7 +764,7 @@ class AutodialerPro:
         sellers = {}
         for order_id in order_ids:
             try:
-                order_data = await self.amocrm.get_order_full_data(order_id)
+                order_data = await self.nonbor.get_order_full_data(order_id)
                 seller_phone = order_data.get("seller_phone", "Noma'lum")
 
                 # Telefon raqamini formatlash
@@ -930,7 +942,7 @@ class AutodialerPro:
         all_orders = []
         for order_id in order_ids:
             try:
-                order_data = await self.amocrm.get_order_full_data(order_id)
+                order_data = await self.nonbor.get_order_full_data(order_id)
                 all_orders.append(order_data)
             except Exception as e:
                 logger.error(f"Buyurtma #{order_id} ma'lumotini olishda xato: {e}")
@@ -964,55 +976,82 @@ class AutodialerPro:
         if not self.notification_manager:
             return
 
+        # Avval pending deletions ni qayta urinish
+        await self.notification_manager.retry_pending_deletions()
+
         if self.notification_manager._active_message_ids:
             logger.info(f"Telegram xabarlarni o'chirish: {len(self.notification_manager._active_message_ids)} ta")
+            failed_ids = []
             for msg_id in self.notification_manager._active_message_ids:
                 try:
-                    await self.telegram.delete_message(msg_id)
-                    logger.debug(f"Xabar o'chirildi: {msg_id}")
+                    success = await self.telegram.delete_message(msg_id)
+                    if success:
+                        logger.debug(f"Xabar o'chirildi: {msg_id}")
+                    else:
+                        failed_ids.append(msg_id)
+                        logger.warning(f"Xabar o'chirilmadi, pending ga qo'shilmoqda: {msg_id}")
                 except Exception as e:
+                    failed_ids.append(msg_id)
                     logger.error(f"Xabar o'chirishda xato {msg_id}: {e}")
-            self.notification_manager._active_message_ids = []
 
-    async def _send_telegram_for_remaining(self, affected_sellers: set = None):
+            # Muvaffaqiyatsiz o'chirishlarni pending ga qo'shish
+            if failed_ids:
+                for msg_id in failed_ids:
+                    if msg_id not in self.notification_manager._pending_deletions:
+                        self.notification_manager._pending_deletions.append(msg_id)
+
+            self.notification_manager._active_message_ids = []
+            self.notification_manager._seller_message_ids = {}
+            self.notification_manager._combined_message_id = None
+            self.notification_manager._save_messages()
+
+    async def _send_telegram_for_remaining(self, affected_sellers: set = None, force_all: bool = False):
         """
         Qolgan buyurtmalar uchun Telegram xabar yuborish
         affected_sellers - faqat o'zgargan sotuvchilar uchun xabar yangilash
+        force_all - True bo'lsa, 180s filterni o'tkazib yuborish (barcha CHECKING buyurtmalar)
 
-        MUHIM: Faqat 180 soniyadan oshgan buyurtmalarni Telegram ga yuborish
+        MUHIM: force_all=False bo'lsa faqat 180 soniyadan oshgan buyurtmalarni Telegram ga yuborish
         """
         if not self.notification_manager:
             return
 
+        # Avval pending deletions ni qayta urinish
+        await self.notification_manager.retry_pending_deletions()
+
         # Hozirgi TEKSHIRILMOQDA dagi barcha buyurtmalarni olish
-        leads = await self.amocrm.get_leads_by_status()
+        leads = await self.nonbor.get_leads_by_status()
         if not leads:
             return
 
         order_ids = [lead["id"] for lead in leads]
 
-        # MUHIM: Faqat 180 soniyadan oshgan buyurtmalarni filterlash
-        now = datetime.now()
-        old_order_ids = []
-        for order_id in order_ids:
-            if order_id in self.state.order_timestamps:
-                order_age = (now - self.state.order_timestamps[order_id]).total_seconds()
-                if order_age >= self.telegram_alert_time:  # telegram_alert_time soniyadan oshgan
-                    old_order_ids.append(order_id)
+        if force_all:
+            # BARCHA CHECKING buyurtmalarni yuborish (180s filtersiz)
+            old_order_ids = order_ids
+        else:
+            # Faqat 180 soniyadan oshgan buyurtmalarni filterlash
+            now = datetime.now()
+            old_order_ids = []
+            for order_id in order_ids:
+                if order_id in self.state.order_timestamps:
+                    order_age = (now - self.state.order_timestamps[order_id]).total_seconds()
+                    if order_age >= self.telegram_alert_time:  # telegram_alert_time soniyadan oshgan
+                        old_order_ids.append(order_id)
+                    else:
+                        logger.debug(f"Buyurtma #{order_id} hali 180s dan yosh ({order_age:.0f}s), Telegram uchun kutilmoqda")
                 else:
-                    logger.debug(f"Buyurtma #{order_id} hali 180s dan yosh ({order_age:.0f}s), Telegram uchun kutilmoqda")
-            else:
-                # Agar vaqt ma'lumoti yo'q bo'lsa, bu buyurtma yangi kelgan - 180s kutish kerak
-                logger.debug(f"Buyurtma #{order_id} uchun timestamp yo'q, Telegram yuborilmaydi (180s kutish kerak)")
+                    # Agar vaqt ma'lumoti yo'q bo'lsa, bu buyurtma yangi kelgan - 180s kutish kerak
+                    logger.debug(f"Buyurtma #{order_id} uchun timestamp yo'q, Telegram yuborilmaydi (180s kutish kerak)")
 
         if not old_order_ids:
             logger.info(f"Telegram uchun buyurtmalar yo'q (barcha buyurtmalar 180s dan yangi)")
             return
 
         # MUHIM: Tekshirish - buyurtmalar ro'yxati o'zgardimi?
-        # Yangi buyurtma kelmasa Telegram xabar yangilanmasin
+        # force_all=True bo'lsa, har doim yangilash (buyurtma qabul/bekor qilinganda)
         current_order_ids = set(old_order_ids)
-        if current_order_ids == self.state.last_telegram_order_ids:
+        if not force_all and current_order_ids == self.state.last_telegram_order_ids:
             logger.info(f"Telegram yangilanmaydi - buyurtmalar o'zgarmagan ({len(old_order_ids)} ta)")
             return
 
@@ -1030,7 +1069,7 @@ class AutodialerPro:
         all_orders = []
         for order_id in old_order_ids:
             try:
-                order_data = await self.amocrm.get_order_full_data(order_id)
+                order_data = await self.nonbor.get_order_full_data(order_id)
                 all_orders.append(order_data)
             except Exception as e:
                 logger.error(f"Buyurtma #{order_id} ma'lumotini olishda xato: {e}")
@@ -1056,22 +1095,37 @@ class AutodialerPro:
         if self.notification_manager._seller_message_ids:
             for seller_phone, msg_id in list(self.notification_manager._seller_message_ids.items()):
                 try:
-                    await self.telegram.delete_message(msg_id)
-                    if msg_id in self.notification_manager._active_message_ids:
-                        self.notification_manager._active_message_ids.remove(msg_id)
-                    logger.info(f"Eski sotuvchi xabari o'chirildi: {seller_phone} ({msg_id})")
+                    success = await self.telegram.delete_message(msg_id)
+                    if success:
+                        if msg_id in self.notification_manager._active_message_ids:
+                            self.notification_manager._active_message_ids.remove(msg_id)
+                        logger.info(f"Eski sotuvchi xabari o'chirildi: {seller_phone} ({msg_id})")
+                    else:
+                        if msg_id not in self.notification_manager._pending_deletions:
+                            self.notification_manager._pending_deletions.append(msg_id)
+                        logger.warning(f"Sotuvchi xabari o'chirilmadi, pending: {msg_id}")
                 except Exception as e:
+                    if msg_id not in self.notification_manager._pending_deletions:
+                        self.notification_manager._pending_deletions.append(msg_id)
                     logger.error(f"Sotuvchi xabarini o'chirishda xato: {e}")
             self.notification_manager._seller_message_ids = {}
 
         # Eski birlashgan xabarni ham o'chirish (agar mavjud bo'lsa)
         if self.notification_manager._combined_message_id:
+            combined_id = self.notification_manager._combined_message_id
             try:
-                await self.telegram.delete_message(self.notification_manager._combined_message_id)
-                if self.notification_manager._combined_message_id in self.notification_manager._active_message_ids:
-                    self.notification_manager._active_message_ids.remove(self.notification_manager._combined_message_id)
-                logger.info(f"Eski birlashgan xabar o'chirildi ({self.notification_manager._combined_message_id})")
+                success = await self.telegram.delete_message(combined_id)
+                if success:
+                    if combined_id in self.notification_manager._active_message_ids:
+                        self.notification_manager._active_message_ids.remove(combined_id)
+                    logger.info(f"Eski birlashgan xabar o'chirildi ({combined_id})")
+                else:
+                    if combined_id not in self.notification_manager._pending_deletions:
+                        self.notification_manager._pending_deletions.append(combined_id)
+                    logger.warning(f"Birlashgan xabar o'chirilmadi, pending: {combined_id}")
             except Exception as e:
+                if combined_id not in self.notification_manager._pending_deletions:
+                    self.notification_manager._pending_deletions.append(combined_id)
                 logger.error(f"Eski birlashgan xabarni o'chirishda xato: {e}")
             self.notification_manager._combined_message_id = None
 
@@ -1106,6 +1160,7 @@ class AutodialerPro:
 
         # Oxirgi yuborilgan buyurtmalar ro'yxatini yangilash
         self.state.last_telegram_order_ids = current_order_ids
+        self.state.telegram_notified = True  # Birinchi Telegram yuborildi - keyingi o'zgarishlarda darhol yangilanadi
         logger.debug(f"Oxirgi Telegram buyurtmalar ro'yxati yangilandi: {len(current_order_ids)} ta")
 
         # 180s timer davom etadi - buyurtmalar uchun
@@ -1127,10 +1182,6 @@ async def main():
     """Asosiy funksiya"""
 
     autodialer = AutodialerPro(
-        # amoCRM
-        amocrm_subdomain=os.getenv("AMOCRM_SUBDOMAIN", "welltech"),
-        amocrm_token=os.getenv("AMOCRM_TOKEN", "YOUR_TOKEN"),
-
         # Asterisk AMI (WSL)
         sip_host=os.getenv("AMI_HOST", "172.29.124.85"),
         ami_port=int(os.getenv("AMI_PORT", "5038")),

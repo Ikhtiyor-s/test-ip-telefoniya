@@ -4,6 +4,9 @@ Xabar yuborish va boshqarish
 """
 
 import logging
+import json
+import os
+import random
 import aiohttp
 import asyncio
 from typing import Optional, Dict, Any, List, Callable
@@ -24,11 +27,37 @@ CALLBACK_REJECTED = "rejected"
 CALLBACK_NO_TELEGRAM = "no_telegram"
 CALLBACK_BACK = "back"
 
+# Menu tugmalari
+CALLBACK_MENU_BUSINESSES = "menu_businesses"
+CALLBACK_MENU_CALLS = "menu_calls"
+CALLBACK_MENU_ORDERS = "menu_orders"
+CALLBACK_MENU_BACK = "menu_back"
+CALLBACK_BIZ_REFRESH = "biz_refresh"
+
+# Bizneslar pagination va region tugmalari
+CALLBACK_BIZ_PAGE = "biz_page_"       # biz_page_0, biz_page_1, ...
+CALLBACK_BIZ_REGION = "biz_region_"   # biz_region_0, biz_region_1, ...
+CALLBACK_BIZ_BACK = "biz_back"        # Regiondan orqaga
+CALLBACK_BIZ_REG_PAGE = "biz_rp_"     # biz_rp_0_1 (region_idx_page)
+CALLBACK_BIZ_DISTRICT = "biz_dist_"   # biz_dist_0_1 (region_idx_district_idx)
+CALLBACK_BIZ_DIST_BACK = "biz_dback_" # biz_dback_0 (region_idx ga qaytish)
+CALLBACK_BIZ_ITEM = "biz_item_"       # biz_item_5 (business id)
+CALLBACK_BIZ_ADD_GROUP = "biz_grp_"   # biz_grp_5 (business id - guruh qo'shish)
+
 # Davr tugmalari
 CALLBACK_DAILY = "period_daily"
 CALLBACK_WEEKLY = "period_weekly"
 CALLBACK_MONTHLY = "period_monthly"
 CALLBACK_YEARLY = "period_yearly"
+
+# Auth states
+AUTH_IDLE = "idle"
+AUTH_AWAITING_PHONE = "awaiting_phone"
+AUTH_AWAITING_OTP = "awaiting_otp"
+AUTH_VERIFIED = "verified"
+
+# Admin telefon raqami - barcha funksiyalarga to'liq kirish
+ADMIN_PHONE = "+998948679300"
 
 
 class TelegramService:
@@ -250,6 +279,24 @@ class TelegramService:
             parse_mode="HTML"  # HTML link ishlashi uchun
         )
 
+    async def update_seller_orders_alert(
+        self,
+        message_id: int,
+        seller_orders: dict,
+        call_attempts: int = 0,
+        chat_id: str = None
+    ) -> bool:
+        """Mavjud sotuvchi xabarini tahrirlash (yangilash)"""
+        text = self._format_seller_orders_alert(seller_orders, call_attempts)
+        chat_id = chat_id or self.default_chat_id
+
+        return await self.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML"
+        )
+
     async def send_all_sellers_alert(
         self,
         sellers_data: dict,
@@ -351,6 +398,47 @@ SOTUVCHI:
 📱 <a href="https://welltech.amocrm.ru">Buyurtmalarni ko'rish</a>"""
 
         return text
+
+    STATUS_LABELS = {
+        "CHECKING": "🟡 Tekshirilmoqda",
+        "PAYMENTPENDING": "💳 To'lov kutilmoqda",
+        "ACCEPTED": "🟢 Qabul qilindi",
+        "READY": "✅ Tayyor",
+        "DELIVERING": "🚗 Yetkazilmoqda",
+        "COMPLETED": "🏁 Yakunlandi",
+        "CANCELLED": "❌ Bekor qilindi",
+    }
+
+    def _format_business_order_message(self, order_data: dict) -> str:
+        """Biznes guruhi uchun bitta buyurtma xabari"""
+        order_number = order_data.get("order_number", "")
+        client_name = order_data.get("client_name", "Noma'lum")
+        client_phone = order_data.get("client_phone", "")
+        if client_phone and not str(client_phone).startswith('+'):
+            client_phone = '+' + str(client_phone)
+        product_name = order_data.get("product_name", "")
+        quantity = order_data.get("quantity", 1)
+        price = order_data.get("price", 0)
+        price_str = f"{price:,.0f}".replace(",", " ") + " so'm" if price else "—"
+
+        text = f"📦 Buyurtma #{order_number}\n"
+        text += f"━━━━━━━━━━━━━━━━━━━\n"
+        if product_name:
+            text += f"🏷 Mahsulot: {product_name}\n"
+            text += f"📊 Miqdor: {quantity} ta\n"
+        text += f"💰 Narx: {price_str}"
+
+        return text
+
+    async def send_business_order_message(self, order_data: dict, chat_id: str) -> Optional[int]:
+        """Biznes guruhiga bitta buyurtma xabari yuborish"""
+        text = self._format_business_order_message(order_data)
+        return await self.send_message(text=text, chat_id=chat_id)
+
+    async def update_business_order_message(self, message_id: int, order_data: dict, chat_id: str) -> bool:
+        """Biznes guruhidagi buyurtma xabarini yangilash (status o'zgarganda)"""
+        text = self._format_business_order_message(order_data)
+        return await self.edit_message(message_id=message_id, text=text, chat_id=chat_id)
 
     def _format_all_sellers_alert(self, sellers_data: dict, call_attempts: int = 0) -> str:
         """
@@ -719,17 +807,305 @@ class TelegramStatsHandler:
     Inline keyboard orqali statistika ko'rsatish va boshqarish
     """
 
-    def __init__(self, telegram_service: TelegramService, stats_service=None):
+    def __init__(self, telegram_service: TelegramService, stats_service=None, nonbor_service=None):
         self.telegram = telegram_service
         self.stats_service = stats_service
+        self.nonbor_service = nonbor_service
         self._polling_task: Optional[asyncio.Task] = None
         self._running = False
         self._last_update_id = 0
         self._current_period = "daily"  # Joriy davr
 
+        # Biznes guruh qo'shish uchun state
+        self._awaiting_group_input: Dict[str, int] = {}  # chat_id -> business_id
+        self._awaiting_message_id: Dict[str, int] = {}   # chat_id -> message_id
+
+        # Guruhlar faylini yuklash
+        self._groups_file = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "data", "business_groups.json"
+        )
+        self._business_groups: Dict[str, str] = self._load_groups()
+
+        # Auth tizimi
+        self._auth_states: Dict[str, str] = {}          # chat_id -> state
+        self._auth_phones: Dict[str, str] = {}          # chat_id -> phone (vaqtinchalik)
+        self._auth_otps: Dict[str, dict] = {}           # chat_id -> {code, expires, phone, business_id}
+        self._verified_users: Dict[str, dict] = {}      # chat_id -> {phone, business_id, business_title}
+        self._phone_to_chat: Dict[str, str] = {}        # phone -> chat_id
+        self._auth_file = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "data", "auth_users.json"
+        )
+        self._load_auth_users()
+
     def set_stats_service(self, stats_service):
         """Stats servisini sozlash"""
         self.stats_service = stats_service
+
+    def set_nonbor_service(self, nonbor_service):
+        """Nonbor servisini sozlash"""
+        self.nonbor_service = nonbor_service
+
+    def _load_groups(self) -> Dict[str, str]:
+        """Guruhlar faylidan yuklash"""
+        try:
+            if os.path.exists(self._groups_file):
+                with open(self._groups_file, "r") as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.error(f"Guruhlar faylini yuklash xatosi: {e}")
+        return {}
+
+    def _save_groups(self):
+        """Guruhlarni faylga saqlash"""
+        try:
+            os.makedirs(os.path.dirname(self._groups_file), exist_ok=True)
+            with open(self._groups_file, "w") as f:
+                json.dump(self._business_groups, f, indent=2)
+        except Exception as e:
+            logger.error(f"Guruhlar faylini saqlash xatosi: {e}")
+
+    # ===== AUTH METODLAR =====
+
+    def _load_auth_users(self):
+        """Auth faylidan yuklash"""
+        try:
+            if os.path.exists(self._auth_file):
+                with open(self._auth_file, "r") as f:
+                    data = json.load(f)
+                    self._verified_users = data.get("verified_users", {})
+                    self._phone_to_chat = data.get("phone_to_chat", {})
+                    for chat_id in self._verified_users:
+                        self._auth_states[chat_id] = AUTH_VERIFIED
+                    logger.info(f"Auth yuklandi: {len(self._verified_users)} ta tasdiqlangan foydalanuvchi")
+        except Exception as e:
+            logger.error(f"Auth faylini yuklash xatosi: {e}")
+
+    def _save_auth_users(self):
+        """Auth faylga saqlash"""
+        try:
+            os.makedirs(os.path.dirname(self._auth_file), exist_ok=True)
+            with open(self._auth_file, "w") as f:
+                json.dump({
+                    "verified_users": self._verified_users,
+                    "phone_to_chat": self._phone_to_chat
+                }, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            logger.error(f"Auth faylini saqlash xatosi: {e}")
+
+    def _is_authenticated(self, chat_id: str) -> bool:
+        """Foydalanuvchi tasdiqlangan mi? Biznes guruhlari ham ruxsat oladi."""
+        if self._auth_states.get(chat_id) == AUTH_VERIFIED:
+            return True
+        # Biznesga biriktirilgan guruhlar avtomatik ruxsat oladi
+        if chat_id in self._business_groups.values():
+            return True
+        return False
+
+    def _is_admin(self, chat_id: str) -> bool:
+        """Foydalanuvchi admin mi? (ADMIN_PHONE bilan tasdiqlangan)"""
+        user_data = self._verified_users.get(chat_id)
+        if not user_data:
+            return False
+        return user_data.get("phone") == ADMIN_PHONE
+
+    def _get_user_business_id(self, chat_id: str) -> Optional[int]:
+        """Foydalanuvchining business_id sini olish"""
+        user_data = self._verified_users.get(chat_id)
+        if not user_data:
+            return None
+        return user_data.get("business_id")
+
+    def _generate_otp(self, chat_id: str, phone: str, business_id=None, business_title="") -> str:
+        """4-raqamli OTP yaratish (5 daqiqa amal qiladi)"""
+        code = str(random.randint(1000, 9999))
+        self._auth_otps[chat_id] = {
+            "code": code,
+            "phone": phone,
+            "expires": datetime.now().timestamp() + 300,
+            "business_id": business_id,
+            "business_title": business_title
+        }
+        return code
+
+    def _verify_otp(self, chat_id: str, entered_code: str) -> str:
+        """OTP tekshirish. Returns: 'valid', 'invalid', 'expired'"""
+        otp_data = self._auth_otps.get(chat_id)
+        if not otp_data:
+            return "expired"
+        if datetime.now().timestamp() > otp_data["expires"]:
+            self._auth_otps.pop(chat_id, None)
+            return "expired"
+        if otp_data["code"] == entered_code.strip():
+            return "valid"
+        return "invalid"
+
+    async def _find_business_by_phone(self, phone: str) -> Optional[Dict]:
+        """Telefon raqam bo'yicha biznesni topish"""
+        if not self.nonbor_service:
+            return None
+        businesses = await self.nonbor_service.get_businesses()
+        if not businesses:
+            return None
+
+        # Raqamni normalizatsiya qilish
+        normalized = phone.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+        if normalized.startswith("+"):
+            without_plus = normalized[1:]
+        else:
+            without_plus = normalized
+            normalized = "+" + normalized
+
+        for biz in businesses:
+            biz_phone = (biz.get("phone_number") or "").replace(" ", "").replace("-", "")
+            if not biz_phone:
+                continue
+            biz_without_plus = biz_phone.lstrip("+")
+            if without_plus == biz_without_plus:
+                return biz
+        return None
+
+    async def _start_auth_flow(self, chat_id: str):
+        """Auth jarayonini boshlash"""
+        self._auth_states[chat_id] = AUTH_AWAITING_PHONE
+        await self.telegram.send_message(
+            text=(
+                "📋 <b>Nonbor Buyurtmalar Bot</b>\n\n"
+                "Buyurtmalar haqida xabar va statistika.\n\n"
+                "<b>Kirish:</b>\n"
+                "1. business.nonbor.uz da ro'yxatdan o'ting\n"
+                "2. Ro'yxatdagi raqamni quyida yozing\n"
+                "3. Tasdiqlash kodini kiriting\n\n"
+                "<b>Guruhga ulash (ixtiyoriy):</b>\n"
+                "1. Guruh yarating va @Nonborbuyurtmalar_bot ni admin qiling\n"
+                "2. @userinfobot ga guruhdan xabar forward qiling — ID olasiz\n"
+                "3. Botda \"Bizneslar\" → biznesingiz → \"Guruh ID\" → ID kiriting\n\n"
+                "━━━━━━━━━━━━━━━━━━━\n"
+                "📱 <b>Telefon raqamingizni kiriting:</b>\n"
+                "<i>Masalan: +998901234567</i>"
+            ),
+            chat_id=chat_id,
+            parse_mode="HTML"
+        )
+
+    async def _handle_phone_input(self, chat_id: str, phone: str):
+        """Telefon raqamni tekshirish va OTP yuborish"""
+        # Biznesni topish
+        business = await self._find_business_by_phone(phone)
+        if not business:
+            await self.telegram.send_message(
+                text=(
+                    "❌ <b>Raqam topilmadi</b>\n\n"
+                    "Bu raqam tizimda ro'yxatdan o'tmagan.\n"
+                    "📱 Boshqa raqam kiriting:"
+                ),
+                chat_id=chat_id,
+                parse_mode="HTML"
+            )
+            return
+
+        # Raqamni normalizatsiya
+        normalized = phone.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+        if not normalized.startswith("+"):
+            normalized = "+" + normalized
+
+        # Boshqa foydalanuvchi allaqachon shu raqamni tasdiqlaganmi?
+        existing_chat = self._phone_to_chat.get(normalized)
+        if existing_chat and existing_chat != chat_id:
+            # Asl egasiga ogohlantirish yuborish
+            await self.telegram.send_message(
+                text=(
+                    "⚠️ <b>OGOHLANTIRISH!</b>\n\n"
+                    "Kimdir sizning biznes raqamingiz bilan "
+                    "botga kirishga harakat qilmoqda!\n\n"
+                    f"📱 Raqam: <code>{normalized}</code>\n"
+                    f"🕐 Vaqt: {datetime.now().strftime('%H:%M:%S %d.%m.%Y')}"
+                ),
+                chat_id=existing_chat,
+                parse_mode="HTML"
+            )
+            # Hozirgi foydalanuvchiga rad javob
+            await self.telegram.send_message(
+                text=(
+                    "🚫 <b>Kirish rad etildi</b>\n\n"
+                    "Bu raqam boshqa akkauntda tasdiqlangan.\n"
+                    "📱 Boshqa raqam kiriting:"
+                ),
+                chat_id=chat_id,
+                parse_mode="HTML"
+            )
+            return
+
+        # OTP yaratish va yuborish
+        self._auth_phones[chat_id] = normalized
+        self._auth_states[chat_id] = AUTH_AWAITING_OTP
+        otp_code = self._generate_otp(
+            chat_id, normalized,
+            business_id=business.get("id"),
+            business_title=business.get("title", "")
+        )
+
+        await self.telegram.send_message(
+            text=(
+                f"✅ <b>Biznes topildi:</b> {business.get('title', '')}\n\n"
+                f"🔑 Tasdiqlash kodi: <code>{otp_code}</code>\n\n"
+                f"<i>Kodni kiriting (5 daqiqa amal qiladi):</i>"
+            ),
+            chat_id=chat_id,
+            parse_mode="HTML"
+        )
+
+    async def _handle_otp_input(self, chat_id: str, code: str):
+        """OTP tasdiqlash"""
+        result = self._verify_otp(chat_id, code)
+
+        if result == "expired":
+            self._auth_states[chat_id] = AUTH_IDLE
+            self._auth_phones.pop(chat_id, None)
+            await self.telegram.send_message(
+                text=(
+                    "⏰ <b>Kod muddati tugadi</b>\n\n"
+                    "Qaytadan /start bosing."
+                ),
+                chat_id=chat_id,
+                parse_mode="HTML"
+            )
+            return
+
+        if result == "invalid":
+            await self.telegram.send_message(
+                text="❌ Kod noto'g'ri. Qayta kiriting:",
+                chat_id=chat_id,
+                parse_mode="HTML"
+            )
+            return
+
+        # Tasdiqlandi
+        otp_data = self._auth_otps.pop(chat_id, {})
+        phone = otp_data.get("phone", self._auth_phones.get(chat_id, ""))
+        business_id = otp_data.get("business_id")
+        business_title = otp_data.get("business_title", "")
+
+        self._auth_states[chat_id] = AUTH_VERIFIED
+        self._verified_users[chat_id] = {
+            "phone": phone,
+            "business_id": business_id,
+            "business_title": business_title,
+            "verified_at": datetime.now().isoformat()
+        }
+        self._phone_to_chat[phone] = chat_id
+        self._save_auth_users()
+        self._auth_phones.pop(chat_id, None)
+
+        await self.telegram.send_message(
+            text=f"✅ <b>Muvaffaqiyatli!</b>\n\nXush kelibsiz, {business_title}!",
+            chat_id=chat_id,
+            parse_mode="HTML"
+        )
+        await self.send_stats_message(chat_id)
+
+    # ===== AUTH METODLAR TUGADI =====
 
     async def start_polling(self):
         """Callback query polling boshlash"""
@@ -793,15 +1169,65 @@ class TelegramStatsHandler:
 
     async def _handle_update(self, update: dict):
         """Update ni qayta ishlash"""
-        # /stats komandasi
+        # Text xabarlar (auth bilan)
         message = update.get("message")
         if message:
             text = message.get("text", "")
             chat_id = str(message.get("chat", {}).get("id", ""))
+            chat_type = message.get("chat", {}).get("type", "private")
+
+            # Guruh chatlarida hech qanday komandaga javob bermaslik
+            if chat_type in ("group", "supergroup"):
+                return
+
+            # /start - har doim ishlaydi
+            if text == "/start" or text.startswith("/start@"):
+                logger.info(f"/start komandasi: {chat_id}")
+                if self._is_authenticated(chat_id):
+                    await self.send_stats_message(chat_id)
+                else:
+                    await self._start_auth_flow(chat_id)
+                return
+
+            # Auth flow - telefon kiritish
+            auth_state = self._auth_states.get(chat_id, AUTH_IDLE)
+            if auth_state == AUTH_AWAITING_PHONE and text:
+                await self._handle_phone_input(chat_id, text)
+                return
+
+            # Auth flow - OTP kiritish
+            if auth_state == AUTH_AWAITING_OTP and text:
+                await self._handle_otp_input(chat_id, text)
+                return
+
+            # === Quyidagi barcha funksiyalar faqat tasdiqlangan foydalanuvchilar uchun ===
+            if not self._is_authenticated(chat_id):
+                await self.telegram.send_message(
+                    text="🔒 Avval /start bosib autentifikatsiyadan o'ting.",
+                    chat_id=chat_id,
+                    parse_mode="HTML"
+                )
+                return
 
             if text == "/stats" or text.startswith("/stats@"):
-                logger.info(f"/stats komandasi qabul qilindi: {chat_id}")
+                logger.info(f"/stats komandasi: {chat_id}")
                 await self.send_stats_message(chat_id)
+                return
+
+            # Guruh ID kiritish kutilmoqda
+            if chat_id in self._awaiting_group_input and text:
+                biz_id = self._awaiting_group_input.pop(chat_id)
+                msg_id = self._awaiting_message_id.pop(chat_id, None)
+                group_id = text.strip()
+                # Guruh ID avtomatik tuzatish - minus qo'shish
+                if group_id.isdigit():
+                    group_id = "-" + group_id
+                self._business_groups[str(biz_id)] = group_id
+                self._save_groups()
+                logger.info(f"Biznes #{biz_id} uchun guruh ID saqlandi: {group_id}")
+                if msg_id:
+                    await self._show_business_detail(msg_id, chat_id, biz_id)
+                return
             return
 
         # Callback query
@@ -820,7 +1246,38 @@ class TelegramStatsHandler:
         # Answer callback
         await self._answer_callback(callback_id)
 
+        # Auth tekshirish - tasdiqlanmagan foydalanuvchi tugma bosa olmaydi
+        if not self._is_authenticated(chat_id):
+            await self.telegram.send_message(
+                text="🔒 Avval /start bosib autentifikatsiyadan o'ting.",
+                chat_id=chat_id,
+                parse_mode="HTML"
+            )
+            return
+
         # Handle callback
+        if data == "noop":
+            return
+
+        # Admin bo'lmagan foydalanuvchilar faqat guruh tugmasini bosa oladi
+        if not self._is_admin(chat_id):
+            if data.startswith(CALLBACK_BIZ_ADD_GROUP):
+                # Guruh qo'shish - _is_admin tekshiruvi allaqachon bor
+                pass
+            elif data.startswith(CALLBACK_BIZ_ITEM):
+                # Biznes ko'rish - _show_business_detail da tekshiruv bor
+                pass
+            elif data == CALLBACK_BIZ_BACK or data == CALLBACK_MENU_BACK:
+                # Orqaga - oddiy ko'rinishga qaytarish
+                user_data = self._verified_users.get(chat_id, {})
+                biz_id = user_data.get("business_id")
+                if biz_id:
+                    await self._show_business_detail(message_id, chat_id, biz_id)
+                return
+            else:
+                # Boshqa barcha tugmalar bloklangan
+                return
+
         if data == CALLBACK_BACK:
             await self._show_main_stats(message_id, chat_id)
         elif data == CALLBACK_CALLS_1:
@@ -852,6 +1309,63 @@ class TelegramStatsHandler:
         elif data == CALLBACK_YEARLY:
             self._current_period = "yearly"
             await self._show_main_stats(message_id, chat_id)
+        # Menu tugmalari
+        elif data == CALLBACK_MENU_BUSINESSES or data == CALLBACK_BIZ_REFRESH:
+            await self._show_businesses(message_id, chat_id)
+        elif data == CALLBACK_MENU_CALLS:
+            await self._show_all_calls(message_id, chat_id)
+        elif data == CALLBACK_MENU_ORDERS:
+            await self._show_orders_list(message_id, chat_id, "accepted")
+        elif data == CALLBACK_MENU_BACK:
+            await self._show_main_stats(message_id, chat_id)
+        # Bizneslar pagination va region
+        elif data.startswith(CALLBACK_BIZ_PAGE):
+            page = int(data.replace(CALLBACK_BIZ_PAGE, ""))
+            await self._show_businesses(message_id, chat_id, page=page)
+        elif data.startswith(CALLBACK_BIZ_REGION):
+            region_idx = int(data.replace(CALLBACK_BIZ_REGION, ""))
+            await self._show_region_districts(message_id, chat_id, region_idx)
+        elif data.startswith(CALLBACK_BIZ_REG_PAGE):
+            parts = data.replace(CALLBACK_BIZ_REG_PAGE, "").split("_")
+            region_idx, page = int(parts[0]), int(parts[1])
+            await self._show_region_districts(message_id, chat_id, region_idx, page=page)
+        elif data.startswith(CALLBACK_BIZ_DISTRICT):
+            parts = data.replace(CALLBACK_BIZ_DISTRICT, "").split("_")
+            region_idx, district_idx = int(parts[0]), int(parts[1])
+            await self._show_district_businesses(message_id, chat_id, region_idx, district_idx)
+        elif data.startswith(CALLBACK_BIZ_DIST_BACK):
+            region_idx = int(data.replace(CALLBACK_BIZ_DIST_BACK, ""))
+            await self._show_region_districts(message_id, chat_id, region_idx)
+        elif data.startswith(CALLBACK_BIZ_ITEM):
+            biz_id = int(data.replace(CALLBACK_BIZ_ITEM, ""))
+            await self._show_business_detail(message_id, chat_id, biz_id)
+        elif data.startswith(CALLBACK_BIZ_ADD_GROUP):
+            biz_id = int(data.replace(CALLBACK_BIZ_ADD_GROUP, ""))
+            # Admin bo'lmagan foydalanuvchilar faqat o'z biznesiga guruh qo'sha oladi
+            if not self._is_admin(chat_id):
+                user_biz_id = self._get_user_business_id(chat_id)
+                if user_biz_id != biz_id:
+                    await self.telegram.edit_message(
+                        message_id=message_id,
+                        text="🚫 Bu biznesga guruh qo'shishga ruxsat yo'q",
+                        chat_id=chat_id,
+                        parse_mode="HTML",
+                        reply_markup={"inline_keyboard": [[{"text": "◀️ Orqaga", "callback_data": CALLBACK_MENU_BACK}]]}
+                    )
+                    return
+            self._awaiting_group_input[chat_id] = biz_id
+            self._awaiting_message_id[chat_id] = message_id
+            await self.telegram.edit_message(
+                message_id=message_id,
+                text="📝 <b>Guruh ID sini yuboring:</b>\n\nMasalan: <code>-1001234567890</code>",
+                chat_id=chat_id,
+                parse_mode="HTML",
+                reply_markup={"inline_keyboard": [[
+                    {"text": "❌ Bekor qilish", "callback_data": f"{CALLBACK_BIZ_ITEM}{biz_id}"}
+                ]]}
+            )
+        elif data == CALLBACK_BIZ_BACK:
+            await self._show_businesses(message_id, chat_id)
 
     async def _answer_callback(self, callback_id: str):
         """Callback query javob"""
@@ -879,6 +1393,11 @@ class TelegramStatsHandler:
             return None
 
         chat_id = chat_id or self.telegram.default_chat_id
+
+        # Admin bo'lmagan foydalanuvchilar uchun oddiy ko'rinish
+        if not self._is_admin(chat_id):
+            return await self._send_business_owner_message(chat_id)
+
         self._current_period = "daily"  # Har doim kunlik bilan boshlash
         stats = self.stats_service.get_period_stats(self._current_period)
 
@@ -908,6 +1427,57 @@ class TelegramStatsHandler:
             chat_id=chat_id,
             parse_mode="HTML",
             reply_markup=keyboard
+        )
+
+    async def _send_business_owner_message(self, chat_id: str) -> Optional[int]:
+        """Biznes egasi uchun oddiy ko'rinish - faqat buyurtmalar va guruh"""
+        user_data = self._verified_users.get(chat_id, {})
+        biz_id = user_data.get("business_id")
+        biz_title = user_data.get("business_title", "Noma'lum")
+        user_phone = user_data.get("phone", "")
+
+        # Guruh holati
+        group_id = self._business_groups.get(str(biz_id), "") if biz_id else ""
+
+        # Buyurtmalar statistikasi (foydalanuvchi telefoni bo'yicha)
+        orders_today = 0
+        accepted_today = 0
+        rejected_today = 0
+        if self.stats_service and user_phone:
+            stats = self.stats_service.get_period_stats("daily")
+            for record in stats.order_records:
+                if record.get("seller_phone") == user_phone:
+                    orders_today += 1
+                    if record.get("result") == "accepted":
+                        accepted_today += 1
+                    elif record.get("result") == "rejected":
+                        rejected_today += 1
+
+        text = f"🏪 <b>{biz_title}</b>\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
+        text += f"📦 <b>Bugungi buyurtmalar:</b> {orders_today} ta\n"
+        text += f"├ ✅ Qabul qilindi: {accepted_today}\n"
+        text += f"└ ❌ Bekor qilindi: {rejected_today}\n\n"
+
+        if group_id:
+            text += f"👥 <b>Guruh:</b> Ulangan ✅\n"
+        else:
+            text += f"👥 <b>Guruh:</b> Ulanmagan ❌\n"
+            text += f"<i>Guruh qo'shsangiz, buyurtmalar haqida xabar keladi</i>\n"
+
+        # Keyboard
+        keyboard_rows = []
+        if biz_id:
+            if group_id:
+                keyboard_rows.append([{"text": "✏️ Guruhni o'zgartirish", "callback_data": f"{CALLBACK_BIZ_ADD_GROUP}{biz_id}"}])
+            else:
+                keyboard_rows.append([{"text": "➕ Guruh qo'shish", "callback_data": f"{CALLBACK_BIZ_ADD_GROUP}{biz_id}"}])
+
+        return await self.telegram.send_message(
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup={"inline_keyboard": keyboard_rows} if keyboard_rows else None
         )
 
     def _get_stats_keyboard(self, stats) -> dict:
@@ -944,6 +1514,13 @@ class TelegramStatsHandler:
                 ],
                 [
                     {"text": f"🚀 Telegram'siz ({stats.accepted_without_telegram})", "callback_data": CALLBACK_NO_TELEGRAM}
+                ],
+                [
+                    {"text": "📦 Buyurtmalar", "callback_data": CALLBACK_MENU_ORDERS},
+                    {"text": "📞 Qo'ng'iroqlar", "callback_data": CALLBACK_MENU_CALLS}
+                ],
+                [
+                    {"text": "👥 Bizneslar", "callback_data": CALLBACK_MENU_BUSINESSES}
                 ]
             ]
         }
@@ -984,6 +1561,373 @@ class TelegramStatsHandler:
             reply_markup=keyboard
         )
 
+    async def _show_businesses(self, message_id: int, chat_id: str, page: int = 0):
+        """Bizneslar ro'yxati - pagination bilan"""
+        if not self.nonbor_service:
+            await self.telegram.edit_message(
+                message_id=message_id,
+                text="❌ Nonbor servisi ulanmagan",
+                chat_id=chat_id,
+                parse_mode="HTML",
+                reply_markup={"inline_keyboard": [[{"text": "◀️ Orqaga", "callback_data": CALLBACK_MENU_BACK}]]}
+            )
+            return
+
+        businesses = await self.nonbor_service.get_businesses()
+        if not businesses:
+            await self.telegram.edit_message(
+                message_id=message_id,
+                text="📭 Bizneslar topilmadi",
+                chat_id=chat_id,
+                parse_mode="HTML",
+                reply_markup={"inline_keyboard": [
+                    [{"text": "🔄 Yangilash", "callback_data": CALLBACK_BIZ_REFRESH}],
+                    [{"text": "◀️ Orqaga", "callback_data": CALLBACK_MENU_BACK}]
+                ]}
+            )
+            return
+
+        # Admin bo'lmagan foydalanuvchilar faqat o'z biznesini ko'radi
+        if not self._is_admin(chat_id):
+            user_biz_id = self._get_user_business_id(chat_id)
+            if user_biz_id:
+                await self._show_business_detail(message_id, chat_id, user_biz_id)
+                return
+            else:
+                await self.telegram.edit_message(
+                    message_id=message_id,
+                    text="❌ Sizning biznesingiz topilmadi",
+                    chat_id=chat_id,
+                    parse_mode="HTML",
+                    reply_markup={"inline_keyboard": [[{"text": "◀️ Orqaga", "callback_data": CALLBACK_MENU_BACK}]]}
+                )
+                return
+
+        # Viloyat bo'yicha guruhlash (cache uchun)
+        regions = {}
+        for biz in businesses:
+            region = biz.get("region_name_uz") or "Noma'lum"
+            if region not in regions:
+                regions[region] = []
+            regions[region].append(biz)
+
+        self._biz_regions = sorted(regions.keys())
+        self._biz_regions_data = regions
+        self._biz_all = businesses
+
+        # Pagination
+        per_page = 10
+        total = len(businesses)
+        total_pages = max(1, (total + per_page - 1) // per_page)
+        page = max(0, min(page, total_pages - 1))
+
+        start = page * per_page
+        end = min(start + per_page, total)
+        page_businesses = businesses[start:end]
+
+        # Xabar tuzish - bizneslar ma'lumotlari bilan
+        text = f"👥 <b>BIZNESLAR</b> ({total} ta)\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n"
+        text += f"📄 Sahifa {page + 1}/{total_pages}\n\n"
+
+        for i, biz in enumerate(page_businesses, start + 1):
+            title = biz.get("title", "Noma'lum")
+            phone = biz.get("phone_number", "")
+            region = biz.get("region_name_uz") or ""
+            district = biz.get("district_name_uz") or ""
+            group_id = self._business_groups.get(str(biz.get("id", 0)), "")
+            mark = " ✅" if group_id else ""
+
+            text += f"<b>{i}. {title}</b>{mark}\n"
+            if phone:
+                text += f"   📞 {phone}\n"
+            if region or district:
+                loc = f"{region}"
+                if district:
+                    loc += f", {district}"
+                text += f"   📍 {loc}\n"
+            text += "\n"
+
+        # Keyboard
+        keyboard_rows = []
+
+        # Raqam tugmalari (5 tadan 2 qatorga)
+        num_row = []
+        for i, biz in enumerate(page_businesses, start + 1):
+            biz_id = biz.get("id", 0)
+            num_row.append({"text": str(i), "callback_data": f"{CALLBACK_BIZ_ITEM}{biz_id}"})
+            if len(num_row) == 5:
+                keyboard_rows.append(num_row)
+                num_row = []
+        if num_row:
+            keyboard_rows.append(num_row)
+
+        # Pagination tugmalari
+        nav_row = []
+        if page > 0:
+            nav_row.append({"text": "◀️ Oldingi", "callback_data": f"{CALLBACK_BIZ_PAGE}{page - 1}"})
+        if page < total_pages - 1:
+            nav_row.append({"text": "Keyingi ▶️", "callback_data": f"{CALLBACK_BIZ_PAGE}{page + 1}"})
+        if nav_row:
+            keyboard_rows.append(nav_row)
+
+        # Viloyat tugmalari (2 tadan)
+        keyboard_rows.append([{"text": "━━ Viloyatlar ━━", "callback_data": "noop"}])
+        region_row = []
+        for idx, region_name in enumerate(self._biz_regions):
+            count = len(regions[region_name])
+            btn_text = f"🏙 {region_name} ({count})"
+            region_row.append({"text": btn_text, "callback_data": f"{CALLBACK_BIZ_REGION}{idx}"})
+            if len(region_row) == 2:
+                keyboard_rows.append(region_row)
+                region_row = []
+        if region_row:
+            keyboard_rows.append(region_row)
+
+        # Pastki tugmalar
+        keyboard_rows.append([
+            {"text": "🔄 Yangilash", "callback_data": CALLBACK_BIZ_REFRESH},
+            {"text": "◀️ Orqaga", "callback_data": CALLBACK_MENU_BACK}
+        ])
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup={"inline_keyboard": keyboard_rows}
+        )
+
+    async def _show_region_districts(self, message_id: int, chat_id: str, region_idx: int, page: int = 0):
+        """Tanlangan viloyatdagi bizneslar (pagination) + tuman tugmalari"""
+        if not hasattr(self, '_biz_regions') or region_idx >= len(self._biz_regions):
+            await self._show_businesses(message_id, chat_id)
+            return
+
+        region_name = self._biz_regions[region_idx]
+        region_businesses = self._biz_regions_data.get(region_name, [])
+
+        # Tuman bo'yicha guruhlash
+        districts = {}
+        for biz in region_businesses:
+            district = biz.get("district_name_uz") or "Noma'lum"
+            if district not in districts:
+                districts[district] = []
+            districts[district].append(biz)
+
+        # Cache tumanlar
+        self._biz_current_districts = sorted(districts.keys())
+        self._biz_current_districts_data = districts
+        self._biz_current_region_idx = region_idx
+
+        # Pagination
+        per_page = 10
+        total = len(region_businesses)
+        total_pages = max(1, (total + per_page - 1) // per_page)
+        page = max(0, min(page, total_pages - 1))
+
+        start = page * per_page
+        end = min(start + per_page, total)
+        page_businesses = region_businesses[start:end]
+
+        # Xabar tuzish
+        text = f"🏙 <b>{region_name}</b> ({total} ta)\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n"
+        text += f"📄 Sahifa {page + 1}/{total_pages}\n\n"
+
+        # Biznes ro'yxati matnda
+        for i, biz in enumerate(page_businesses, start + 1):
+            title = biz.get("title", "Noma'lum")
+            biz_id = biz.get("id", 0)
+            group_id = self._business_groups.get(str(biz_id), "")
+            mark = " ✅" if group_id else ""
+            text += f"{i}. {title}{mark}\n"
+
+        # Keyboard
+        keyboard_rows = []
+
+        # Biznes raqam tugmalari (5 tadan qatorga)
+        num_row = []
+        for i, biz in enumerate(page_businesses, start + 1):
+            biz_id = biz.get("id", 0)
+            num_row.append({"text": str(i), "callback_data": f"{CALLBACK_BIZ_ITEM}{biz_id}"})
+            if len(num_row) == 5:
+                keyboard_rows.append(num_row)
+                num_row = []
+        if num_row:
+            keyboard_rows.append(num_row)
+
+        # Pagination tugmalari
+        nav_row = []
+        if page > 0:
+            nav_row.append({"text": "◀️ Oldingi", "callback_data": f"{CALLBACK_BIZ_REG_PAGE}{region_idx}_{page - 1}"})
+        if page < total_pages - 1:
+            nav_row.append({"text": "Keyingi ▶️", "callback_data": f"{CALLBACK_BIZ_REG_PAGE}{region_idx}_{page + 1}"})
+        if nav_row:
+            keyboard_rows.append(nav_row)
+
+        # Tuman tugmalari (2 tadan qatorga)
+        keyboard_rows.append([{"text": "━━ Tumanlar ━━", "callback_data": "noop"}])
+        dist_row = []
+        for idx, dist_name in enumerate(self._biz_current_districts):
+            count = len(districts[dist_name])
+            btn_text = f"📍 {dist_name} ({count})"
+            dist_row.append({"text": btn_text, "callback_data": f"{CALLBACK_BIZ_DISTRICT}{region_idx}_{idx}"})
+            if len(dist_row) == 2:
+                keyboard_rows.append(dist_row)
+                dist_row = []
+        if dist_row:
+            keyboard_rows.append(dist_row)
+
+        # Pastki tugmalar
+        keyboard_rows.append([
+            {"text": "◀️ Viloyatlar", "callback_data": CALLBACK_BIZ_BACK}
+        ])
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup={"inline_keyboard": keyboard_rows}
+        )
+
+    async def _show_district_businesses(self, message_id: int, chat_id: str, region_idx: int, district_idx: int):
+        """Tanlangan tumandagi bizneslarni ko'rsatish"""
+        if not hasattr(self, '_biz_current_districts') or district_idx >= len(self._biz_current_districts):
+            await self._show_region_districts(message_id, chat_id, region_idx)
+            return
+
+        district_name = self._biz_current_districts[district_idx]
+        district_businesses = self._biz_current_districts_data.get(district_name, [])
+        region_name = self._biz_regions[region_idx] if region_idx < len(self._biz_regions) else ""
+
+        # Xabar tuzish
+        text = f"📍 <b>{district_name}</b> ({len(district_businesses)} ta)\n"
+        text += f"🏙 {region_name}\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
+
+        # Biznes ro'yxati matnda
+        for i, biz in enumerate(district_businesses, 1):
+            title = biz.get("title", "Noma'lum")
+            biz_id = biz.get("id", 0)
+            group_id = self._business_groups.get(str(biz_id), "")
+            mark = " ✅" if group_id else ""
+            text += f"{i}. {title}{mark}\n"
+
+        # Keyboard
+        keyboard_rows = []
+
+        # Biznes raqam tugmalari (5 tadan qatorga)
+        num_row = []
+        for i, biz in enumerate(district_businesses, 1):
+            biz_id = biz.get("id", 0)
+            num_row.append({"text": str(i), "callback_data": f"{CALLBACK_BIZ_ITEM}{biz_id}"})
+            if len(num_row) == 5:
+                keyboard_rows.append(num_row)
+                num_row = []
+        if num_row:
+            keyboard_rows.append(num_row)
+
+        keyboard_rows.append([
+            {"text": f"◀️ {region_name}", "callback_data": f"{CALLBACK_BIZ_DIST_BACK}{region_idx}"}
+        ])
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup={"inline_keyboard": keyboard_rows}
+        )
+
+    async def _show_business_detail(self, message_id: int, chat_id: str, biz_id: int):
+        """Biznes tafsilotlarini ko'rsatish"""
+        # Awaiting state ni tozalash (agar bekor qilish bosilgan bo'lsa)
+        self._awaiting_group_input.pop(chat_id, None)
+        self._awaiting_message_id.pop(chat_id, None)
+
+        # Admin bo'lmagan foydalanuvchilar faqat o'z biznesini ko'ra oladi
+        if not self._is_admin(chat_id):
+            user_biz_id = self._get_user_business_id(chat_id)
+            if user_biz_id != biz_id:
+                await self.telegram.edit_message(
+                    message_id=message_id,
+                    text="🚫 Bu biznesga kirishga ruxsat yo'q",
+                    chat_id=chat_id,
+                    parse_mode="HTML",
+                    reply_markup={"inline_keyboard": [[{"text": "◀️ Orqaga", "callback_data": CALLBACK_MENU_BACK}]]}
+                )
+                return
+
+        # Biznesni topish
+        biz = None
+        if hasattr(self, '_biz_all') and self._biz_all:
+            for b in self._biz_all:
+                if b.get("id") == biz_id:
+                    biz = b
+                    break
+
+        if not biz and self.nonbor_service:
+            businesses = await self.nonbor_service.get_businesses()
+            for b in businesses:
+                if b.get("id") == biz_id:
+                    biz = b
+                    break
+
+        if not biz:
+            await self.telegram.edit_message(
+                message_id=message_id,
+                text="❌ Biznes topilmadi",
+                chat_id=chat_id,
+                parse_mode="HTML",
+                reply_markup={"inline_keyboard": [[{"text": "◀️ Orqaga", "callback_data": CALLBACK_BIZ_BACK}]]}
+            )
+            return
+
+        title = biz.get("title", "Noma'lum")
+        phone = biz.get("phone_number", "")
+        region = biz.get("region_name_uz") or "Noma'lum"
+        district = biz.get("district_name_uz") or "Noma'lum"
+        address = biz.get("address") or "Ko'rsatilmagan"
+        owner_first = biz.get("owner_first_name") or ""
+        owner_last = biz.get("owner_last_name") or ""
+        owner = f"{owner_first} {owner_last}".strip() or "Noma'lum"
+
+        # Guruh ID
+        group_id = self._business_groups.get(str(biz_id), "")
+
+        text = f"🏪 <b>{title}</b>\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
+        text += f"📱 <b>Telefon:</b> {phone}\n"
+        text += f"👤 <b>Egasi:</b> {owner}\n"
+        text += f"🏙 <b>Viloyat:</b> {region}\n"
+        text += f"📍 <b>Tuman:</b> {district}\n"
+        if group_id:
+            text += f"👥 <b>Guruh:</b> <code>{group_id}</code>\n"
+        else:
+            if address and address != "Ko'rsatilmagan":
+                text += f"🏠 <b>Manzil:</b> {address}\n"
+
+        keyboard_rows = []
+        if group_id:
+            keyboard_rows.append([{"text": "✏️ Guruhni o'zgartirish", "callback_data": f"{CALLBACK_BIZ_ADD_GROUP}{biz_id}"}])
+        else:
+            keyboard_rows.append([{"text": "➕ Guruh qo'shish", "callback_data": f"{CALLBACK_BIZ_ADD_GROUP}{biz_id}"}])
+        # Orqaga tugmasi faqat admin uchun
+        if self._is_admin(chat_id):
+            keyboard_rows.append([
+                {"text": "◀️ Orqaga", "callback_data": CALLBACK_BIZ_BACK}
+            ])
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup={"inline_keyboard": keyboard_rows}
+        )
+
     async def _show_calls_list(self, message_id: int, chat_id: str, attempts: int):
         """Berilgan urinishlar soni bo'yicha qo'ng'iroqlar ro'yxati"""
         if not self.stats_service:
@@ -1009,6 +1953,52 @@ class TelegramStatsHandler:
    ⏰ {time}
 
 """
+
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "◀️ Orqaga", "callback_data": CALLBACK_BACK}]
+            ]
+        }
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )
+
+    async def _show_all_calls(self, message_id: int, chat_id: str):
+        """Barcha qo'ng'iroqlar ro'yxati"""
+        if not self.stats_service:
+            return
+
+        stats = self.stats_service.get_period_stats(self._current_period)
+        all_calls = stats.call_records
+
+        title = self._get_period_title()
+        if not all_calls:
+            text = f"""📞 <b>{title} QO'NG'IROQLAR</b>
+━━━━━━━━━━━━━━━━━━━━
+
+<i>Hozircha qo'ng'iroqlar yo'q</i>"""
+        else:
+            text = f"""📞 <b>{title} QO'NG'IROQLAR</b> ({len(all_calls)} ta)
+━━━━━━━━━━━━━━━━━━━━
+
+"""
+            for i, call in enumerate(all_calls[-15:], 1):
+                time = call["timestamp"].split("T")[1][:5]
+                phone = call.get("phone", "")
+                seller = call.get("seller_name", "Noma'lum")
+                result = call.get("result", "")
+                attempts = call.get("attempts", 1)
+                if result == "answered":
+                    status = f"✅ {attempts}-urinish"
+                else:
+                    status = f"❌ Javobsiz"
+                text += f"{i}. <b>{seller}</b>\n"
+                text += f"   📱 {phone} | {status} | ⏰ {time}\n\n"
 
         keyboard = {
             "inline_keyboard": [

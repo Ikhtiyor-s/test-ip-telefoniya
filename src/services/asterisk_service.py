@@ -134,6 +134,33 @@ class AsteriskAMI:
         self._connected = False
         logger.info("AMI uzildi")
 
+    async def reconnect(self) -> bool:
+        """AMI ga qayta ulanish"""
+        logger.info("AMI qayta ulanish...")
+        # Eski ulanishni tozalash
+        if self._ping_task and not self._ping_task.done():
+            self._ping_task.cancel()
+            try:
+                await self._ping_task
+            except (asyncio.CancelledError, Exception):
+                pass
+        if self._read_task and not self._read_task.done():
+            self._read_task.cancel()
+            try:
+                await self._read_task
+            except (asyncio.CancelledError, Exception):
+                pass
+        if self._writer:
+            try:
+                self._writer.close()
+            except:
+                pass
+        self._connected = False
+        self._reader = None
+        self._writer = None
+        # Yangi ulanish
+        return await self.connect()
+
     def _validate_and_clean_phone(self, phone: str) -> str:
         """
         Telefon raqamini validatsiya qilish va tozalash
@@ -566,6 +593,15 @@ class CallManager:
         self._call_in_progress = True
         self._call_completed_event.clear()
         self._last_call_result = None
+
+        # AMI ulanish tekshirish va qayta ulanish
+        if not self.ami._connected:
+            logger.warning("AMI ulanish yo'q, qayta ulanish...")
+            reconnected = await self.ami.reconnect()
+            if not reconnected:
+                self._call_in_progress = False
+                logger.error("AMI qayta ulanish muvaffaqiyatsiz")
+                return CallResult(status=CallStatus.FAILED, error="AMI reconnect failed")
 
         # Qo'ng'iroq boshlash
         result = await self.ami.originate_call(phone_number, audio_file)

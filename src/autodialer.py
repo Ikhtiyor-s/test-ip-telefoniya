@@ -22,7 +22,7 @@ import signal
 import sys
 import os
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Dict
 from pathlib import Path
 from collections import OrderedDict
 from dotenv import load_dotenv
@@ -221,6 +221,12 @@ class AutodialerPro:
         # Buyurtmalar keshi - Memory leak oldini olish
         self._recorded_orders = BoundedOrderCache(max_size=1000, ttl_hours=24)
 
+        # Guruh xabarlari - order_id -> {msg_id, biz_id, chat_id}
+        self._group_order_messages: Dict[int, dict] = {}
+
+        # Qo'ng'iroq urinishlari soni (state.reset() dan keyin ham saqlanadi)
+        self._last_call_attempts = 0
+
         # Servislar
         self.tts = TTSService(self.audio_dir, provider="edge")
 
@@ -259,7 +265,7 @@ class AutodialerPro:
                 default_chat_id=telegram_chat_id
             )
             self.notification_manager = TelegramNotificationManager(self.telegram, data_dir=data_dir)
-            self.stats_handler = TelegramStatsHandler(self.telegram, self.stats)
+            self.stats_handler = TelegramStatsHandler(self.telegram, self.stats, self.nonbor)
         else:
             self.telegram = None
             self.notification_manager = None
@@ -491,6 +497,104 @@ class AutodialerPro:
                             logger.info(f"{self.telegram_alert_time}s timer: {len(new_old_ids)} ta YANGI buyurtma {self.telegram_alert_time}s+ eski, Telegram yuborilmoqda")
                             await self._send_telegram_for_remaining()
 
+    async def _update_group_messages(self, new_order_ids: set = None):
+        """
+        Biriktirilgan guruhlarga har bir buyurtma uchun alohida xabar yuborish/yangilash.
+        new_order_ids: yangi kelgan buyurtma ID lari (faqat ular uchun xabar yuboriladi)
+        """
+        try:
+            orders = await self.nonbor.get_orders()
+            if not orders:
+                return
+
+            # Biznes title -> ID mapping (businesses cache dan)
+            title_to_id = {}
+            for bid, bdata in self.nonbor._businesses_cache.items():
+                title = bdata.get("title", "").strip().lower()
+                if title:
+                    title_to_id[title] = str(bid)
+
+            # Agar cache bo'sh bo'lsa, API dan yuklash
+            if not title_to_id:
+                await self.nonbor.get_businesses()
+                for bid, bdata in self.nonbor._businesses_cache.items():
+                    title = bdata.get("title", "").strip().lower()
+                    if title:
+                        title_to_id[title] = str(bid)
+
+            for order in orders:
+                order_id = order.get("id")
+                business = order.get("business") or {}
+
+                # Business ID ni aniqlash: avval to'g'ridan-to'g'ri, keyin title orqali
+                biz_id = str(business.get("id", ""))
+                if not biz_id:
+                    biz_title = business.get("title", "").strip().lower()
+                    biz_id = title_to_id.get(biz_title, "")
+
+                if not biz_id or biz_id not in self.stats_handler._business_groups:
+                    continue
+
+                group_chat_id = self.stats_handler._business_groups[biz_id]
+                status = order.get("state", "CHECKING").upper()
+
+                # Buyurtma ma'lumotlarini tayyorlash
+                user = order.get("user") or {}
+                items = order.get("order_item") or order.get("items") or []
+                delivery = order.get("delivery") or {}
+                client_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() or "Noma'lum"
+                product_name = ""
+                quantity = 1
+                if items:
+                    first_item = items[0]
+                    product = first_item.get("product") or {}
+                    product_name = product.get("title", "") or product.get("name", "")
+                    quantity = first_item.get("count", 1) or first_item.get("quantity", 1)
+
+                # Telefon raqami - user, delivery yoki boshqa maydonlardan
+                client_phone = user.get("phone") or user.get("phone_number") or delivery.get("phone") or delivery.get("phone_number") or ""
+
+                order_data = {
+                    "order_number": str(order_id),
+                    "status": status,
+                    "client_name": client_name,
+                    "client_phone": client_phone,
+                    "product_name": product_name,
+                    "quantity": quantity,
+                    "price": (order.get("total_price", 0) or 0) / 100,
+                }
+
+                if order_id in self._group_order_messages:
+                    # Mavjud xabar - status o'zgargan bo'lsa yangilash
+                    tracked = self._group_order_messages[order_id]
+                    if tracked.get("status") != status:
+                        success = await self.telegram.update_business_order_message(
+                            message_id=tracked["msg_id"],
+                            order_data=order_data,
+                            chat_id=group_chat_id
+                        )
+                        if success:
+                            tracked["status"] = status
+                            logger.info(f"Guruh: buyurtma #{order_id} status yangilandi: {status}")
+                else:
+                    # Yangi buyurtma - faqat new_order_ids da bo'lsa xabar yuborish
+                    if new_order_ids and order_id in new_order_ids:
+                        msg_id = await self.telegram.send_business_order_message(
+                            order_data=order_data, chat_id=group_chat_id
+                        )
+                        if msg_id:
+                            self._group_order_messages[order_id] = {
+                                "msg_id": msg_id,
+                                "biz_id": biz_id,
+                                "chat_id": group_chat_id,
+                                "status": status,
+                                "order_data": order_data,
+                            }
+                            logger.info(f"Guruhga xabar yuborildi: buyurtma #{order_id}, status: {status}")
+
+        except Exception as e:
+            logger.error(f"Guruh xabarlarini yangilashda xato: {e}")
+
     async def _on_new_orders(self, count: int, new_ids: list):
         """Yangi buyurtmalar callback"""
         logger.info(f"Yangi buyurtmalar: {len(new_ids)} ta, Jami: {count} ta")
@@ -565,6 +669,10 @@ class AutodialerPro:
 
             logger.info(f"To'planayotgan yangi buyurtmalar: {len(self.state.new_order_ids_for_call)} ta")
 
+            # DARHOL: Biriktirilgan guruhga har bir yangi buyurtma uchun alohida xabar
+            if self.stats_handler and hasattr(self.stats_handler, '_business_groups') and self.stats_handler._business_groups:
+                await self._update_group_messages(new_order_ids=truly_new_ids)
+
             # 1. MUHIM: Yangi buyurtma kelganda Telegram xabar DARHOL yangilanmaydi
             # Har bir buyurtma uchun 180s kutish kerak - _check_and_process() da 180s timer ishlaydi
             logger.info(f"Yangi buyurtmalar uchun 180s timer boshlandi: {len(truly_new_ids)} ta buyurtma")
@@ -638,7 +746,7 @@ class AutodialerPro:
         # Qaysi sotuvchilar uchun o'zgarish bo'lganini aniqlash
         affected_sellers = set()
 
-        # Har bir qabul qilingan buyurtma uchun statistika
+        # Har bir hal qilingan buyurtma uchun statistika
         resolved_order_ids = resolved_ids
         for order_id in resolved_order_ids:
             # Agar bu buyurtma allaqachon qayd etilgan bo'lsa, o'tkazib yuborish
@@ -659,11 +767,10 @@ class AutodialerPro:
                     client_name=order_data.get("client_name", "Noma'lum"),
                     product_name=order_data.get("product_name", "Noma'lum"),
                     price=order_data.get("price", 0),
-                    result=OrderResult.ACCEPTED,  # TEKSHIRILMOQDA dan chiqdi = qabul qilindi
+                    result=OrderResult.ACCEPTED,
                     call_attempts=self.state.call_attempts,
                     telegram_sent=telegram_was_sent
                 )
-                # Qayd etilgan deb belgilash - BoundedCache ishlatiladi
                 self._recorded_orders.add(order_id)
                 logger.info(f"Buyurtma #{order_id} statistikaga yozildi (Kesh hajmi: {self._recorded_orders.size()})")
             except Exception as e:
@@ -723,6 +830,11 @@ class AutodialerPro:
             if self.state.telegram_notified:
                 logger.info(f"Telegram xabar yangilanmoqda: {remaining_count} ta buyurtma qoldi")
                 await self._send_telegram_for_remaining(force_all=True)
+
+        # Guruh xabarlarini tozalash (buyurtma hal bo'lganda)
+        for order_id in resolved_order_ids:
+            if order_id in self._group_order_messages:
+                del self._group_order_messages[order_id]
 
     async def _make_call(self):
         """Har bir sotuvchiga alohida qo'ng'iroq qilish"""
@@ -903,6 +1015,9 @@ class AutodialerPro:
                 uncommunicated_count += 1
 
         # Qo'ng'iroq tugadi - javob berilgan yoki berilmagan, state ni tozalash
+        # MUHIM: call_attempts ni saqlash (180s Telegram uchun kerak)
+        self._last_call_attempts = max(self.state.call_attempts, total_attempts, 1) if call_answered else total_attempts
+
         if total_attempts == 0:
             logger.info("Barcha qo'ng'iroqlar muvaffaqiyatli, state tozalanmoqda")
             # Telegram xabarlarni HECH QACHON O'CHIRMAYMIZ - ular doim qoladi
@@ -966,7 +1081,7 @@ class AutodialerPro:
                 logger.info(f"Sotuvchi {seller_data['seller_name']}: {len(seller_data['orders'])} ta buyurtma")
                 await self.notification_manager.notify_seller_orders(
                     seller_data,
-                    self.state.call_attempts
+                    self._last_call_attempts
                 )
             except Exception as e:
                 logger.error(f"Sotuvchi {seller_phone} xabar yuborishda xato: {e}")
@@ -1087,76 +1202,78 @@ class AutodialerPro:
                 }
             sellers[seller_phone]["orders"].append(order)
 
-        # MUHIM: Eski xabarlarni o'chirish (agar mavjud bo'lsa)
+        # MUHIM: Mavjud xabarlarni yangilash yoki yangi yuborish
         if not hasattr(self.notification_manager, '_combined_message_id'):
             self.notification_manager._combined_message_id = None
 
-        # Eski sotuvchi xabarlarini O'CHIRISH
-        if self.notification_manager._seller_message_ids:
-            for seller_phone, msg_id in list(self.notification_manager._seller_message_ids.items()):
-                try:
-                    success = await self.telegram.delete_message(msg_id)
-                    if success:
-                        if msg_id in self.notification_manager._active_message_ids:
-                            self.notification_manager._active_message_ids.remove(msg_id)
-                        logger.info(f"Eski sotuvchi xabari o'chirildi: {seller_phone} ({msg_id})")
-                    else:
-                        if msg_id not in self.notification_manager._pending_deletions:
-                            self.notification_manager._pending_deletions.append(msg_id)
-                        logger.warning(f"Sotuvchi xabari o'chirilmadi, pending: {msg_id}")
-                except Exception as e:
+        existing_seller_msgs = dict(self.notification_manager._seller_message_ids) if self.notification_manager._seller_message_ids else {}
+
+        # Endi ro'yxatda bo'lmagan sotuvchilarning xabarlarini o'chirish
+        removed_sellers = set(existing_seller_msgs.keys()) - set(sellers.keys())
+        for seller_phone in removed_sellers:
+            msg_id = existing_seller_msgs[seller_phone]
+            try:
+                success = await self.telegram.delete_message(msg_id)
+                if success:
+                    if msg_id in self.notification_manager._active_message_ids:
+                        self.notification_manager._active_message_ids.remove(msg_id)
+                    logger.info(f"Sotuvchi xabari o'chirildi (buyurtma yo'q): {seller_phone} ({msg_id})")
+                else:
                     if msg_id not in self.notification_manager._pending_deletions:
                         self.notification_manager._pending_deletions.append(msg_id)
-                    logger.error(f"Sotuvchi xabarini o'chirishda xato: {e}")
-            self.notification_manager._seller_message_ids = {}
-
-        # Eski birlashgan xabarni ham o'chirish (agar mavjud bo'lsa)
-        if self.notification_manager._combined_message_id:
-            combined_id = self.notification_manager._combined_message_id
-            try:
-                success = await self.telegram.delete_message(combined_id)
-                if success:
-                    if combined_id in self.notification_manager._active_message_ids:
-                        self.notification_manager._active_message_ids.remove(combined_id)
-                    logger.info(f"Eski birlashgan xabar o'chirildi ({combined_id})")
-                else:
-                    if combined_id not in self.notification_manager._pending_deletions:
-                        self.notification_manager._pending_deletions.append(combined_id)
-                    logger.warning(f"Birlashgan xabar o'chirilmadi, pending: {combined_id}")
             except Exception as e:
-                if combined_id not in self.notification_manager._pending_deletions:
-                    self.notification_manager._pending_deletions.append(combined_id)
-                logger.error(f"Eski birlashgan xabarni o'chirishda xato: {e}")
-            self.notification_manager._combined_message_id = None
+                if msg_id not in self.notification_manager._pending_deletions:
+                    self.notification_manager._pending_deletions.append(msg_id)
+                logger.error(f"Sotuvchi xabarini o'chirishda xato: {e}")
+            del self.notification_manager._seller_message_ids[seller_phone]
 
-        # BARCHA sotuvchilar uchun ALOHIDA xabar yuborish
+        # Har bir sotuvchi uchun: mavjud xabarni YANGILASH yoki YANGI yuborish
         try:
             total_orders = sum(len(s["orders"]) for s in sellers.values())
-            logger.info(f"BARCHA sotuvchilar uchun xabar yuborilmoqda: {len(sellers)} ta sotuvchi, {total_orders} ta buyurtma")
+            logger.info(f"Sotuvchilar xabarlarini yangilash: {len(sellers)} ta sotuvchi, {total_orders} ta buyurtma")
 
-            # Yangi xabarlarni yuborish (har bir sotuvchi uchun alohida)
-            first_message_id, seller_message_ids = await self.telegram.send_all_sellers_alert(
-                sellers,
-                self.state.call_attempts
-            )
+            for seller_phone, seller_data in sellers.items():
+                if seller_phone in existing_seller_msgs:
+                    # Mavjud xabarni TAHRIRLASH (faqat buyurtma soni o'zgaradi)
+                    msg_id = existing_seller_msgs[seller_phone]
+                    success = await self.telegram.update_seller_orders_alert(
+                        message_id=msg_id,
+                        seller_orders=seller_data,
+                        call_attempts=self._last_call_attempts
+                    )
+                    if success:
+                        logger.info(f"Sotuvchi xabari yangilandi: {seller_phone} ({msg_id}), buyurtmalar: {len(seller_data['orders'])}")
+                    else:
+                        # Edit ishlamadi - yangi xabar yuborish
+                        logger.warning(f"Xabar tahrirlanmadi, yangi yuborilmoqda: {seller_phone}")
+                        new_msg_id = await self.telegram.send_seller_orders_alert(
+                            seller_data, self._last_call_attempts
+                        )
+                        if new_msg_id:
+                            self.notification_manager._seller_message_ids[seller_phone] = new_msg_id
+                            if new_msg_id not in self.notification_manager._active_message_ids:
+                                self.notification_manager._active_message_ids.append(new_msg_id)
+                else:
+                    # YANGI sotuvchi - yangi xabar yuborish
+                    new_msg_id = await self.telegram.send_seller_orders_alert(
+                        seller_data, self._last_call_attempts
+                    )
+                    if new_msg_id:
+                        self.notification_manager._seller_message_ids[seller_phone] = new_msg_id
+                        if new_msg_id not in self.notification_manager._active_message_ids:
+                            self.notification_manager._active_message_ids.append(new_msg_id)
+                        logger.info(f"Yangi sotuvchi xabari: {seller_phone} ({new_msg_id})")
 
-            if first_message_id:
-                # Birinchi xabar ID ni saqlash (backward compatibility)
-                self.notification_manager._combined_message_id = first_message_id
+            # Combined message ID yangilash (birinchi sotuvchi xabari)
+            if self.notification_manager._seller_message_ids:
+                first_msg = list(self.notification_manager._seller_message_ids.values())[0]
+                self.notification_manager._combined_message_id = first_msg
 
-                # Barcha sotuvchi xabar ID larini saqlash
-                self.notification_manager._seller_message_ids = seller_message_ids
-
-                # Active message IDs ga qo'shish
-                for msg_id in seller_message_ids.values():
-                    if msg_id not in self.notification_manager._active_message_ids:
-                        self.notification_manager._active_message_ids.append(msg_id)
-
-                self.notification_manager._save_messages()
-                logger.info(f"Yangi xabarlar yaratildi: {len(seller_message_ids)} ta sotuvchi uchun")
+            self.notification_manager._save_messages()
+            logger.info(f"Xabarlar yangilandi: {len(self.notification_manager._seller_message_ids)} ta sotuvchi")
 
         except Exception as e:
-            logger.error(f"Birlashgan xabar yuborishda xato: {e}")
+            logger.error(f"Sotuvchi xabarlarini yangilashda xato: {e}")
 
         # Oxirgi yuborilgan buyurtmalar ro'yxatini yangilash
         self.state.last_telegram_order_ids = current_order_ids

@@ -57,15 +57,18 @@ class NonborService:
         """API so'rov yuborish"""
         session = await self._get_session()
         url = f"{self.base_url}/{endpoint}"
+        timeout = aiohttp.ClientTimeout(total=10)
 
         try:
-            async with session.request(method, url) as response:
+            async with session.request(method, url, timeout=timeout) as response:
                 if response.status == 200:
                     return await response.json()
                 else:
-                    text = await response.text()
-                    logger.error(f"Nonbor API xatosi: {response.status} - {text}")
+                    logger.error(f"Nonbor API xatosi: {response.status}")
                     return None
+        except asyncio.TimeoutError:
+            logger.error(f"Nonbor API timeout: {endpoint}")
+            return None
         except aiohttp.ClientError as e:
             logger.error(f"Nonbor API ulanish xatosi: {e}")
             return None
@@ -83,6 +86,32 @@ class NonborService:
 
         return businesses
 
+    async def get_order_status(self, order_id: int) -> Optional[str]:
+        """
+        Bitta buyurtmaning haqiqiy statusini olish
+        Admin panel endpointidan foydalanish: /orders/{id}/
+
+        Returns:
+            Status string (masalan: "CHECKING", "ACCEPTED", "CANCELLED") yoki None
+        """
+        session = await self._get_session()
+        # Admin panel /orders/{id}/ endpointini ishlatish (base_url siz)
+        url = f"https://test.nonbor.uz/orders/{order_id}/"
+        timeout = aiohttp.ClientTimeout(total=10)
+        try:
+            async with session.get(url, timeout=timeout) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    if isinstance(data, dict):
+                        state = data.get("state") or data.get("result", {}).get("state")
+                        if state:
+                            return state.upper()
+                else:
+                    logger.debug(f"Order status endpoint: {response.status}")
+        except Exception as e:
+            logger.debug(f"Order status endpoint xato: {e}")
+        return None
+
     async def get_orders(self) -> Optional[List[Dict]]:
         """
         Barcha buyurtmalarni olish
@@ -98,6 +127,12 @@ class NonborService:
             return None
 
         results = data.get("result", {}).get("results", [])
+        if results:
+            states = {}
+            for o in results:
+                s = o.get("state", "unknown")
+                states[s] = states.get(s, 0) + 1
+            logger.info(f"API buyurtmalar: {len(results)} ta, statuslar: {states}")
         return results
 
     async def get_leads_by_status(self) -> Optional[List[Dict]]:
@@ -197,11 +232,12 @@ class NonborService:
         # Buyurtma ma'lumotlari
         result["lead_id"] = order["id"]
         result["order_number"] = str(order["id"])
-        result["price"] = order.get("total_price", 0)
+        result["price"] = (order.get("total_price", 0) or 0) / 100
 
         # Biznes (sotuvchi) ma'lumotlari
         business = order.get("business", {})
         if business:
+            result["business_id"] = business.get("id")
             result["seller_name"] = business.get("title", "Noma'lum")
             result["seller_address"] = business.get("address", "Noma'lum")
 
@@ -228,7 +264,7 @@ class NonborService:
         if items:
             first_item = items[0]
             product = first_item.get("product", {})
-            result["product_name"] = product.get("title", "Noma'lum")
+            result["product_name"] = product.get("name") or product.get("title", "Noma'lum")
             result["quantity"] = first_item.get("count", 1)
 
         # Lead name format (amoCRM bilan mos)

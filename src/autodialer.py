@@ -682,15 +682,16 @@ class AutodialerPro:
                 # Qo'ng'iroq jarayonida - yangi buyurtmalar KEYINGI qo'ng'iroqqa qoladi
                 logger.info(f"Qo'ng'iroq jarayonida, yangi buyurtmalar keyingi qo'ng'iroq uchun to'planmoqda: {len(truly_new_ids)} ta")
             elif not self.state.call_started:
-                # Timer hali boshlanmagan - yangi timer boshlash
-                logger.info(f"Yangi buyurtmalar uchun 90s timer boshlandi")
-                logger.info(f"90 soniyadan keyin BARCHA yangi buyurtmalar uchun BITTA qo'ng'iroq")
-                self.state.last_new_order_time = now
-                self.state.waiting_for_call = True
-                self.state.call_started = False
-            else:
-                # Timer ishlayapti, qo'ng'iroq hali boshlanmagan - buyurtma to'plamga qo'shiladi
-                logger.info(f"90s timer ishlayapti, yangi buyurtma to'plamga qo'shildi (Jami: {len(self.state.new_order_ids_for_call)} ta)")
+                if not self.state.waiting_for_call:
+                    # Timer hali boshlanmagan - yangi timer boshlash
+                    logger.info(f"Yangi buyurtmalar uchun 90s timer boshlandi")
+                    logger.info(f"90 soniyadan keyin BARCHA yangi buyurtmalar uchun BITTA qo'ng'iroq")
+                    self.state.last_new_order_time = now
+                    self.state.waiting_for_call = True
+                    self.state.call_started = False
+                else:
+                    # Timer allaqachon ishlayapti - buyurtma to'plamga qo'shiladi (timer QAYTA BOSHLANMAYDI)
+                    logger.info(f"90s timer ishlayapti, yangi buyurtma to'plamga qo'shildi (Jami: {len(self.state.new_order_ids_for_call)} ta)")
 
         elif old_count > 0:
             logger.debug(f"Buyurtmalar soni yangilandi: {old_count} -> {count}")
@@ -719,13 +720,13 @@ class AutodialerPro:
                 logger.debug(f"Sotuvchi {seller_phone}: barcha buyurtmalari hal qilindi, tozalandi")
 
         # TELEGRAM YANGILASH: Agar birinchi Telegram xabar allaqachon yuborilgan bo'lsa,
-        # buyurtmalar o'zgarganda DARHOL yangilash (eski o'chiriladi, yangi yuboriladi)
+        # buyurtmalar o'zgarganda faqat 180s+ eski buyurtmalarni yangilash
         if self.state.telegram_notified and (len(truly_new_ids) > 0 or len(removed_ids) > 0):
             if len(truly_new_ids) > 0:
-                logger.info(f"Telegram DARHOL yangilanmoqda: {len(truly_new_ids)} ta yangi buyurtma qo'shildi")
+                logger.info(f"Telegram yangilanmoqda: {len(truly_new_ids)} ta yangi buyurtma qo'shildi")
             if len(removed_ids) > 0:
-                logger.info(f"Telegram DARHOL yangilanmoqda: {len(removed_ids)} ta buyurtma hal qilindi")
-            await self._send_telegram_for_remaining(force_all=True)
+                logger.info(f"Telegram yangilanmoqda: {len(removed_ids)} ta buyurtma hal qilindi")
+            await self._send_telegram_for_remaining()
         elif len(truly_new_ids) > 0:
             # Birinchi Telegram hali yuborilmagan - 180s kutish kerak
             logger.info(f"Yangi buyurtmalar: {len(truly_new_ids)} ta, 180s kutilmoqda (birinchi Telegram hali yuborilmagan)")
@@ -824,12 +825,10 @@ class AutodialerPro:
             ]
             logger.info(f"Qolgan {remaining_count} ta buyurtma, Telegram yangilanmoqda")
 
-            # MUHIM: Buyurtma QABUL/BEKOR qilinganda Telegram DARHOL yangilanadi
-            # (180s timer faqat YANGI buyurtmalar uchun ishlaydi)
-            # Agar Telegram xabar allaqachon yuborilgan bo'lsa, yangilash kerak
+            # Buyurtma hal qilinganda Telegram yangilanadi (faqat 180s+ eski buyurtmalar)
             if self.state.telegram_notified:
                 logger.info(f"Telegram xabar yangilanmoqda: {remaining_count} ta buyurtma qoldi")
-                await self._send_telegram_for_remaining(force_all=True)
+                await self._send_telegram_for_remaining()
 
         # Guruh xabarlarini tozalash (buyurtma hal bo'lganda)
         for order_id in resolved_order_ids:

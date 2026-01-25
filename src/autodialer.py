@@ -224,8 +224,9 @@ class AutodialerPro:
         # Guruh xabarlari - order_id -> {msg_id, biz_id, chat_id}
         self._group_order_messages: Dict[int, dict] = {}
 
-        # Qo'ng'iroq urinishlari soni (state.reset() dan keyin ham saqlanadi)
-        self._last_call_attempts = 0
+        # Qo'ng'iroq urinishlari soni - HAR BIR SOTUVCHI UCHUN ALOHIDA
+        # {seller_phone: call_attempts}
+        self._seller_call_attempts: Dict[str, int] = {}
 
         # Servislar
         self.tts = TTSService(self.audio_dir, provider="edge")
@@ -971,6 +972,9 @@ class AutodialerPro:
 
             logger.info(f"Sotuvchi {seller_name} ga {len(order_ids_for_call)} ta buyurtma uchun qo'ng'iroq qilindi (jami belgilangan: {len(self.state.last_communicated_orders[seller_phone])} ta)")
 
+            # MUHIM: Har bir sotuvchi uchun qo'ng'iroq urinishlarini alohida saqlash
+            self._seller_call_attempts[seller_phone] = self.state.call_attempts
+
             if result.is_answered:
                 logger.info(f"Qo'ng'iroq muvaffaqiyatli: {seller_name} ({seller_phone})")
                 call_answered = True  # Javob berildi - qolgan qo'ng'iroqlarni bekor qilish
@@ -1014,10 +1018,7 @@ class AutodialerPro:
                 uncommunicated_count += 1
 
         # Qo'ng'iroq tugadi - javob berilgan yoki berilmagan, state ni tozalash
-        # MUHIM: call_attempts ni saqlash (180s Telegram uchun kerak)
-        # Javob berilgan bo'lsa - faqat shu qo'ng'iroqning urinish sonini saqlash
-        # Javob berilmagan bo'lsa - eng ko'p urinishlar sonini saqlash
-        self._last_call_attempts = self.state.call_attempts if call_answered else total_attempts
+        # MUHIM: Har bir sotuvchi uchun call_attempts allaqachon yuqorida saqlangan (_seller_call_attempts)
 
         if total_attempts == 0:
             logger.info("Barcha qo'ng'iroqlar muvaffaqiyatli, state tozalanmoqda")
@@ -1079,10 +1080,12 @@ class AutodialerPro:
         # Har bir sotuvchi uchun bitta xabar
         for seller_phone, seller_data in sellers.items():
             try:
-                logger.info(f"Sotuvchi {seller_data['seller_name']}: {len(seller_data['orders'])} ta buyurtma")
+                # Har bir sotuvchi uchun o'z qo'ng'iroq urinishlari soni
+                seller_attempts = self._seller_call_attempts.get(seller_phone, 0)
+                logger.info(f"Sotuvchi {seller_data['seller_name']}: {len(seller_data['orders'])} ta buyurtma, {seller_attempts} urinish")
                 await self.notification_manager.notify_seller_orders(
                     seller_data,
-                    self._last_call_attempts
+                    seller_attempts
                 )
             except Exception as e:
                 logger.error(f"Sotuvchi {seller_phone} xabar yuborishda xato: {e}")
@@ -1234,21 +1237,24 @@ class AutodialerPro:
             logger.info(f"Sotuvchilar xabarlarini yangilash: {len(sellers)} ta sotuvchi, {total_orders} ta buyurtma")
 
             for seller_phone, seller_data in sellers.items():
+                # Har bir sotuvchi uchun o'z qo'ng'iroq urinishlari soni
+                seller_attempts = self._seller_call_attempts.get(seller_phone, 0)
+
                 if seller_phone in existing_seller_msgs:
                     # Mavjud xabarni TAHRIRLASH (faqat buyurtma soni o'zgaradi)
                     msg_id = existing_seller_msgs[seller_phone]
                     success = await self.telegram.update_seller_orders_alert(
                         message_id=msg_id,
                         seller_orders=seller_data,
-                        call_attempts=self._last_call_attempts
+                        call_attempts=seller_attempts
                     )
                     if success:
-                        logger.info(f"Sotuvchi xabari yangilandi: {seller_phone} ({msg_id}), buyurtmalar: {len(seller_data['orders'])}")
+                        logger.info(f"Sotuvchi xabari yangilandi: {seller_phone} ({msg_id}), buyurtmalar: {len(seller_data['orders'])}, urinishlar: {seller_attempts}")
                     else:
                         # Edit ishlamadi - yangi xabar yuborish
                         logger.warning(f"Xabar tahrirlanmadi, yangi yuborilmoqda: {seller_phone}")
                         new_msg_id = await self.telegram.send_seller_orders_alert(
-                            seller_data, self._last_call_attempts
+                            seller_data, seller_attempts
                         )
                         if new_msg_id:
                             self.notification_manager._seller_message_ids[seller_phone] = new_msg_id
@@ -1257,13 +1263,13 @@ class AutodialerPro:
                 else:
                     # YANGI sotuvchi - yangi xabar yuborish
                     new_msg_id = await self.telegram.send_seller_orders_alert(
-                        seller_data, self._last_call_attempts
+                        seller_data, seller_attempts
                     )
                     if new_msg_id:
                         self.notification_manager._seller_message_ids[seller_phone] = new_msg_id
                         if new_msg_id not in self.notification_manager._active_message_ids:
                             self.notification_manager._active_message_ids.append(new_msg_id)
-                        logger.info(f"Yangi sotuvchi xabari: {seller_phone} ({new_msg_id})")
+                        logger.info(f"Yangi sotuvchi xabari: {seller_phone} ({new_msg_id}), urinishlar: {seller_attempts}")
 
             # Combined message ID yangilash (birinchi sotuvchi xabari)
             if self.notification_manager._seller_message_ids:

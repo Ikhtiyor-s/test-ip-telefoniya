@@ -1015,7 +1015,9 @@ class AutodialerPro:
 
         # Qo'ng'iroq tugadi - javob berilgan yoki berilmagan, state ni tozalash
         # MUHIM: call_attempts ni saqlash (180s Telegram uchun kerak)
-        self._last_call_attempts = max(self.state.call_attempts, total_attempts, 1) if call_answered else total_attempts
+        # Javob berilgan bo'lsa - faqat shu qo'ng'iroqning urinish sonini saqlash
+        # Javob berilmagan bo'lsa - eng ko'p urinishlar sonini saqlash
+        self._last_call_attempts = self.state.call_attempts if call_answered else total_attempts
 
         if total_attempts == 0:
             logger.info("Barcha qo'ng'iroqlar muvaffaqiyatli, state tozalanmoqda")

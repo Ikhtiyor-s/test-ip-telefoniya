@@ -529,11 +529,19 @@ class AutodialerPro:
 
                 # Business ID ni aniqlash: avval to'g'ridan-to'g'ri, keyin title orqali
                 biz_id = str(business.get("id", ""))
+                biz_title = business.get("title", "")
                 if not biz_id:
-                    biz_title = business.get("title", "").strip().lower()
-                    biz_id = title_to_id.get(biz_title, "")
+                    biz_title_lower = biz_title.strip().lower()
+                    biz_id = title_to_id.get(biz_title_lower, "")
+
+                # Buyurtma va biznes ma'lumotlarini ko'rsatish
+                if biz_id:
+                    in_groups = biz_id in self.stats_handler._business_groups
+                    logger.info(f"Buyurtma #{order_id}: biznes='{biz_title}' (ID={biz_id}), guruhda={in_groups}")
 
                 if not biz_id or biz_id not in self.stats_handler._business_groups:
+                    if biz_id:
+                        logger.info(f"Buyurtma #{order_id}: biznes #{biz_id} guruhlar ro'yxatida yo'q, mavjud: {list(self.stats_handler._business_groups.keys())}")
                     continue
 
                 group_chat_id = self.stats_handler._business_groups[biz_id]

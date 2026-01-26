@@ -1259,14 +1259,22 @@ class TelegramStatsHandler:
         if data == "noop":
             return
 
-        # Admin bo'lmagan foydalanuvchilar faqat guruh tugmasini bosa oladi
+        # Admin bo'lmagan foydalanuvchilar faqat ruxsat berilgan tugmalarni bosa oladi
         if not self._is_admin(chat_id):
             if data.startswith(CALLBACK_BIZ_ADD_GROUP):
-                # Guruh qo'shish - _is_admin tekshiruvi allaqachon bor
+                # Guruh qo'shish
                 pass
             elif data.startswith(CALLBACK_BIZ_ITEM):
-                # Biznes ko'rish - _show_business_detail da tekshiruv bor
+                # Biznes ko'rish
                 pass
+            elif data == "owner_orders":
+                # Buyurtmalar ro'yxati
+                await self._show_owner_orders(message_id, chat_id)
+                return
+            elif data == "owner_back":
+                # Asosiy menyuga qaytish
+                await self._update_business_owner_message(message_id, chat_id)
+                return
             elif data == CALLBACK_BIZ_BACK or data == CALLBACK_MENU_BACK:
                 # Orqaga - oddiy ko'rinishga qaytarish
                 user_data = self._verified_users.get(chat_id, {})
@@ -1366,6 +1374,10 @@ class TelegramStatsHandler:
             )
         elif data == CALLBACK_BIZ_BACK:
             await self._show_businesses(message_id, chat_id)
+        elif data == "owner_orders":
+            await self._show_owner_orders(message_id, chat_id)
+        elif data == "owner_back":
+            await self._update_business_owner_message(message_id, chat_id)
 
     async def _answer_callback(self, callback_id: str):
         """Callback query javob"""
@@ -1465,19 +1477,136 @@ class TelegramStatsHandler:
             text += f"👥 <b>Guruh:</b> Ulanmagan ❌\n"
             text += f"<i>Guruh qo'shsangiz, buyurtmalar haqida xabar keladi</i>\n"
 
-        # Keyboard
+        # Keyboard - ikki qatorda, oxirgisi o'rtada
         keyboard_rows = []
+
+        # 1-qator: Buyurtmalar | Biznes guruh
+        row1 = [{"text": "📦 Buyurtmalar", "callback_data": "owner_orders"}]
         if biz_id:
             if group_id:
-                keyboard_rows.append([{"text": "✏️ Guruhni o'zgartirish", "callback_data": f"{CALLBACK_BIZ_ADD_GROUP}{biz_id}"}])
+                row1.append({"text": "✏️ Biznes guruh", "callback_data": f"{CALLBACK_BIZ_ADD_GROUP}{biz_id}"})
             else:
-                keyboard_rows.append([{"text": "➕ Guruh qo'shish", "callback_data": f"{CALLBACK_BIZ_ADD_GROUP}{biz_id}"}])
+                row1.append({"text": "➕ Biznes guruh", "callback_data": f"{CALLBACK_BIZ_ADD_GROUP}{biz_id}"})
+        keyboard_rows.append(row1)
+
+        # 2-qator: Buyurtma berish | Biznesim (web app)
+        keyboard_rows.append([
+            {"text": "🛒 Buyurtma berish", "web_app": {"url": "https://nonbor.uz"}},
+            {"text": "🏪 Biznesim", "web_app": {"url": "https://business.nonbor.uz"}}
+        ])
+
+        # 3-qator: Qo'llab quvvatlash (o'rtada)
+        keyboard_rows.append([
+            {"text": "🆘 Qo'llab quvvatlash", "url": "https://t.me/NonborSupportBot"}
+        ])
 
         return await self.telegram.send_message(
             text=text,
             chat_id=chat_id,
             parse_mode="HTML",
-            reply_markup={"inline_keyboard": keyboard_rows} if keyboard_rows else None
+            reply_markup={"inline_keyboard": keyboard_rows}
+        )
+
+    async def _update_business_owner_message(self, message_id: int, chat_id: str):
+        """Biznes egasi uchun xabarni tahrirlash (orqaga qaytish)"""
+        user_data = self._verified_users.get(chat_id, {})
+        biz_id = user_data.get("business_id")
+        biz_title = user_data.get("business_title", "Noma'lum")
+        user_phone = user_data.get("phone", "")
+
+        group_id = self._business_groups.get(str(biz_id), "") if biz_id else ""
+
+        orders_today = 0
+        accepted_today = 0
+        rejected_today = 0
+        if self.stats_service and user_phone:
+            stats = self.stats_service.get_period_stats("daily")
+            for record in stats.order_records:
+                if record.get("seller_phone") == user_phone:
+                    orders_today += 1
+                    if record.get("result") == "accepted":
+                        accepted_today += 1
+                    elif record.get("result") == "rejected":
+                        rejected_today += 1
+
+        text = f"🏪 <b>{biz_title}</b>\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
+        text += f"📦 <b>Bugungi buyurtmalar:</b> {orders_today} ta\n"
+        text += f"├ ✅ Qabul qilindi: {accepted_today}\n"
+        text += f"└ ❌ Bekor qilindi: {rejected_today}\n\n"
+
+        if group_id:
+            text += f"👥 <b>Guruh:</b> Ulangan ✅\n"
+        else:
+            text += f"👥 <b>Guruh:</b> Ulanmagan ❌\n"
+            text += f"<i>Guruh qo'shsangiz, buyurtmalar haqida xabar keladi</i>\n"
+
+        keyboard_rows = []
+        row1 = [{"text": "📦 Buyurtmalar", "callback_data": "owner_orders"}]
+        if biz_id:
+            if group_id:
+                row1.append({"text": "✏️ Biznes guruh", "callback_data": f"{CALLBACK_BIZ_ADD_GROUP}{biz_id}"})
+            else:
+                row1.append({"text": "➕ Biznes guruh", "callback_data": f"{CALLBACK_BIZ_ADD_GROUP}{biz_id}"})
+        keyboard_rows.append(row1)
+
+        keyboard_rows.append([
+            {"text": "🛒 Buyurtma berish", "web_app": {"url": "https://nonbor.uz"}},
+            {"text": "🏪 Biznesim", "web_app": {"url": "https://business.nonbor.uz"}}
+        ])
+
+        keyboard_rows.append([
+            {"text": "🆘 Qo'llab quvvatlash", "url": "https://t.me/NonborSupportBot"}
+        ])
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup={"inline_keyboard": keyboard_rows}
+        )
+
+    async def _show_owner_orders(self, message_id: int, chat_id: str):
+        """Biznes egasi uchun buyurtmalar ro'yxati"""
+        user_data = self._verified_users.get(chat_id, {})
+        biz_title = user_data.get("business_title", "Noma'lum")
+        user_phone = user_data.get("phone", "")
+
+        orders_list = []
+        if self.stats_service and user_phone:
+            stats = self.stats_service.get_period_stats("daily")
+            for record in stats.order_records:
+                if record.get("seller_phone") == user_phone:
+                    orders_list.append(record)
+
+        text = f"📦 <b>{biz_title} - Bugungi buyurtmalar</b>\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
+
+        if not orders_list:
+            text += "<i>Bugun buyurtmalar yo'q</i>\n"
+        else:
+            for i, order in enumerate(orders_list[-10:], 1):  # Oxirgi 10 ta
+                order_id = order.get("order_id", "?")
+                result = order.get("result", "?")
+                result_emoji = "✅" if result == "accepted" else "❌"
+                text += f"{i}. #{order_id} - {result_emoji}\n"
+
+            if len(orders_list) > 10:
+                text += f"\n<i>...va yana {len(orders_list) - 10} ta</i>\n"
+
+        text += f"\n📊 Jami: {len(orders_list)} ta"
+
+        keyboard = {"inline_keyboard": [
+            [{"text": "⬅️ Orqaga", "callback_data": "owner_back"}]
+        ]}
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup=keyboard
         )
 
     def _get_stats_keyboard(self, stats) -> dict:

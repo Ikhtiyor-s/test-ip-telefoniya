@@ -9,7 +9,7 @@ Jarayon:
 1. Yangi buyurtma (TEKSHIRILMOQDA) keladi
 2. 1.5 daqiqa kutish
 3. Sotuvchiga qo'ng'iroq: "Sizda N ta yangi buyurtma bor"
-4. Javob bo'lmasa → yana qo'ng'iroq (max 3 marta)
+4. Javob bo'lmasa → yana qo'ng'iroq (max 2 marta)
 5. 3 daqiqada Telegram xabar
 6. Status o'zgarsa → Telegram xabar o'chiriladi
 
@@ -200,7 +200,7 @@ class AutodialerPro:
         # Vaqtlar
         wait_before_call: int = 90,  # 1.5 daqiqa
         telegram_alert_time: int = 180,  # 3 daqiqa
-        max_call_attempts: int = 3,
+        max_call_attempts: int = 2,
         retry_interval: int = 60,
         # Yo'llar
         audio_dir: str = "audio"
@@ -1330,7 +1330,7 @@ async def main():
         # Vaqtlar
         wait_before_call=int(os.getenv("WAIT_BEFORE_CALL", "90")),
         telegram_alert_time=int(os.getenv("TELEGRAM_ALERT_TIME", "180")),
-        max_call_attempts=int(os.getenv("MAX_CALL_ATTEMPTS", "3")),
+        max_call_attempts=int(os.getenv("MAX_CALL_ATTEMPTS", "2")),
         retry_interval=int(os.getenv("RETRY_INTERVAL", "60")),
     )
 

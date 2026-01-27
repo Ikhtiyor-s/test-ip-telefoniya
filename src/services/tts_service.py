@@ -252,7 +252,9 @@ class TTSService:
             return
 
         # Platform va yo'lni aniqlash
-        platform = os.getenv("PLATFORM", "wsl").lower()
+        # Auto-detect: Windows = wsl, Linux = linux
+        default_platform = "wsl" if os.name == "nt" else "linux"
+        platform = os.getenv("PLATFORM", default_platform).lower()
         sounds_path = os.getenv("ASTERISK_SOUNDS_PATH", "/tmp/autodialer")
 
         try:

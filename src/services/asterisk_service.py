@@ -603,6 +603,15 @@ class CallManager:
         audio_file: str
     ) -> CallResult:
         """Bitta qo'ng'iroq qilish"""
+        # Avvalgi qo'ng'iroq tugaganini tekshirish
+        if self._call_in_progress:
+            logger.warning("Avvalgi qo'ng'iroq hali tugamagan, kutilmoqda...")
+            try:
+                await asyncio.wait_for(self._call_completed_event.wait(), timeout=30)
+            except asyncio.TimeoutError:
+                logger.error("Avvalgi qo'ng'iroq timeout, davom etilmoqda")
+            await asyncio.sleep(2)  # Aloqa to'liq uzilishi uchun kutish
+
         self._call_in_progress = True
         self._call_completed_event.clear()
         self._last_call_result = None
@@ -636,5 +645,8 @@ class CallManager:
                 error="Timeout"
             )
 
+        # Qo'ng'iroq tugadi - biroz kutish (aloqa to'liq uzilishi uchun)
         self._call_in_progress = False
+        await asyncio.sleep(2)  # 2 soniya kutish
+        logger.debug("Qo'ng'iroq to'liq tugadi, davom etish mumkin")
         return self._last_call_result or CallResult(status=CallStatus.FAILED)

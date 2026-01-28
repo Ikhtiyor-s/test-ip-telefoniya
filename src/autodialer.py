@@ -1193,11 +1193,44 @@ class AutodialerPro:
         logger.info(f"Qolgan buyurtmalar uchun Telegram: {len(old_order_ids)} ta (180s+ eski, jami: {len(order_ids)} ta)")
 
         # Barcha buyurtmalarni olish (faqat 180s+ eski)
+        # MUHIM: Avval keshdan olish, keyin API dan
         all_orders = []
         for order_id in old_order_ids:
             try:
-                order_data = await self.nonbor.get_order_full_data(order_id)
-                all_orders.append(order_data)
+                # 1. Avval guruh xabarlari keshidan olish
+                if order_id in self._group_order_messages:
+                    cached = self._group_order_messages[order_id]
+                    cached_data = cached.get("order_data", {})
+                    # Keshdan olingan ma'lumotlarni to'ldirish
+                    order_data = {
+                        "lead_id": order_id,
+                        "order_number": cached_data.get("order_number", str(order_id)),
+                        "client_name": cached_data.get("client_name", "Noma'lum"),
+                        "client_phone": cached_data.get("client_phone", "Noma'lum"),
+                        "product_name": cached_data.get("product_name", "Noma'lum"),
+                        "quantity": cached_data.get("quantity", 1),
+                        "price": cached_data.get("price", 0),
+                        "seller_name": "Noma'lum",
+                        "seller_phone": "Noma'lum",
+                        "seller_address": "Noma'lum",
+                    }
+                    # Sotuvchi ma'lumotlarini API dan olish (business_id orqali)
+                    biz_id = cached.get("biz_id")
+                    if biz_id and hasattr(self.nonbor, '_businesses_cache'):
+                        for biz in self.nonbor._businesses_cache.values():
+                            if str(biz.get("id")) == str(biz_id):
+                                order_data["seller_name"] = biz.get("title", "Noma'lum")
+                                order_data["seller_address"] = biz.get("address", "Noma'lum")
+                                phone = biz.get("phone_number", "")
+                                if phone:
+                                    order_data["seller_phone"] = f"+{phone}" if not str(phone).startswith("+") else phone
+                                break
+                    all_orders.append(order_data)
+                    logger.debug(f"Buyurtma #{order_id} keshdan olindi")
+                else:
+                    # 2. Keshda yo'q - API dan olish
+                    order_data = await self.nonbor.get_order_full_data(order_id)
+                    all_orders.append(order_data)
             except Exception as e:
                 logger.error(f"Buyurtma #{order_id} ma'lumotini olishda xato: {e}")
 

@@ -475,7 +475,7 @@ class CallManager:
         self,
         ami: AsteriskAMI,
         max_attempts: int = 2,
-        retry_interval: int = 20
+        retry_interval: int = 30
     ):
         self.ami = ami
         self.max_attempts = max_attempts

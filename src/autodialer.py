@@ -201,7 +201,7 @@ class AutodialerPro:
         wait_before_call: int = 90,  # 1.5 daqiqa
         telegram_alert_time: int = 180,  # 3 daqiqa
         max_call_attempts: int = 2,
-        retry_interval: int = 20,  # 20 soniya (birinchi qo'ng'iroqdan keyin)
+        retry_interval: int = 30,  # 30 soniya (birinchi qo'ng'iroqdan keyin)
         # Yo'llar
         audio_dir: str = "audio"
     ):
@@ -1049,10 +1049,9 @@ class AutodialerPro:
         # Qo'ng'iroq tugadi - javob berilgan yoki berilmagan, state ni tozalash
         # MUHIM: Har bir sotuvchi uchun call_attempts allaqachon yuqorida saqlangan (_seller_call_attempts)
 
-        if total_attempts == 0:
+        if failed_count == 0:
             logger.info("Barcha qo'ng'iroqlar muvaffaqiyatli, state tozalanmoqda")
             # Telegram xabarlarni HECH QACHON O'CHIRMAYMIZ - ular doim qoladi
-            # await self._delete_telegram_messages()  # DISABLED - xabarlar qoladi
             logger.info("Telegram xabarlar saqlanadi (o'chirilmaydi)")
             # To'liq reset - javob berilgan, qayta qo'ng'iroq kerak emas
             self.state.reset()
@@ -1066,7 +1065,7 @@ class AutodialerPro:
         else:
             # Javob berilmadi - QAYTA QO'NG'IROQ QILINMAYDI
             # Faqat 2 marta qo'ng'iroq qilinadi, keyin to'xtaydi
-            logger.warning(f"{total_attempts} ta qo'ng'iroqqa javob berilmadi, {uncommunicated_count} ta buyurtma uchun")
+            logger.warning(f"{failed_count} ta qo'ng'iroqqa javob berilmadi, {uncommunicated_count} ta buyurtma uchun")
             logger.info("Qayta qo'ng'iroq qilinmaydi - 180s timer davom etmoqda (Telegram uchun)")
             # State ni tozalash
             self.state.reset()
@@ -1385,7 +1384,7 @@ async def main():
         wait_before_call=int(os.getenv("WAIT_BEFORE_CALL", "90")),
         telegram_alert_time=int(os.getenv("TELEGRAM_ALERT_TIME", "180")),
         max_call_attempts=int(os.getenv("MAX_CALL_ATTEMPTS", "2")),
-        retry_interval=int(os.getenv("RETRY_INTERVAL", "20")),
+        retry_interval=int(os.getenv("RETRY_INTERVAL", "30")),
     )
 
     await autodialer.start()

@@ -943,48 +943,39 @@ class AutodialerPro:
             self.state.reset()
             return
 
-        # Har bir sotuvchiga KETMA-KET qo'ng'iroq qilish
-        # MUHIM: Birinchisi javob bersa, qolganlariga qo'ng'iroq qilinmaydi
-        total_attempts = 0
-        call_answered = False  # Hech kim javob berganini belgilash
+        # Har bir sotuvchiga PARALLEL qo'ng'iroq qilish
+        logger.info(f"Parallel qo'ng'iroq: {len(sellers)} ta sotuvchiga bir vaqtda qo'ng'iroq qilinmoqda")
 
-        for seller_phone, seller_data in sellers.items():
-            # MUHIM: Agar kimdir javob bergan bo'lsa, qolganlariga qo'ng'iroq qilmaslik
-            if call_answered:
-                logger.info(f"Bitta qo'ng'iroq javob berilgan, qolgan sotuvchilar o'tkazib yuborildi")
-                break
-
+        async def call_single_seller(seller_phone: str, seller_data: dict):
+            """Bitta sotuvchiga qo'ng'iroq qilish"""
             order_count = len(seller_data["orders"])
             seller_name = seller_data["seller_name"]
 
-            # Agar bu sotuvchining barcha buyurtmalari allaqachon xabar berilgan bo'lsa, o'tkazib yuborish
             if order_count == 0:
-                logger.debug(f"Sotuvchi {seller_name} ({seller_phone}) uchun yangi buyurtmalar yo'q, o'tkazib yuborildi")
-                continue
+                logger.debug(f"Sotuvchi {seller_name} ({seller_phone}) uchun yangi buyurtmalar yo'q")
+                return None
 
-            logger.info(f"Qo'ng'iroq: {seller_name} ({seller_phone}), {order_count} ta YANGI buyurtma")
+            logger.info(f"Qo'ng'iroq: {seller_name} ({seller_phone}), {order_count} ta buyurtma")
 
             # TTS audio olish
             audio_path = await self.tts.generate_order_message(order_count)
             if not audio_path:
                 logger.error(f"TTS audio yaratilmadi: {seller_phone}")
-                total_attempts = self.max_call_attempts
-                continue
+                return None
 
-            # Buyurtma IDlarini olish (status tekshirish uchun)
-            order_ids_for_status_check = [o.get("lead_id") for o in seller_data["orders"]]
+            # Buyurtma IDlari
+            order_ids = [o.get("lead_id") for o in seller_data["orders"]]
 
-            # Retry dan oldin status tekshirish callback
+            # Status tekshirish callback
             async def check_orders_still_pending():
-                """Buyurtmalar hali ham CHECKING statusida ekanligini tekshirish"""
-                for order_id in order_ids_for_status_check:
+                for order_id in order_ids:
                     status = await self.nonbor.get_order_status(order_id)
                     if status and status != "CHECKING":
                         logger.info(f"Buyurtma #{order_id} statusi o'zgardi: {status}")
-                        return False  # Davom etmaslik
-                return True  # Barcha buyurtmalar hali CHECKING
+                        return False
+                return True
 
-            # Qo'ng'iroq qilish - barcha urinishlar (retry bilan)
+            # Qo'ng'iroq qilish
             result = await self.call_manager.make_call_with_retry(
                 phone_number=seller_phone,
                 audio_file=str(audio_path),
@@ -992,46 +983,50 @@ class AutodialerPro:
                 before_retry_check=check_orders_still_pending
             )
 
-            # Statistikaga yozish
-            order_ids_for_call = [o.get("lead_id") for o in seller_data["orders"]]
-            # MUHIM: Qo'ng'iroq qilingan (javob berilgan yoki berilmagan) buyurtmalarni belgilash
-            # Bu buyurtmalar uchun QAYTA qo'ng'iroq qilinmaydi
+            # Buyurtmalarni belgilash
             if seller_phone not in self.state.last_communicated_orders:
                 self.state.last_communicated_orders[seller_phone] = []
-
-            # Yangi buyurtmalarni qo'shish (dublikatlarni oldini olish)
             existing_ids = set(self.state.last_communicated_orders[seller_phone])
-            new_ids = [oid for oid in order_ids_for_call if oid not in existing_ids]
+            new_ids = [oid for oid in order_ids if oid not in existing_ids]
             self.state.last_communicated_orders[seller_phone].extend(new_ids)
 
-            logger.info(f"Sotuvchi {seller_name} ga {len(order_ids_for_call)} ta buyurtma uchun qo'ng'iroq qilindi (jami belgilangan: {len(self.state.last_communicated_orders[seller_phone])} ta)")
-
-            # MUHIM: Har bir sotuvchi uchun qo'ng'iroq urinishlarini alohida saqlash
+            # Statistika
             self._seller_call_attempts[seller_phone] = self.state.call_attempts
 
             if result.is_answered:
-                logger.info(f"Qo'ng'iroq muvaffaqiyatli: {seller_name} ({seller_phone})")
-                call_answered = True  # Javob berildi - qolgan qo'ng'iroqlarni bekor qilish
-
+                logger.info(f"✅ Qo'ng'iroq muvaffaqiyatli: {seller_name} ({seller_phone})")
                 self.stats.record_call(
                     phone=seller_phone,
                     seller_name=seller_name,
                     order_count=order_count,
                     attempts=self.state.call_attempts,
                     result=StatsCallResult.ANSWERED,
-                    order_ids=order_ids_for_call
+                    order_ids=order_ids
                 )
             else:
-                logger.warning(f"Qo'ng'iroq muvaffaqiyatsiz: {seller_name} ({seller_phone}) - {result.status}")
-                total_attempts = max(total_attempts, self.state.call_attempts)
+                logger.warning(f"❌ Qo'ng'iroq javobsiz: {seller_name} ({seller_phone}) - {result.status}")
                 self.stats.record_call(
                     phone=seller_phone,
                     seller_name=seller_name,
                     order_count=order_count,
                     attempts=self.state.call_attempts,
                     result=StatsCallResult.NO_ANSWER,
-                    order_ids=order_ids_for_call
+                    order_ids=order_ids
                 )
+
+            return result
+
+        # Barcha sotuvchilarga PARALLEL qo'ng'iroq
+        call_tasks = [
+            call_single_seller(seller_phone, seller_data)
+            for seller_phone, seller_data in sellers.items()
+        ]
+        results = await asyncio.gather(*call_tasks, return_exceptions=True)
+
+        # Natijalarni log qilish
+        answered_count = sum(1 for r in results if r and hasattr(r, 'is_answered') and r.is_answered)
+        failed_count = len(results) - answered_count
+        logger.info(f"Parallel qo'ng'iroq tugadi: ✅ {answered_count} javob, ❌ {failed_count} javobsiz")
 
         # Barcha qo'ng'iroqlar tugadi
         # Qo'ng'iroq jarayonini tugatish

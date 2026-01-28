@@ -765,7 +765,19 @@ class AutodialerPro:
                 continue
 
             try:
-                order_data = await self.nonbor.get_order_full_data(order_id)
+                # MUHIM: Avval keshdan olish (guruh xabarlaridan)
+                order_data = None
+                if order_id in self._group_order_messages:
+                    cached = self._group_order_messages[order_id]
+                    cached_data = cached.get("order_data", {})
+                    if cached_data:
+                        order_data = cached_data
+                        logger.debug(f"Buyurtma #{order_id} keshdan olindi")
+
+                # Keshda yo'q bo'lsa - API dan olish
+                if not order_data:
+                    order_data = await self.nonbor.get_order_full_data(order_id)
+
                 seller_phone = order_data.get("seller_phone", "Noma'lum")
                 affected_sellers.add(seller_phone)
 

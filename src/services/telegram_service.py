@@ -50,6 +50,13 @@ CALLBACK_WEEKLY = "period_weekly"
 CALLBACK_MONTHLY = "period_monthly"
 CALLBACK_YEARLY = "period_yearly"
 
+# Owner orders (biznes egasi buyurtmalari)
+CALLBACK_OWNER_ORDERS = "owner_orders"
+CALLBACK_OWNER_BACK = "owner_back"
+CALLBACK_OWNER_PERIOD = "oo_period_"    # oo_period_daily, oo_period_weekly, etc.
+CALLBACK_OWNER_PAGE = "oo_page_"        # oo_page_0, oo_page_1, ...
+CALLBACK_OWNER_STATUS = "oo_status_"    # oo_status_all, oo_status_accepted, oo_status_rejected
+
 # Auth states
 AUTH_IDLE = "idle"
 AUTH_AWAITING_PHONE = "awaiting_phone"
@@ -839,6 +846,11 @@ class TelegramStatsHandler:
         )
         self._load_auth_users()
 
+        # Owner orders view state (har bir chat uchun alohida)
+        self._owner_orders_period: Dict[str, str] = {}    # chat_id -> period (daily/weekly/monthly/yearly)
+        self._owner_orders_page: Dict[str, int] = {}      # chat_id -> page (0-indexed)
+        self._owner_orders_status: Dict[str, str] = {}    # chat_id -> status filter (all/accepted/rejected)
+
     def set_stats_service(self, stats_service):
         """Stats servisini sozlash"""
         self.stats_service = stats_service
@@ -1267,13 +1279,36 @@ class TelegramStatsHandler:
             elif data.startswith(CALLBACK_BIZ_ITEM):
                 # Biznes ko'rish
                 pass
-            elif data == "owner_orders":
-                # Buyurtmalar ro'yxati
+            elif data == CALLBACK_OWNER_ORDERS or data == "owner_orders":
+                # Buyurtmalar ro'yxati - state ni reset qilish
+                self._owner_orders_period[chat_id] = "daily"
+                self._owner_orders_page[chat_id] = 0
+                self._owner_orders_status[chat_id] = "all"
                 await self._show_owner_orders(message_id, chat_id)
                 return
-            elif data == "owner_back":
+            elif data == CALLBACK_OWNER_BACK or data == "owner_back":
                 # Asosiy menyuga qaytish
                 await self._update_business_owner_message(message_id, chat_id)
+                return
+            elif data.startswith(CALLBACK_OWNER_PERIOD):
+                # Davr o'zgartirish
+                period = data.replace(CALLBACK_OWNER_PERIOD, "")
+                self._owner_orders_page[chat_id] = 0  # Sahifani reset
+                await self._show_owner_orders(message_id, chat_id, period=period)
+                return
+            elif data.startswith(CALLBACK_OWNER_PAGE):
+                # Sahifa o'zgartirish
+                try:
+                    page = int(data.replace(CALLBACK_OWNER_PAGE, ""))
+                    await self._show_owner_orders(message_id, chat_id, page=page)
+                except ValueError:
+                    pass
+                return
+            elif data.startswith(CALLBACK_OWNER_STATUS):
+                # Status filter o'zgartirish
+                status = data.replace(CALLBACK_OWNER_STATUS, "")
+                self._owner_orders_page[chat_id] = 0  # Sahifani reset
+                await self._show_owner_orders(message_id, chat_id, status_filter=status)
                 return
             elif data == CALLBACK_BIZ_BACK or data == CALLBACK_MENU_BACK:
                 # Orqaga - oddiy ko'rinishga qaytarish
@@ -1374,10 +1409,31 @@ class TelegramStatsHandler:
             )
         elif data == CALLBACK_BIZ_BACK:
             await self._show_businesses(message_id, chat_id)
-        elif data == "owner_orders":
+        elif data == CALLBACK_OWNER_ORDERS or data == "owner_orders":
+            # Buyurtmalar ro'yxati - state ni reset qilish
+            self._owner_orders_period[chat_id] = "daily"
+            self._owner_orders_page[chat_id] = 0
+            self._owner_orders_status[chat_id] = "all"
             await self._show_owner_orders(message_id, chat_id)
-        elif data == "owner_back":
+        elif data == CALLBACK_OWNER_BACK or data == "owner_back":
             await self._update_business_owner_message(message_id, chat_id)
+        elif data.startswith(CALLBACK_OWNER_PERIOD):
+            # Davr o'zgartirish
+            period = data.replace(CALLBACK_OWNER_PERIOD, "")
+            self._owner_orders_page[chat_id] = 0  # Sahifani reset
+            await self._show_owner_orders(message_id, chat_id, period=period)
+        elif data.startswith(CALLBACK_OWNER_PAGE):
+            # Sahifa o'zgartirish
+            try:
+                page = int(data.replace(CALLBACK_OWNER_PAGE, ""))
+                await self._show_owner_orders(message_id, chat_id, page=page)
+            except ValueError:
+                pass
+        elif data.startswith(CALLBACK_OWNER_STATUS):
+            # Status filter o'zgartirish
+            status = data.replace(CALLBACK_OWNER_STATUS, "")
+            self._owner_orders_page[chat_id] = 0  # Sahifani reset
+            await self._show_owner_orders(message_id, chat_id, status_filter=status)
 
     async def _answer_callback(self, callback_id: str):
         """Callback query javob"""
@@ -1567,46 +1623,172 @@ class TelegramStatsHandler:
             reply_markup={"inline_keyboard": keyboard_rows}
         )
 
-    async def _show_owner_orders(self, message_id: int, chat_id: str):
-        """Biznes egasi uchun buyurtmalar ro'yxati"""
+    async def _show_owner_orders(self, message_id: int, chat_id: str, period: str = None, page: int = None, status_filter: str = None):
+        """Biznes egasi uchun buyurtmalar ro'yxati - pagination va filtrlar bilan"""
         user_data = self._verified_users.get(chat_id, {})
         biz_title = user_data.get("business_title", "Noma'lum")
         user_phone = user_data.get("phone", "")
 
+        # State dan olish (agar parametr berilmagan bo'lsa)
+        if period is None:
+            period = self._owner_orders_period.get(chat_id, "daily")
+        if page is None:
+            page = self._owner_orders_page.get(chat_id, 0)
+        if status_filter is None:
+            status_filter = self._owner_orders_status.get(chat_id, "all")
+
+        # State ni yangilash
+        self._owner_orders_period[chat_id] = period
+        self._owner_orders_page[chat_id] = page
+        self._owner_orders_status[chat_id] = status_filter
+
+        # Davr nomlari
+        period_names = {
+            "daily": "Bugungi",
+            "weekly": "Haftalik",
+            "monthly": "Oylik",
+            "yearly": "Yillik"
+        }
+        period_name = period_names.get(period, "Bugungi")
+
+        # Buyurtmalarni olish
         orders_list = []
         if self.stats_service and user_phone:
-            stats = self.stats_service.get_period_stats("daily")
+            stats = self.stats_service.get_period_stats(period)
             for record in stats.order_records:
                 if record.get("seller_phone") == user_phone:
-                    orders_list.append(record)
+                    # Status filter
+                    if status_filter == "all":
+                        orders_list.append(record)
+                    elif status_filter == "accepted" and record.get("result") == "accepted":
+                        orders_list.append(record)
+                    elif status_filter == "rejected" and record.get("result") == "rejected":
+                        orders_list.append(record)
 
-        text = f"📦 <b>{biz_title} - Bugungi buyurtmalar</b>\n"
+        # Buyurtmalarni teskari tartibda (eng yangi birinchi)
+        orders_list = list(reversed(orders_list))
+
+        # Pagination
+        ITEMS_PER_PAGE = 20
+        total_orders = len(orders_list)
+        total_pages = max(1, (total_orders + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE)
+        page = max(0, min(page, total_pages - 1))  # Valid page range
+
+        start_idx = page * ITEMS_PER_PAGE
+        end_idx = min(start_idx + ITEMS_PER_PAGE, total_orders)
+        page_orders = orders_list[start_idx:end_idx]
+
+        # Status nomi
+        status_names = {"all": "Barchasi", "accepted": "Qabul qilingan", "rejected": "Bekor qilingan"}
+        status_name = status_names.get(status_filter, "Barchasi")
+
+        # Statistika
+        accepted_count = sum(1 for o in orders_list if o.get("result") == "accepted") if status_filter == "all" else (total_orders if status_filter == "accepted" else 0)
+        rejected_count = sum(1 for o in orders_list if o.get("result") == "rejected") if status_filter == "all" else (total_orders if status_filter == "rejected" else 0)
+
+        # Matn
+        text = f"📦 <b>{biz_title}</b>\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n"
+        text += f"📅 {period_name} | 🔍 {status_name}\n"
         text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
 
-        if not orders_list:
-            text += "<i>Bugun buyurtmalar yo'q</i>\n"
+        if not page_orders:
+            text += "<i>Buyurtmalar topilmadi</i>\n"
         else:
-            for i, order in enumerate(orders_list[-10:], 1):  # Oxirgi 10 ta
-                order_id = order.get("order_id", "?")
+            for i, order in enumerate(page_orders, start_idx + 1):
+                order_num = order.get("order_number", order.get("order_id", "?"))
                 result = order.get("result", "?")
-                result_emoji = "✅" if result == "accepted" else "❌"
-                text += f"{i}. #{order_id} - {result_emoji}\n"
+                client_name = order.get("client_name", "Noma'lum")[:15]
+                product = order.get("product_name", "")[:20]
+                price = order.get("price", 0)
+                timestamp = order.get("timestamp", "")
 
-            if len(orders_list) > 10:
-                text += f"\n<i>...va yana {len(orders_list) - 10} ta</i>\n"
+                # Vaqtni format qilish
+                time_str = ""
+                if timestamp:
+                    try:
+                        dt = datetime.fromisoformat(timestamp)
+                        time_str = dt.strftime("%H:%M")
+                    except:
+                        pass
 
-        text += f"\n📊 Jami: {len(orders_list)} ta"
+                # Status emoji
+                if result == "accepted":
+                    emoji = "✅"
+                elif result == "rejected":
+                    emoji = "❌"
+                else:
+                    emoji = "⏳"
 
-        keyboard = {"inline_keyboard": [
-            [{"text": "⬅️ Orqaga", "callback_data": "owner_back"}]
-        ]}
+                # Qisqa format: raqam, mijoz, mahsulot, narx, vaqt
+                text += f"{emoji} <b>#{order_num}</b>"
+                if time_str:
+                    text += f" ({time_str})"
+                text += f"\n   {client_name}"
+                if product:
+                    text += f" - {product}"
+                if price:
+                    text += f"\n   💰 {price:,} so'm"
+                text += "\n\n"
+
+        # Footer
+        text += f"━━━━━━━━━━━━━━━━━━━━\n"
+        if status_filter == "all":
+            text += f"📊 Jami: {total_orders} ta (✅{accepted_count} | ❌{rejected_count})\n"
+        else:
+            text += f"📊 Jami: {total_orders} ta\n"
+        if total_pages > 1:
+            text += f"📄 Sahifa: {page + 1}/{total_pages}"
+
+        # Keyboard
+        keyboard_rows = []
+
+        # 1. Davr tugmalari
+        period_row = []
+        periods = [("📅", "daily"), ("📆", "weekly"), ("🗓", "monthly"), ("📊", "yearly")]
+        for emoji, p in periods:
+            if p == period:
+                period_row.append({"text": f"✓ {emoji}", "callback_data": f"{CALLBACK_OWNER_PERIOD}{p}"})
+            else:
+                period_row.append({"text": emoji, "callback_data": f"{CALLBACK_OWNER_PERIOD}{p}"})
+        keyboard_rows.append(period_row)
+
+        # 2. Status filter tugmalari
+        status_row = []
+        statuses = [("📋", "all"), ("✅", "accepted"), ("❌", "rejected")]
+        for emoji, s in statuses:
+            if s == status_filter:
+                status_row.append({"text": f"✓ {emoji}", "callback_data": f"{CALLBACK_OWNER_STATUS}{s}"})
+            else:
+                status_row.append({"text": emoji, "callback_data": f"{CALLBACK_OWNER_STATUS}{s}"})
+        keyboard_rows.append(status_row)
+
+        # 3. Pagination
+        if total_pages > 1:
+            nav_row = []
+            if page > 0:
+                nav_row.append({"text": "⬅️", "callback_data": f"{CALLBACK_OWNER_PAGE}{page - 1}"})
+            else:
+                nav_row.append({"text": "·", "callback_data": "noop"})
+
+            nav_row.append({"text": f"{page + 1}/{total_pages}", "callback_data": "noop"})
+
+            if page < total_pages - 1:
+                nav_row.append({"text": "➡️", "callback_data": f"{CALLBACK_OWNER_PAGE}{page + 1}"})
+            else:
+                nav_row.append({"text": "·", "callback_data": "noop"})
+
+            keyboard_rows.append(nav_row)
+
+        # 4. Orqaga tugmasi
+        keyboard_rows.append([{"text": "⬅️ Orqaga", "callback_data": CALLBACK_OWNER_BACK}])
 
         await self.telegram.edit_message(
             message_id=message_id,
             text=text,
             chat_id=chat_id,
             parse_mode="HTML",
-            reply_markup=keyboard
+            reply_markup={"inline_keyboard": keyboard_rows}
         )
 
     def _get_stats_keyboard(self, stats) -> dict:

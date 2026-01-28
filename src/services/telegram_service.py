@@ -1812,23 +1812,8 @@ class TelegramStatsHandler:
                 period_buttons[:2],  # Kunlik, Haftalik
                 period_buttons[2:],  # Oylik, Yillik
                 [
-                    {"text": f"1️⃣ 1-urinish ({stats.calls_1_attempt})", "callback_data": CALLBACK_CALLS_1},
-                    {"text": f"2️⃣ 2-urinish ({stats.calls_2_attempts})", "callback_data": CALLBACK_CALLS_2}
-                ],
-                [
-                    {"text": f"✅ Javob ({stats.answered_calls})", "callback_data": CALLBACK_ANSWERED},
-                    {"text": f"❌ Javobsiz ({stats.unanswered_calls})", "callback_data": CALLBACK_UNANSWERED}
-                ],
-                [
-                    {"text": f"✅ Qabul ({stats.accepted_orders})", "callback_data": CALLBACK_ACCEPTED},
-                    {"text": f"❌ Bekor ({stats.rejected_orders})", "callback_data": CALLBACK_REJECTED}
-                ],
-                [
-                    {"text": f"🚀 Telegram'siz ({stats.accepted_without_telegram})", "callback_data": CALLBACK_NO_TELEGRAM}
-                ],
-                [
-                    {"text": "📦 Buyurtmalar", "callback_data": CALLBACK_MENU_ORDERS},
-                    {"text": "📞 Qo'ng'iroqlar", "callback_data": CALLBACK_MENU_CALLS}
+                    {"text": f"📞 Qo'ng'iroqlar ({stats.total_calls})", "callback_data": CALLBACK_MENU_CALLS},
+                    {"text": f"📦 Buyurtmalar ({stats.total_orders})", "callback_data": CALLBACK_MENU_ORDERS}
                 ],
                 [
                     {"text": "👥 Bizneslar", "callback_data": CALLBACK_MENU_BUSINESSES}
@@ -2280,39 +2265,50 @@ class TelegramStatsHandler:
         )
 
     async def _show_all_calls(self, message_id: int, chat_id: str):
-        """Barcha qo'ng'iroqlar ro'yxati"""
+        """Qo'ng'iroqlar bo'limi - filtrlar bilan"""
         if not self.stats_service:
             return
 
         stats = self.stats_service.get_period_stats(self._current_period)
-        all_calls = stats.call_records
-
         title = self._get_period_title()
-        if not all_calls:
-            text = f"""📞 <b>{title} QO'NG'IROQLAR</b>
+
+        text = f"""📞 <b>{title} QO'NG'IROQLAR</b>
 ━━━━━━━━━━━━━━━━━━━━
 
-<i>Hozircha qo'ng'iroqlar yo'q</i>"""
-        else:
-            text = f"""📞 <b>{title} QO'NG'IROQLAR</b> ({len(all_calls)} ta)
-━━━━━━━━━━━━━━━━━━━━
+📊 <b>Umumiy:</b> {stats.total_calls} ta qo'ng'iroq
 
-"""
-            for i, call in enumerate(all_calls[-15:], 1):
-                time = call["timestamp"].split("T")[1][:5]
-                phone = call.get("phone", "")
-                seller = call.get("seller_name", "Noma'lum")
-                result = call.get("result", "")
-                attempts = call.get("attempts", 1)
-                if result == "answered":
-                    status = f"✅ {attempts}-urinish"
-                else:
-                    status = f"❌ Javobsiz"
-                text += f"{i}. <b>{seller}</b>\n"
-                text += f"   📱 {phone} | {status} | ⏰ {time}\n\n"
+<b>Urinishlar bo'yicha:</b>
+├ 1️⃣ 1-urinishda: {stats.calls_1_attempt}
+└ 2️⃣ 2-urinishda: {stats.calls_2_attempts}
+
+<b>Natija bo'yicha:</b>
+├ ✅ Javob berildi: {stats.answered_calls}
+└ ❌ Javobsiz: {stats.unanswered_calls}
+
+<b>Buyurtmalar natijasi:</b>
+├ ✅ Qabul qilindi: {stats.accepted_orders}
+├ ❌ Bekor qilindi: {stats.rejected_orders}
+└ 🚀 Telegram'siz: {stats.accepted_without_telegram}
+
+<i>Batafsil ko'rish uchun tugmalarni bosing:</i>"""
 
         keyboard = {
             "inline_keyboard": [
+                [
+                    {"text": f"1️⃣ 1-urinish ({stats.calls_1_attempt})", "callback_data": CALLBACK_CALLS_1},
+                    {"text": f"2️⃣ 2-urinish ({stats.calls_2_attempts})", "callback_data": CALLBACK_CALLS_2}
+                ],
+                [
+                    {"text": f"✅ Javob ({stats.answered_calls})", "callback_data": CALLBACK_ANSWERED},
+                    {"text": f"❌ Javobsiz ({stats.unanswered_calls})", "callback_data": CALLBACK_UNANSWERED}
+                ],
+                [
+                    {"text": f"✅ Qabul ({stats.accepted_orders})", "callback_data": CALLBACK_ACCEPTED},
+                    {"text": f"❌ Bekor ({stats.rejected_orders})", "callback_data": CALLBACK_REJECTED}
+                ],
+                [
+                    {"text": f"🚀 Telegram'siz ({stats.accepted_without_telegram})", "callback_data": CALLBACK_NO_TELEGRAM}
+                ],
                 [{"text": "◀️ Orqaga", "callback_data": CALLBACK_BACK}]
             ]
         }

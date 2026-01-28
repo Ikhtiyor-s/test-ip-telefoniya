@@ -57,6 +57,10 @@ CALLBACK_OWNER_PERIOD = "oo_period_"    # oo_period_daily, oo_period_weekly, etc
 CALLBACK_OWNER_PAGE = "oo_page_"        # oo_page_0, oo_page_1, ...
 CALLBACK_OWNER_STATUS = "oo_status_"    # oo_status_all, oo_status_accepted, oo_status_rejected
 
+# Admin orders (admin buyurtmalar bo'limi)
+CALLBACK_ADMIN_ORDERS_PAGE = "ao_page_"      # ao_page_0, ao_page_1, ...
+CALLBACK_ADMIN_ORDERS_STATUS = "ao_status_"  # ao_status_all, ao_status_accepted, ao_status_rejected, ao_status_notg
+
 # Auth states
 AUTH_IDLE = "idle"
 AUTH_AWAITING_PHONE = "awaiting_phone"
@@ -851,6 +855,10 @@ class TelegramStatsHandler:
         self._owner_orders_page: Dict[str, int] = {}      # chat_id -> page (0-indexed)
         self._owner_orders_status: Dict[str, str] = {}    # chat_id -> status filter (all/accepted/rejected)
 
+        # Admin orders view state
+        self._admin_orders_page: Dict[str, int] = {}      # chat_id -> page (0-indexed)
+        self._admin_orders_status: Dict[str, str] = {}    # chat_id -> status filter (all/accepted/rejected/notg)
+
     def set_stats_service(self, stats_service):
         """Stats servisini sozlash"""
         self.stats_service = stats_service
@@ -1334,11 +1342,14 @@ class TelegramStatsHandler:
         elif data == CALLBACK_UNANSWERED:
             await self._show_unanswered_calls(message_id, chat_id)
         elif data == CALLBACK_ACCEPTED:
-            await self._show_orders_list(message_id, chat_id, "accepted")
+            self._admin_orders_page[chat_id] = 0
+            await self._show_orders_menu(message_id, chat_id, status_filter="accepted")
         elif data == CALLBACK_REJECTED:
-            await self._show_orders_list(message_id, chat_id, "rejected")
+            self._admin_orders_page[chat_id] = 0
+            await self._show_orders_menu(message_id, chat_id, status_filter="rejected")
         elif data == CALLBACK_NO_TELEGRAM:
-            await self._show_no_telegram_orders(message_id, chat_id)
+            self._admin_orders_page[chat_id] = 0
+            await self._show_orders_menu(message_id, chat_id, status_filter="notg")
         # Davr tugmalari
         elif data == CALLBACK_DAILY:
             self._current_period = "daily"
@@ -1358,9 +1369,22 @@ class TelegramStatsHandler:
         elif data == CALLBACK_MENU_CALLS:
             await self._show_all_calls(message_id, chat_id)
         elif data == CALLBACK_MENU_ORDERS:
-            await self._show_orders_list(message_id, chat_id, "accepted")
+            self._admin_orders_page[chat_id] = 0
+            self._admin_orders_status[chat_id] = "all"
+            await self._show_orders_menu(message_id, chat_id)
         elif data == CALLBACK_MENU_BACK:
             await self._show_main_stats(message_id, chat_id)
+        # Admin orders pagination va status filter
+        elif data.startswith(CALLBACK_ADMIN_ORDERS_PAGE):
+            try:
+                page = int(data.replace(CALLBACK_ADMIN_ORDERS_PAGE, ""))
+                await self._show_orders_menu(message_id, chat_id, page=page)
+            except ValueError:
+                pass
+        elif data.startswith(CALLBACK_ADMIN_ORDERS_STATUS):
+            status = data.replace(CALLBACK_ADMIN_ORDERS_STATUS, "")
+            self._admin_orders_page[chat_id] = 0  # Sahifani reset
+            await self._show_orders_menu(message_id, chat_id, status_filter=status)
         # Bizneslar pagination va region
         elif data.startswith(CALLBACK_BIZ_PAGE):
             page = int(data.replace(CALLBACK_BIZ_PAGE, ""))
@@ -2285,11 +2309,6 @@ class TelegramStatsHandler:
 ├ ✅ Javob berildi: {stats.answered_calls}
 └ ❌ Javobsiz: {stats.unanswered_calls}
 
-<b>Buyurtmalar natijasi:</b>
-├ ✅ Qabul qilindi: {stats.accepted_orders}
-├ ❌ Bekor qilindi: {stats.rejected_orders}
-└ 🚀 Telegram'siz: {stats.accepted_without_telegram}
-
 <i>Batafsil ko'rish uchun tugmalarni bosing:</i>"""
 
         keyboard = {
@@ -2301,13 +2320,6 @@ class TelegramStatsHandler:
                 [
                     {"text": f"✅ Javob ({stats.answered_calls})", "callback_data": CALLBACK_ANSWERED},
                     {"text": f"❌ Javobsiz ({stats.unanswered_calls})", "callback_data": CALLBACK_UNANSWERED}
-                ],
-                [
-                    {"text": f"✅ Qabul ({stats.accepted_orders})", "callback_data": CALLBACK_ACCEPTED},
-                    {"text": f"❌ Bekor ({stats.rejected_orders})", "callback_data": CALLBACK_REJECTED}
-                ],
-                [
-                    {"text": f"🚀 Telegram'siz ({stats.accepted_without_telegram})", "callback_data": CALLBACK_NO_TELEGRAM}
                 ],
                 [{"text": "◀️ Orqaga", "callback_data": CALLBACK_BACK}]
             ]
@@ -2403,6 +2415,174 @@ class TelegramStatsHandler:
             chat_id=chat_id,
             parse_mode="HTML",
             reply_markup=keyboard
+        )
+
+    async def _show_orders_menu(self, message_id: int, chat_id: str, page: int = None, status_filter: str = None):
+        """Admin uchun buyurtmalar bo'limi - pagination va filtrlar bilan"""
+        if not self.stats_service:
+            return
+
+        # State dan olish
+        if page is None:
+            page = self._admin_orders_page.get(chat_id, 0)
+        if status_filter is None:
+            status_filter = self._admin_orders_status.get(chat_id, "all")
+
+        # State ni yangilash
+        self._admin_orders_page[chat_id] = page
+        self._admin_orders_status[chat_id] = status_filter
+
+        stats = self.stats_service.get_period_stats(self._current_period)
+        title = self._get_period_title()
+
+        # Buyurtmalarni olish
+        orders_list = []
+        for record in stats.order_records:
+            if status_filter == "all":
+                orders_list.append(record)
+            elif status_filter == "accepted" and record.get("result") == "accepted":
+                orders_list.append(record)
+            elif status_filter == "rejected" and record.get("result") == "rejected":
+                orders_list.append(record)
+            elif status_filter == "notg" and record.get("telegram_sent") == False:
+                orders_list.append(record)
+
+        # Teskari tartibda (eng yangi birinchi)
+        orders_list = list(reversed(orders_list))
+
+        # Pagination
+        ITEMS_PER_PAGE = 20
+        total_orders = len(orders_list)
+        total_pages = max(1, (total_orders + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE)
+        page = max(0, min(page, total_pages - 1))
+
+        start_idx = page * ITEMS_PER_PAGE
+        end_idx = min(start_idx + ITEMS_PER_PAGE, total_orders)
+        page_orders = orders_list[start_idx:end_idx]
+
+        # Status nomi
+        status_names = {
+            "all": "Barchasi",
+            "accepted": "Qabul qilingan",
+            "rejected": "Bekor qilingan",
+            "notg": "Telegram'siz"
+        }
+        status_name = status_names.get(status_filter, "Barchasi")
+
+        # Matn
+        text = f"📦 <b>{title} BUYURTMALAR</b>\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n"
+        text += f"🔍 {status_name}\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
+
+        if not page_orders:
+            text += "<i>Buyurtmalar topilmadi</i>\n"
+        else:
+            for i, order in enumerate(page_orders, start_idx + 1):
+                order_num = order.get("order_number", order.get("order_id", "?"))
+                result = order.get("result", "?")
+                client_name = order.get("client_name", "Noma'lum")[:15]
+                seller_name = order.get("seller_name", "")[:15]
+                product = order.get("product_name", "")[:20]
+                price = order.get("price", 0)
+                timestamp = order.get("timestamp", "")
+                tg_sent = order.get("telegram_sent", True)
+
+                # Vaqtni format qilish
+                time_str = ""
+                if timestamp:
+                    try:
+                        dt = datetime.fromisoformat(timestamp)
+                        time_str = dt.strftime("%H:%M")
+                    except:
+                        pass
+
+                # Status emoji
+                if result == "accepted":
+                    emoji = "✅"
+                elif result == "rejected":
+                    emoji = "❌"
+                else:
+                    emoji = "⏳"
+
+                # Telegram'siz belgisi
+                tg_mark = "" if tg_sent else " 🚀"
+
+                text += f"{emoji} <b>#{order_num}</b>{tg_mark}"
+                if time_str:
+                    text += f" ({time_str})"
+                text += f"\n   👤 {client_name}"
+                if seller_name:
+                    text += f" | 🏪 {seller_name}"
+                if product:
+                    text += f"\n   📦 {product}"
+                if price:
+                    text += f" | 💰 {price:,}"
+                text += "\n\n"
+
+        # Footer
+        text += f"━━━━━━━━━━━━━━━━━━━━\n"
+        text += f"📊 Jami: {total_orders} ta"
+        if status_filter == "all":
+            accepted = stats.accepted_orders
+            rejected = stats.rejected_orders
+            notg = stats.accepted_without_telegram
+            text += f" (✅{accepted} | ❌{rejected} | 🚀{notg})"
+        if total_pages > 1:
+            text += f"\n📄 Sahifa: {page + 1}/{total_pages}"
+
+        # Keyboard
+        keyboard_rows = []
+
+        # 1. Status filter tugmalari
+        status_row1 = []
+        status_row2 = []
+        statuses = [
+            ("📋 Barchasi", "all"),
+            ("✅ Qabul", "accepted"),
+            ("❌ Bekor", "rejected"),
+            ("🚀 Tg'siz", "notg")
+        ]
+        for label, s in statuses[:2]:
+            if s == status_filter:
+                status_row1.append({"text": f"✓ {label}", "callback_data": f"{CALLBACK_ADMIN_ORDERS_STATUS}{s}"})
+            else:
+                status_row1.append({"text": label, "callback_data": f"{CALLBACK_ADMIN_ORDERS_STATUS}{s}"})
+        for label, s in statuses[2:]:
+            if s == status_filter:
+                status_row2.append({"text": f"✓ {label}", "callback_data": f"{CALLBACK_ADMIN_ORDERS_STATUS}{s}"})
+            else:
+                status_row2.append({"text": label, "callback_data": f"{CALLBACK_ADMIN_ORDERS_STATUS}{s}"})
+
+        keyboard_rows.append(status_row1)
+        keyboard_rows.append(status_row2)
+
+        # 2. Pagination
+        if total_pages > 1:
+            nav_row = []
+            if page > 0:
+                nav_row.append({"text": "⬅️", "callback_data": f"{CALLBACK_ADMIN_ORDERS_PAGE}{page - 1}"})
+            else:
+                nav_row.append({"text": "·", "callback_data": "noop"})
+
+            nav_row.append({"text": f"{page + 1}/{total_pages}", "callback_data": "noop"})
+
+            if page < total_pages - 1:
+                nav_row.append({"text": "➡️", "callback_data": f"{CALLBACK_ADMIN_ORDERS_PAGE}{page + 1}"})
+            else:
+                nav_row.append({"text": "·", "callback_data": "noop"})
+
+            keyboard_rows.append(nav_row)
+
+        # 3. Orqaga tugmasi
+        keyboard_rows.append([{"text": "◀️ Orqaga", "callback_data": CALLBACK_BACK}])
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup={"inline_keyboard": keyboard_rows}
         )
 
     async def _show_orders_list(self, message_id: int, chat_id: str, result: str):

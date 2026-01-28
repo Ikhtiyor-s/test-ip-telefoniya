@@ -474,8 +474,8 @@ class CallManager:
     def __init__(
         self,
         ami: AsteriskAMI,
-        max_attempts: int = 3,
-        retry_interval: int = 60
+        max_attempts: int = 2,
+        retry_interval: int = 20
     ):
         self.ami = ami
         self.max_attempts = max_attempts
@@ -581,16 +581,18 @@ class CallManager:
                 return result
 
             if self._current_attempt < self.max_attempts:
-                logger.info(f"Qayta urinish {self.retry_interval}s dan keyin...")
-                await asyncio.sleep(self.retry_interval)
-
-                # Retry dan oldin status tekshirish
+                # Birinchi - status tekshirish (qo'ng'iroq tugagandan keyin darhol)
                 if before_retry_check:
+                    logger.info(f"Buyurtma statusini tekshirish...")
                     should_continue = await before_retry_check()
                     if not should_continue:
                         logger.info(f"Buyurtma statusi o'zgardi, qo'ng'iroq to'xtatildi: {phone_number}")
                         result.status = CallStatus.CANCELLED
                         return result
+
+                # Keyin kutish
+                logger.info(f"Qayta urinish {self.retry_interval}s dan keyin...")
+                await asyncio.sleep(self.retry_interval)
 
         logger.warning(f"Barcha urinishlar tugadi: {phone_number}")
         return self._last_call_result or CallResult(status=CallStatus.FAILED)

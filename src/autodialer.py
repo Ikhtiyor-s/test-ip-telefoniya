@@ -201,7 +201,7 @@ class AutodialerPro:
         wait_before_call: int = 90,  # 1.5 daqiqa
         telegram_alert_time: int = 180,  # 3 daqiqa
         max_call_attempts: int = 2,
-        retry_interval: int = 60,
+        retry_interval: int = 20,  # 20 soniya (birinchi qo'ng'iroqdan keyin)
         # Yo'llar
         audio_dir: str = "audio"
     ):
@@ -1390,7 +1390,7 @@ async def main():
         wait_before_call=int(os.getenv("WAIT_BEFORE_CALL", "90")),
         telegram_alert_time=int(os.getenv("TELEGRAM_ALERT_TIME", "180")),
         max_call_attempts=int(os.getenv("MAX_CALL_ATTEMPTS", "2")),
-        retry_interval=int(os.getenv("RETRY_INTERVAL", "60")),
+        retry_interval=int(os.getenv("RETRY_INTERVAL", "20")),
     )
 
     await autodialer.start()

@@ -1953,14 +1953,22 @@ class TelegramStatsHandler:
         for i, biz in enumerate(page_businesses, start + 1):
             title = biz.get("title", "Noma'lum")
             phone = biz.get("phone_number", "")
+            owner_first = biz.get("owner_first_name") or ""
+            owner_last = biz.get("owner_last_name") or ""
+            owner = f"{owner_first} {owner_last}".strip()
             region = biz.get("region_name_uz") or ""
             district = biz.get("district_name_uz") or ""
             group_id = self._business_groups.get(str(biz.get("id", 0)), "")
             mark = " ✅" if group_id else ""
 
             text += f"<b>{i}. {title}</b>{mark}\n"
-            if phone:
-                text += f"   📞 {phone}\n"
+            if owner:
+                text += f"   👤 {owner}"
+                if phone:
+                    text += f" | 📱 {phone}"
+                text += "\n"
+            elif phone:
+                text += f"   📱 {phone}\n"
             if region or district:
                 loc = f"{region}"
                 if district:
@@ -2055,13 +2063,25 @@ class TelegramStatsHandler:
         text += f"━━━━━━━━━━━━━━━━━━━━\n"
         text += f"📄 Sahifa {page + 1}/{total_pages}\n\n"
 
-        # Biznes ro'yxati matnda
+        # Biznes ro'yxati matnda - egasi va telefoni bilan
         for i, biz in enumerate(page_businesses, start + 1):
             title = biz.get("title", "Noma'lum")
             biz_id = biz.get("id", 0)
+            phone = biz.get("phone_number", "")
+            owner_first = biz.get("owner_first_name") or ""
+            owner_last = biz.get("owner_last_name") or ""
+            owner = f"{owner_first} {owner_last}".strip()
             group_id = self._business_groups.get(str(biz_id), "")
             mark = " ✅" if group_id else ""
-            text += f"{i}. {title}{mark}\n"
+
+            text += f"<b>{i}. {title}</b>{mark}\n"
+            if owner:
+                text += f"   👤 {owner}"
+                if phone:
+                    text += f" | 📱 {phone}"
+                text += "\n"
+            elif phone:
+                text += f"   📱 {phone}\n"
 
         # Keyboard
         keyboard_rows = []
@@ -2127,13 +2147,26 @@ class TelegramStatsHandler:
         text += f"🏙 {region_name}\n"
         text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
 
-        # Biznes ro'yxati matnda
+        # Biznes ro'yxati matnda - egasi va telefoni bilan
         for i, biz in enumerate(district_businesses, 1):
             title = biz.get("title", "Noma'lum")
             biz_id = biz.get("id", 0)
+            phone = biz.get("phone_number", "")
+            owner_first = biz.get("owner_first_name") or ""
+            owner_last = biz.get("owner_last_name") or ""
+            owner = f"{owner_first} {owner_last}".strip()
             group_id = self._business_groups.get(str(biz_id), "")
             mark = " ✅" if group_id else ""
-            text += f"{i}. {title}{mark}\n"
+
+            text += f"<b>{i}. {title}</b>{mark}\n"
+            if owner:
+                text += f"   👤 {owner}"
+                if phone:
+                    text += f" | 📱 {phone}"
+                text += "\n"
+            elif phone:
+                text += f"   📱 {phone}\n"
+            text += "\n"
 
         # Keyboard
         keyboard_rows = []

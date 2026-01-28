@@ -24,6 +24,7 @@ class CallStatus(Enum):
     NO_ANSWER = "no_answer"
     FAILED = "failed"
     HANGUP = "hangup"
+    CANCELLED = "cancelled"  # Buyurtma statusi o'zgarganda
 
 
 @dataclass
@@ -546,7 +547,8 @@ class CallManager:
         self,
         phone_number: str,
         audio_file: str,
-        on_attempt: Callable = None
+        on_attempt: Callable = None,
+        before_retry_check: Callable = None
     ) -> CallResult:
         """
         Qo'ng'iroq qilish (retry bilan)
@@ -555,6 +557,7 @@ class CallManager:
             phone_number: Telefon raqami
             audio_file: Audio fayl
             on_attempt: Har bir urinishda chaqiriladigan callback
+            before_retry_check: Retry dan oldin chaqiriladigan callback (False qaytarsa - to'xtatiladi)
 
         Returns:
             Yakuniy CallResult
@@ -580,6 +583,14 @@ class CallManager:
             if self._current_attempt < self.max_attempts:
                 logger.info(f"Qayta urinish {self.retry_interval}s dan keyin...")
                 await asyncio.sleep(self.retry_interval)
+
+                # Retry dan oldin status tekshirish
+                if before_retry_check:
+                    should_continue = await before_retry_check()
+                    if not should_continue:
+                        logger.info(f"Buyurtma statusi o'zgardi, qo'ng'iroq to'xtatildi: {phone_number}")
+                        result.status = CallStatus.CANCELLED
+                        return result
 
         logger.warning(f"Barcha urinishlar tugadi: {phone_number}")
         return self._last_call_result or CallResult(status=CallStatus.FAILED)

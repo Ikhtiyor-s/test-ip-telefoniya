@@ -971,11 +971,25 @@ class AutodialerPro:
                 total_attempts = self.max_call_attempts
                 continue
 
+            # Buyurtma IDlarini olish (status tekshirish uchun)
+            order_ids_for_status_check = [o.get("lead_id") for o in seller_data["orders"]]
+
+            # Retry dan oldin status tekshirish callback
+            async def check_orders_still_pending():
+                """Buyurtmalar hali ham CHECKING statusida ekanligini tekshirish"""
+                for order_id in order_ids_for_status_check:
+                    status = await self.nonbor.get_order_status(order_id)
+                    if status and status != "CHECKING":
+                        logger.info(f"Buyurtma #{order_id} statusi o'zgardi: {status}")
+                        return False  # Davom etmaslik
+                return True  # Barcha buyurtmalar hali CHECKING
+
             # Qo'ng'iroq qilish - barcha urinishlar (retry bilan)
             result = await self.call_manager.make_call_with_retry(
                 phone_number=seller_phone,
                 audio_file=str(audio_path),
-                on_attempt=self._on_call_attempt
+                on_attempt=self._on_call_attempt,
+                before_retry_check=check_orders_still_pending
             )
 
             # Statistikaga yozish

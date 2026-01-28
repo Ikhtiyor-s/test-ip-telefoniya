@@ -112,6 +112,30 @@ class NonborService:
             logger.debug(f"Order status endpoint xato: {e}")
         return None
 
+    async def get_order_details(self, order_id: int) -> Optional[Dict]:
+        """
+        Bitta buyurtmaning to'liq ma'lumotlarini olish
+        /orders/{id}/ endpoint - telefon raqami va boshqa qo'shimcha ma'lumotlar uchun
+
+        Returns:
+            To'liq buyurtma ma'lumotlari dict yoki None
+        """
+        session = await self._get_session()
+        url = f"https://test.nonbor.uz/orders/{order_id}/"
+        timeout = aiohttp.ClientTimeout(total=10)
+        try:
+            async with session.get(url, timeout=timeout) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    if isinstance(data, dict):
+                        logger.debug(f"Order #{order_id} details: {list(data.keys())}")
+                        return data
+                else:
+                    logger.debug(f"Order details endpoint: {response.status}")
+        except Exception as e:
+            logger.debug(f"Order details endpoint xato: {e}")
+        return None
+
     async def get_orders(self) -> Optional[List[Dict]]:
         """
         Barcha buyurtmalarni olish

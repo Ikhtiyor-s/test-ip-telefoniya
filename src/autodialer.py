@@ -138,6 +138,7 @@ class AutodialerState:
         self.global_retry_count: int = 0  # Global qayta urinish hisoblagichi - barcha buyurtmalar uchun
         self.last_telegram_order_ids: set = set()  # Oxirgi marta Telegram ga yuborilgan buyurtmalar ID lari
         self.last_180s_check_time: Optional[datetime] = None  # Oxirgi 180s timer tekshiruv vaqti
+        self.last_group_status_check: Optional[datetime] = None  # Guruh xabarlari status tekshiruvi
 
     def reset(self):
         """Holatni tozalash - FAQAT qo'ng'iroq state, 180s timer uchun pending_order_ids saqlanadi"""
@@ -258,6 +259,10 @@ class AutodialerPro:
         project_root = Path(__file__).parent.parent
         data_dir = str(project_root / "data")
 
+        # Guruh xabarlarini saqlash fayli
+        self._group_messages_file = project_root / "data" / "group_order_messages.json"
+        self._load_group_messages()
+
         self.stats = StatsService(data_dir=data_dir)
 
         if telegram_token and telegram_chat_id:
@@ -273,6 +278,31 @@ class AutodialerPro:
             self.stats_handler = None
 
         logger.info("AutodialerPro yaratildi")
+
+    def _load_group_messages(self):
+        """Guruh xabarlarini fayldan yuklash (restart da davom etish uchun)"""
+        try:
+            if self._group_messages_file.exists():
+                import json
+                with open(self._group_messages_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    # JSON key lar string bo'lgani uchun int ga o'tkazamiz
+                    self._group_order_messages = {int(k): v for k, v in data.items()}
+                    logger.info(f"Guruh xabarlari yuklandi: {len(self._group_order_messages)} ta buyurtma")
+        except Exception as e:
+            logger.error(f"Guruh xabarlarini yuklashda xato: {e}")
+            self._group_order_messages = {}
+
+    def _save_group_messages(self):
+        """Guruh xabarlarini faylga saqlash"""
+        try:
+            import json
+            # Katalog mavjudligini tekshirish
+            self._group_messages_file.parent.mkdir(exist_ok=True)
+            with open(self._group_messages_file, "w", encoding="utf-8") as f:
+                json.dump(self._group_order_messages, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            logger.error(f"Guruh xabarlarini saqlashda xato: {e}")
 
     async def start(self):
         """Autodialer ni ishga tushirish"""
@@ -498,6 +528,22 @@ class AutodialerPro:
                             logger.info(f"{self.telegram_alert_time}s timer: {len(new_old_ids)} ta YANGI buyurtma {self.telegram_alert_time}s+ eski, Telegram yuborilmoqda")
                             await self._send_telegram_for_remaining()
 
+        # GURUH XABARLARI: Status o'zgarishlarini kuzatish (har 2 soniyada)
+        # Biznes guruhlar mavjud bo'lsa yoki xabarlar track qilinayotgan bo'lsa
+        has_business_groups = self.stats_handler and self.stats_handler._business_groups
+        if has_business_groups or self._group_order_messages:
+            should_check_status = False
+            if self.state.last_group_status_check is None:
+                should_check_status = True
+            else:
+                time_since_check = (now - self.state.last_group_status_check).total_seconds()
+                if time_since_check >= 2:  # Har 2 soniyada tekshirish
+                    should_check_status = True
+
+            if should_check_status:
+                self.state.last_group_status_check = now
+                await self._update_group_messages()
+
     async def _update_group_messages(self, new_order_ids: set = None):
         """
         Biriktirilgan guruhlarga har bir buyurtma uchun alohida xabar yuborish/yangilash.
@@ -538,6 +584,17 @@ class AutodialerPro:
                 if biz_id:
                     in_groups = biz_id in self.stats_handler._business_groups
                     logger.info(f"Buyurtma #{order_id}: biznes='{biz_title}' (ID={biz_id}), guruhda={in_groups}")
+                    # DEBUG: Birinchi buyurtmaning barcha kalitlarini ko'rsatish (faqat bir marta)
+                    if not hasattr(self, '_debug_logged'):
+                        self._debug_logged = True
+                        logger.info(f"DEBUG #{order_id}: order_keys={list(order.keys())}")
+                        logger.info(f"DEBUG #{order_id}: user={order.get('user')}")
+                        logger.info(f"DEBUG #{order_id}: delivery={order.get('delivery')}")
+                        # Vaqt bilan bog'liq barcha fieldlarni ko'rsatish
+                        for key in order.keys():
+                            val = order.get(key)
+                            if val and ('time' in str(key).lower() or 'date' in str(key).lower() or 'plan' in str(key).lower() or 'schedule' in str(key).lower() or 'expect' in str(key).lower()):
+                                logger.info(f"DEBUG #{order_id}: {key}={val}")
 
                 if not biz_id or biz_id not in self.stats_handler._business_groups:
                     if biz_id:
@@ -546,6 +603,11 @@ class AutodialerPro:
 
                 group_chat_id = self.stats_handler._business_groups[biz_id]
                 status = order.get("state", "CHECKING").upper()
+
+                # PENDING va to'lov kutilayotgan buyurtmalarni o'tkazib yuborish
+                skip_statuses = ["PENDING", "WAITING_PAYMENT", "PAYMENTPENDING", "PAYMENT_PENDING"]
+                if status in skip_statuses:
+                    continue
 
                 # Buyurtma ma'lumotlarini tayyorlash
                 user = order.get("user") or {}
@@ -560,17 +622,97 @@ class AutodialerPro:
                     product_name = product.get("title", "") or product.get("name", "")
                     quantity = first_item.get("count", 1) or first_item.get("quantity", 1)
 
-                # Telefon raqami - user, delivery yoki boshqa maydonlardan
-                client_phone = user.get("phone") or user.get("phone_number") or delivery.get("phone") or delivery.get("phone_number") or ""
+                # Telefon raqami - user, delivery, order yoki boshqa maydonlardan
+                client_phone = (
+                    user.get("phone") or
+                    user.get("phone_number") or
+                    user.get("mobile") or
+                    user.get("tel") or
+                    delivery.get("phone") or
+                    delivery.get("phone_number") or
+                    delivery.get("recipient_phone") or
+                    order.get("phone") or
+                    order.get("client_phone") or
+                    order.get("customer_phone") or
+                    ""
+                )
+
+                # Agar telefon topilmasa va status READY yoki undan keyin - /orders/{id}/ dan olish
+                need_phone_statuses = ["READY", "DELIVERING", "DELIVERED", "COMPLETED"]
+                if not client_phone and status in need_phone_statuses:
+                    try:
+                        details = await self.nonbor.get_order_details(order_id)
+                        if details:
+                            # Turli joylarda telefon qidirish
+                            detail_user = details.get("user") or {}
+                            detail_delivery = details.get("delivery") or {}
+                            client_phone = (
+                                detail_user.get("phone") or
+                                detail_user.get("phone_number") or
+                                detail_delivery.get("phone") or
+                                detail_delivery.get("phone_number") or
+                                detail_delivery.get("recipient_phone") or
+                                details.get("phone") or
+                                details.get("client_phone") or
+                                ""
+                            )
+                            if client_phone:
+                                logger.info(f"Buyurtma #{order_id}: telefon /orders/ dan olindi: {client_phone}")
+                            else:
+                                logger.debug(f"Buyurtma #{order_id}: /orders/ da ham telefon yo'q. Keys: {list(details.keys())}")
+                    except Exception as e:
+                        logger.debug(f"Buyurtma #{order_id}: /orders/ endpoint xato: {e}")
+
+                # Yetkazib berish manzili
+                delivery_address = delivery.get("address") or delivery.get("location") or ""
+                delivery_lat = delivery.get("lat") or delivery.get("latitude") or ""
+                delivery_lon = delivery.get("lon") or delivery.get("longitude") or delivery.get("lng") or ""
+
+                # Yetkazib berish vaqti (rejalashtirilgan buyurtmalar uchun)
+                # planned_datetime - asosiy field
+                raw_planned_time = order.get("planned_datetime") or order.get("planned_time") or ""
+
+                # Vaqtni formatlash (2026-01-29T11:00:00+05:00 -> 29.01 11:00)
+                delivery_time = ""
+                if raw_planned_time:
+                    try:
+                        from datetime import datetime
+                        dt = datetime.fromisoformat(str(raw_planned_time).replace('Z', '+00:00'))
+                        delivery_time = dt.strftime("%d.%m %H:%M")
+                    except:
+                        delivery_time = str(raw_planned_time)
+
+                # Agar planned_datetime yo'q bo'lsa, boshqa fieldlardan qidirish
+                if not delivery_time:
+                    delivery_time = (
+                        delivery.get("time") or
+                        delivery.get("scheduled_time") or
+                        delivery.get("delivery_time") or
+                        order.get("delivery_time") or
+                        order.get("scheduled_at") or
+                        ""
+                    )
+
+                # Debug: is_planned buyurtmalar uchun
+                is_planned = order.get("is_planned") or order.get("is_planner")
+                if is_planned:
+                    logger.info(f"Buyurtma #{order_id} PLANNED: delivery_time='{delivery_time}', ready_time={order.get('ready_time')}")
+                    if not delivery_time:
+                        logger.warning(f"Buyurtma #{order_id} is_planned=True lekin delivery_time topilmadi. Order keys: {list(order.keys())}")
 
                 order_data = {
                     "order_number": str(order_id),
                     "status": status,
+                    "seller_name": biz_title or "Noma'lum",
                     "client_name": client_name,
                     "client_phone": client_phone,
                     "product_name": product_name,
                     "quantity": quantity,
                     "price": (order.get("total_price", 0) or 0) / 100,
+                    "delivery_address": delivery_address,
+                    "delivery_lat": delivery_lat,
+                    "delivery_lon": delivery_lon,
+                    "delivery_time": delivery_time,
                 }
 
                 if order_id in self._group_order_messages:
@@ -584,10 +726,20 @@ class AutodialerPro:
                         )
                         if success:
                             tracked["status"] = status
+                            tracked["order_data"] = order_data  # order_data ni ham yangilash
+                            self._save_group_messages()
                             logger.info(f"Guruh: buyurtma #{order_id} status yangilandi: {status}")
                 else:
-                    # Yangi buyurtma - faqat new_order_ids da bo'lsa xabar yuborish
-                    if new_order_ids and order_id in new_order_ids:
+                    # Yangi buyurtma - tracking da yo'q
+                    # MUHIM: Agar buyurtma allaqachon yakuniy statusda bo'lsa, yangi xabar yubormaymiz
+                    # (bu buyurtmani tracking qilishni o'tkazib yubordik)
+                    final_statuses_for_skip = ["COMPLETED", "CANCELLED", "DELIVERED", "CANCELLED_SELLER", "CANCELLED_USER", "CANCELLED_ADMIN", "PAYMENT_EXPIRED"]
+                    if status in final_statuses_for_skip:
+                        # Yakuniy statusdagi buyurtma - yangi xabar yubormaymiz
+                        continue
+
+                    should_send = (new_order_ids is None) or (order_id in new_order_ids)
+                    if should_send:
                         msg_id = await self.telegram.send_business_order_message(
                             order_data=order_data, chat_id=group_chat_id
                         )
@@ -599,7 +751,26 @@ class AutodialerPro:
                                 "status": status,
                                 "order_data": order_data,
                             }
+                            self._save_group_messages()
                             logger.info(f"Guruhga xabar yuborildi: buyurtma #{order_id}, status: {status}")
+
+            # For loop tugadi - endi API dan yo'qolgan buyurtmalarni tozalash
+            # MUHIM: Faqat API da YO'Q bo'lgan buyurtmalarni o'chiramiz
+            # Final statusdagi buyurtmalar API da bo'lsa ham qoladi (yangi xabar yuborilmasligi uchun)
+            current_order_ids = {order.get("id") for order in orders if order.get("id")}
+
+            deleted_any = False
+            for tracked_order_id in list(self._group_order_messages.keys()):
+                # Faqat API da yo'q bo'lgan buyurtmalarni o'chirish
+                if tracked_order_id not in current_order_ids:
+                    tracked = self._group_order_messages[tracked_order_id]
+                    tracked_status = tracked.get("status", "")
+                    del self._group_order_messages[tracked_order_id]
+                    deleted_any = True
+                    logger.info(f"Guruh tracking tozalandi (API da yo'q): buyurtma #{tracked_order_id}, status={tracked_status}")
+
+            if deleted_any:
+                self._save_group_messages()
 
         except Exception as e:
             logger.error(f"Guruh xabarlarini yangilashda xato: {e}")
@@ -851,10 +1022,10 @@ class AutodialerPro:
                 logger.info(f"Telegram xabar yangilanmoqda: {remaining_count} ta buyurtma qoldi")
                 await self._send_telegram_for_remaining()
 
-        # Guruh xabarlarini tozalash (buyurtma hal bo'lganda)
-        for order_id in resolved_order_ids:
-            if order_id in self._group_order_messages:
-                del self._group_order_messages[order_id]
+        # MUHIM: Guruh xabarlarini bu yerda O'CHIRMAYMIZ!
+        # Buyurtma CHECKING dan chiqsa ham, xabar guruhda qolishi kerak
+        # Xabar faqat yakuniy statusda (COMPLETED, CANCELLED, DELIVERED) o'chiriladi
+        # Bu _update_group_messages da avtomatik amalga oshiriladi
 
     async def _make_call(self):
         """Har bir sotuvchiga alohida qo'ng'iroq qilish"""
@@ -1230,9 +1401,10 @@ class AutodialerPro:
                         "product_name": cached_data.get("product_name", "Noma'lum"),
                         "quantity": cached_data.get("quantity", 1),
                         "price": cached_data.get("price", 0),
-                        "seller_name": "Noma'lum",
+                        "seller_name": cached_data.get("seller_name", "Noma'lum"),
                         "seller_phone": "Noma'lum",
                         "seller_address": "Noma'lum",
+                        "delivery_time": cached_data.get("delivery_time", ""),
                     }
                     # Sotuvchi ma'lumotlarini API dan olish (business_id orqali)
                     biz_id = cached.get("biz_id")

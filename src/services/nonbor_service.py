@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 NONBOR_BASE_URL = os.getenv("NONBOR_BASE_URL", "https://test.nonbor.uz/api/v2")
 NONBOR_SECRET = os.getenv("NONBOR_SECRET", "nonbor-secret-key")
+# Domain ni base_url dan olish (orders endpoint uchun)
+NONBOR_DOMAIN = NONBOR_BASE_URL.split("/api/")[0]  # https://nonbor.uz
 
 
 class NonborService:
@@ -96,7 +98,7 @@ class NonborService:
         """
         session = await self._get_session()
         # Admin panel /orders/{id}/ endpointini ishlatish (base_url siz)
-        url = f"https://test.nonbor.uz/orders/{order_id}/"
+        url = f"{NONBOR_DOMAIN}/orders/{order_id}/"
         timeout = aiohttp.ClientTimeout(total=10)
         try:
             async with session.get(url, timeout=timeout) as response:
@@ -121,7 +123,7 @@ class NonborService:
             To'liq buyurtma ma'lumotlari dict yoki None
         """
         session = await self._get_session()
-        url = f"https://test.nonbor.uz/orders/{order_id}/"
+        url = f"{NONBOR_DOMAIN}/orders/{order_id}/"
         timeout = aiohttp.ClientTimeout(total=10)
         try:
             async with session.get(url, timeout=timeout) as response:

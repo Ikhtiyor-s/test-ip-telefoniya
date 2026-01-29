@@ -26,6 +26,7 @@ CALLBACK_ACCEPTED = "accepted"
 CALLBACK_REJECTED = "rejected"
 CALLBACK_NO_TELEGRAM = "no_telegram"
 CALLBACK_BACK = "back"
+CALLBACK_CALLS_BACK = "calls_back"  # Qo'ng'iroqlar sub-sahifalaridan orqaga
 
 # Menu tugmalari
 CALLBACK_MENU_BUSINESSES = "menu_businesses"
@@ -67,8 +68,11 @@ AUTH_AWAITING_PHONE = "awaiting_phone"
 AUTH_AWAITING_OTP = "awaiting_otp"
 AUTH_VERIFIED = "verified"
 
-# Admin telefon raqami - barcha funksiyalarga to'liq kirish
-ADMIN_PHONE = "+998948679300"
+# Admin telefon raqamlari - barcha funksiyalarga to'liq kirish
+ADMIN_PHONES = {
+    "+998948679300",
+    "+998773088888",
+}
 
 
 class TelegramService:
@@ -387,14 +391,19 @@ SOTUVCHI:
             else:
                 price_str = "Noma'lum"
 
+            # Tayyorlab berish vaqti (planned buyurtmalar uchun)
+            delivery_time = order.get("delivery_time", "")
+
             text += f"""
 {i}. Buyurtma #{order_number}
    Mijoz: {client_name}
    Tel: {client_phone}
    Mahsulot: {product_name}
    Miqdor: {quantity} ta
-   Narx: {price_str}
-"""
+   Narx: {price_str}"""
+            if delivery_time:
+                text += f"\n   🕐 Tayyor bo'lish vaqti: {delivery_time}"
+            text += "\n"
 
         # Footer
         text += f"""
@@ -412,10 +421,14 @@ SOTUVCHI:
 
     STATUS_LABELS = {
         "CHECKING": "🟡 Tekshirilmoqda",
-        "PAYMENTPENDING": "💳 To'lov kutilmoqda",
         "ACCEPTED": "🟢 Qabul qilindi",
         "READY": "✅ Tayyor",
+        "PAYMENT_EXPIRED": "💳 To'lov muddati o'tdi",
+        "ACCEPT_EXPIRED": "⏰ Qabul muddati o'tdi",
+        "CANCELLED_CLIENT": "❌ Mijoz bekor qildi",
+        "CANCELLED_SELLER": "🚫 Sotuvchi bekor qildi",
         "DELIVERING": "🚗 Yetkazilmoqda",
+        "DELIVERED": "📦 Yetkazildi",
         "COMPLETED": "🏁 Yakunlandi",
         "CANCELLED": "❌ Bekor qilindi",
     }
@@ -423,6 +436,7 @@ SOTUVCHI:
     def _format_business_order_message(self, order_data: dict) -> str:
         """Biznes guruhi uchun bitta buyurtma xabari"""
         order_number = order_data.get("order_number", "")
+        status = order_data.get("status", "CHECKING").upper()
         client_name = order_data.get("client_name", "Noma'lum")
         client_phone = order_data.get("client_phone", "")
         if client_phone and not str(client_phone).startswith('+'):
@@ -432,11 +446,37 @@ SOTUVCHI:
         price = order_data.get("price", 0)
         price_str = f"{price:,.0f}".replace(",", " ") + " so'm" if price else "—"
 
+        # Yetkazib berish ma'lumotlari
+        delivery_address = order_data.get("delivery_address", "")
+        delivery_lat = order_data.get("delivery_lat", "")
+        delivery_lon = order_data.get("delivery_lon", "")
+        delivery_time = order_data.get("delivery_time", "")
+
+        # Status label
+        status_label = self.STATUS_LABELS.get(status, f"📋 {status}")
+
         text = f"📦 Buyurtma #{order_number}\n"
         text += f"━━━━━━━━━━━━━━━━━━━\n"
+        text += f"📊 Status: {status_label}\n"
+
+        # Tayyorlab berish vaqti - har doim ko'rsatish
+        if delivery_time:
+            text += f"🕐 Tayyorlab berish vaqti: {delivery_time}\n"
+
+        # TAYYOR va yetkazish bosqichlarida mijoz ma'lumotlarini ko'rsatish
+        if status in ["READY", "DELIVERING", "DELIVERED", "COMPLETED"]:
+            if client_name and client_name != "Noma'lum":
+                text += f"👤 Mijoz: {client_name}\n"
+            if client_phone:
+                text += f"📞 Tel: {client_phone}\n"
+            if delivery_address:
+                text += f"📍 Manzil: {delivery_address}\n"
+            if delivery_lat and delivery_lon:
+                text += f"🗺 Lokatsiya: https://maps.google.com/?q={delivery_lat},{delivery_lon}\n"
+
         if product_name:
             text += f"🏷 Mahsulot: {product_name}\n"
-            text += f"📊 Miqdor: {quantity} ta\n"
+            text += f"📦 Miqdor: {quantity} ta\n"
         text += f"💰 Narx: {price_str}"
 
         return text
@@ -924,11 +964,11 @@ class TelegramStatsHandler:
         return False
 
     def _is_admin(self, chat_id: str) -> bool:
-        """Foydalanuvchi admin mi? (ADMIN_PHONE bilan tasdiqlangan)"""
+        """Foydalanuvchi admin mi? (ADMIN_PHONES ro'yxatida)"""
         user_data = self._verified_users.get(chat_id)
         if not user_data:
             return False
-        return user_data.get("phone") == ADMIN_PHONE
+        return user_data.get("phone") in ADMIN_PHONES
 
     def _get_user_business_id(self, chat_id: str) -> Optional[int]:
         """Foydalanuvchining business_id sini olish"""
@@ -1011,36 +1051,53 @@ class TelegramStatsHandler:
 
     async def _handle_phone_input(self, chat_id: str, phone: str):
         """Telefon raqamni tekshirish va OTP yuborish"""
-        # Biznesni topish
-        business = await self._find_business_by_phone(phone)
-        if not business:
-            await self.telegram.send_message(
-                text=(
-                    "❌ <b>Raqam topilmadi</b>\n\n"
-                    "Bu raqam tizimda ro'yxatdan o'tmagan.\n"
-                    "📱 Boshqa raqam kiriting:"
-                ),
-                chat_id=chat_id,
-                parse_mode="HTML"
-            )
-            return
-
-        # Raqamni normalizatsiya
+        # Raqamni normalizatsiya (avval qilish kerak - admin tekshirish uchun)
         normalized = phone.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
         if not normalized.startswith("+"):
             normalized = "+" + normalized
 
+        # Admin raqammi tekshirish - biznes tekshiruvisiz
+        is_admin_phone = normalized in ADMIN_PHONES
+
+        if is_admin_phone:
+            # Admin uchun biznes tekshiruv shart emas
+            business = {"id": None, "title": "🔐 Admin"}
+        else:
+            # Oddiy foydalanuvchi - biznesni topish
+            business = await self._find_business_by_phone(phone)
+            if not business:
+                await self.telegram.send_message(
+                    text=(
+                        "❌ <b>Raqam topilmadi</b>\n\n"
+                        "Bu raqam tizimda ro'yxatdan o'tmagan.\n"
+                        "📱 Boshqa raqam kiriting:"
+                    ),
+                    chat_id=chat_id,
+                    parse_mode="HTML"
+                )
+                return
+
         # Boshqa foydalanuvchi allaqachon shu raqamni tasdiqlaganmi?
         existing_chat = self._phone_to_chat.get(normalized)
         if existing_chat and existing_chat != chat_id:
-            # Asl egasiga ogohlantirish yuborish
+            # Asl egasi uchun OTP yaratish
+            self._auth_phones[existing_chat] = normalized
+            self._auth_states[existing_chat] = AUTH_AWAITING_OTP
+            otp_code = self._generate_otp(
+                existing_chat, normalized,
+                business_id=business.get("id"),
+                business_title=business.get("title", "")
+            )
+            # Asl egasiga ogohlantirish + OTP yuborish
             await self.telegram.send_message(
                 text=(
                     "⚠️ <b>OGOHLANTIRISH!</b>\n\n"
                     "Kimdir sizning biznes raqamingiz bilan "
                     "botga kirishga harakat qilmoqda!\n\n"
                     f"📱 Raqam: <code>{normalized}</code>\n"
-                    f"🕐 Vaqt: {datetime.now().strftime('%H:%M:%S %d.%m.%Y')}"
+                    f"🕐 Vaqt: {datetime.now().strftime('%H:%M:%S %d.%m.%Y')}\n\n"
+                    f"🔑 <b>Tasdiqlash kodi:</b> <code>{otp_code}</code>\n"
+                    f"<i>Siz ekanligingizni tasdiqlash uchun kodni kiriting:</i>"
                 ),
                 chat_id=existing_chat,
                 parse_mode="HTML"
@@ -1066,15 +1123,26 @@ class TelegramStatsHandler:
             business_title=business.get("title", "")
         )
 
-        await self.telegram.send_message(
-            text=(
-                f"✅ <b>Biznes topildi:</b> {business.get('title', '')}\n\n"
-                f"🔑 Tasdiqlash kodi: <code>{otp_code}</code>\n\n"
-                f"<i>Kodni kiriting (5 daqiqa amal qiladi):</i>"
-            ),
-            chat_id=chat_id,
-            parse_mode="HTML"
-        )
+        if is_admin_phone:
+            await self.telegram.send_message(
+                text=(
+                    f"🔐 <b>Admin raqami aniqlandi</b>\n\n"
+                    f"🔑 Tasdiqlash kodi: <code>{otp_code}</code>\n\n"
+                    f"<i>Kodni kiriting (5 daqiqa amal qiladi):</i>"
+                ),
+                chat_id=chat_id,
+                parse_mode="HTML"
+            )
+        else:
+            await self.telegram.send_message(
+                text=(
+                    f"✅ <b>Biznes topildi:</b> {business.get('title', '')}\n\n"
+                    f"🔑 Tasdiqlash kodi: <code>{otp_code}</code>\n\n"
+                    f"<i>Kodni kiriting (5 daqiqa amal qiladi):</i>"
+                ),
+                chat_id=chat_id,
+                parse_mode="HTML"
+            )
 
     async def _handle_otp_input(self, chat_id: str, code: str):
         """OTP tasdiqlash"""
@@ -1331,6 +1399,8 @@ class TelegramStatsHandler:
 
         if data == CALLBACK_BACK:
             await self._show_main_stats(message_id, chat_id)
+        elif data == CALLBACK_CALLS_BACK:
+            await self._show_all_calls(message_id, chat_id)
         elif data == CALLBACK_CALLS_1:
             await self._show_calls_list(message_id, chat_id, 1)
         elif data == CALLBACK_CALLS_2:
@@ -1958,6 +2028,7 @@ class TelegramStatsHandler:
             owner = f"{owner_first} {owner_last}".strip()
             region = biz.get("region_name_uz") or ""
             district = biz.get("district_name_uz") or ""
+            address = biz.get("address") or ""
             group_id = self._business_groups.get(str(biz.get("id", 0)), "")
             mark = " ✅" if group_id else ""
 
@@ -1969,7 +2040,10 @@ class TelegramStatsHandler:
                 text += "\n"
             elif phone:
                 text += f"   📱 {phone}\n"
-            if region or district:
+            # Manzil (address) yoki viloyat/tuman
+            if address:
+                text += f"   📍 {address}\n"
+            elif region or district:
                 loc = f"{region}"
                 if district:
                     loc += f", {district}"
@@ -2063,7 +2137,7 @@ class TelegramStatsHandler:
         text += f"━━━━━━━━━━━━━━━━━━━━\n"
         text += f"📄 Sahifa {page + 1}/{total_pages}\n\n"
 
-        # Biznes ro'yxati matnda - egasi va telefoni bilan
+        # Biznes ro'yxati matnda - egasi, telefoni va manzili bilan
         for i, biz in enumerate(page_businesses, start + 1):
             title = biz.get("title", "Noma'lum")
             biz_id = biz.get("id", 0)
@@ -2071,6 +2145,8 @@ class TelegramStatsHandler:
             owner_first = biz.get("owner_first_name") or ""
             owner_last = biz.get("owner_last_name") or ""
             owner = f"{owner_first} {owner_last}".strip()
+            address = biz.get("address", "")
+            district = biz.get("district_name_uz") or ""
             group_id = self._business_groups.get(str(biz_id), "")
             mark = " ✅" if group_id else ""
 
@@ -2082,6 +2158,11 @@ class TelegramStatsHandler:
                 text += "\n"
             elif phone:
                 text += f"   📱 {phone}\n"
+            # Manzil yoki tuman
+            if address:
+                text += f"   📍 {address}\n"
+            elif district:
+                text += f"   📍 {district}\n"
 
         # Keyboard
         keyboard_rows = []
@@ -2147,7 +2228,7 @@ class TelegramStatsHandler:
         text += f"🏙 {region_name}\n"
         text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
 
-        # Biznes ro'yxati matnda - egasi va telefoni bilan
+        # Biznes ro'yxati matnda - egasi, telefoni va manzili bilan
         for i, biz in enumerate(district_businesses, 1):
             title = biz.get("title", "Noma'lum")
             biz_id = biz.get("id", 0)
@@ -2155,6 +2236,9 @@ class TelegramStatsHandler:
             owner_first = biz.get("owner_first_name") or ""
             owner_last = biz.get("owner_last_name") or ""
             owner = f"{owner_first} {owner_last}".strip()
+            address = biz.get("address") or ""
+            biz_region = biz.get("region_name_uz") or ""
+            biz_district = biz.get("district_name_uz") or ""
             group_id = self._business_groups.get(str(biz_id), "")
             mark = " ✅" if group_id else ""
 
@@ -2166,6 +2250,14 @@ class TelegramStatsHandler:
                 text += "\n"
             elif phone:
                 text += f"   📱 {phone}\n"
+            # Manzil: address yoki viloyat+tuman
+            if address:
+                text += f"   📍 {address}\n"
+            elif biz_region or biz_district:
+                loc = biz_region
+                if biz_district:
+                    loc += f", {biz_district}" if loc else biz_district
+                text += f"   📍 {loc}\n"
             text += "\n"
 
         # Keyboard
@@ -2309,7 +2401,7 @@ class TelegramStatsHandler:
 
         keyboard = {
             "inline_keyboard": [
-                [{"text": "◀️ Orqaga", "callback_data": CALLBACK_BACK}]
+                [{"text": "◀️ Orqaga", "callback_data": CALLBACK_CALLS_BACK}]
             ]
         }
 
@@ -2395,7 +2487,7 @@ class TelegramStatsHandler:
 
         keyboard = {
             "inline_keyboard": [
-                [{"text": "◀️ Orqaga", "callback_data": CALLBACK_BACK}]
+                [{"text": "◀️ Orqaga", "callback_data": CALLBACK_CALLS_BACK}]
             ]
         }
 
@@ -2438,7 +2530,7 @@ class TelegramStatsHandler:
 
         keyboard = {
             "inline_keyboard": [
-                [{"text": "◀️ Orqaga", "callback_data": CALLBACK_BACK}]
+                [{"text": "◀️ Orqaga", "callback_data": CALLBACK_CALLS_BACK}]
             ]
         }
 
@@ -2521,12 +2613,12 @@ class TelegramStatsHandler:
                 timestamp = order.get("timestamp", "")
                 tg_sent = order.get("telegram_sent", True)
 
-                # Vaqtni format qilish
+                # Vaqtni format qilish (sana + vaqt)
                 time_str = ""
                 if timestamp:
                     try:
                         dt = datetime.fromisoformat(timestamp)
-                        time_str = dt.strftime("%H:%M")
+                        time_str = dt.strftime("%d.%m %H:%M")
                     except:
                         pass
 
@@ -2541,7 +2633,8 @@ class TelegramStatsHandler:
                 # Telegram'siz belgisi
                 tg_mark = "" if tg_sent else " 🚀"
 
-                text += f"{emoji} <b>#{order_num}</b>{tg_mark}"
+                # Tartib raqami + status emoji + buyurtma raqami
+                text += f"<b>{i}.</b> {emoji} <b>#{order_num}</b>{tg_mark}"
                 if time_str:
                     text += f" ({time_str})"
                 text += f"\n   👤 {client_name}"

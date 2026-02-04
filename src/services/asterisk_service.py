@@ -469,6 +469,7 @@ class CallManager:
     - Qo'ng'iroqlarni rejalashtirish
     - Retry logic
     - Natijalarni kuzatish
+    - PARALLEL qo'ng'iroqlar qo'llab-quvvatlanadi
     """
 
     def __init__(
@@ -485,6 +486,9 @@ class CallManager:
         self._last_call_result: Optional[CallResult] = None
         self._call_in_progress = False
         self._call_completed_event = asyncio.Event()
+
+        # PARALLEL qo'ng'iroqlar uchun - {phone_number: {event, result}}
+        self._active_calls: Dict[str, dict] = {}
 
         # Event handlers
         self.ami.on_event("OriginateResponse", self._on_originate_response)
@@ -519,9 +523,10 @@ class CallManager:
         pass
 
     async def _on_dial_end(self, data: dict):
-        """Dial tugadi"""
+        """Dial tugadi - parallel qo'ng'iroqlarni qo'llab-quvvatlaydi"""
         dial_status = data.get("DialStatus", "")
         channel = data.get("Channel", "")
+        dest_channel = data.get("DestChannel", "")
 
         logger.info(f"DialEnd keldi: channel={channel}, status={dial_status}")
 
@@ -534,14 +539,31 @@ class CallManager:
             "CHANUNAVAIL": CallStatus.FAILED,
         }
 
-        self._last_call_result = CallResult(
+        result = CallResult(
             status=status_map.get(dial_status, CallStatus.FAILED),
             dial_status=dial_status
         )
 
-        # DialEnd kelganda qo'ng'iroq tugadi
-        if self._call_in_progress:
-            self._call_completed_event.set()
+        # Telefon raqamini channel dan olish (PJSIP/998912345678@sarkor-endpoint)
+        phone_match = None
+        for ch in [dest_channel, channel]:
+            if ch and "PJSIP/" in ch:
+                match = re.search(r'PJSIP/(\d+)@', ch)
+                if match:
+                    phone_match = match.group(1)
+                    break
+
+        # PARALLEL qo'ng'iroq - tegishli call ni topish
+        if phone_match and phone_match in self._active_calls:
+            call_data = self._active_calls[phone_match]
+            call_data["result"] = result
+            call_data["event"].set()
+            logger.debug(f"Parallel call completed: {phone_match} -> {dial_status}")
+        else:
+            # Eski usul - bitta qo'ng'iroq uchun
+            self._last_call_result = result
+            if self._call_in_progress:
+                self._call_completed_event.set()
 
     async def make_call_with_retry(
         self,
@@ -600,53 +622,105 @@ class CallManager:
     async def _make_single_call(
         self,
         phone_number: str,
-        audio_file: str
+        audio_file: str,
+        parallel: bool = True
     ) -> CallResult:
-        """Bitta qo'ng'iroq qilish"""
-        # Avvalgi qo'ng'iroq tugaganini tekshirish
-        if self._call_in_progress:
-            logger.warning("Avvalgi qo'ng'iroq hali tugamagan, kutilmoqda...")
+        """Bitta qo'ng'iroq qilish - parallel qo'llab-quvvatlanadi"""
+
+        # Telefon raqamini tozalash (faqat raqamlar)
+        clean_number = re.sub(r'[^\d]', '', phone_number)
+        if clean_number.startswith('998') and len(clean_number) == 12:
+            pass  # OK
+        elif len(clean_number) == 9:
+            clean_number = '998' + clean_number
+
+        if parallel:
+            # PARALLEL rejim - har bir qo'ng'iroq mustaqil
+            call_event = asyncio.Event()
+            self._active_calls[clean_number] = {
+                "event": call_event,
+                "result": None,
+                "phone": phone_number
+            }
+
+            # AMI ulanish tekshirish
+            if not self.ami._connected:
+                logger.warning("AMI ulanish yo'q, qayta ulanish...")
+                reconnected = await self.ami.reconnect()
+                if not reconnected:
+                    del self._active_calls[clean_number]
+                    logger.error("AMI qayta ulanish muvaffaqiyatsiz")
+                    return CallResult(status=CallStatus.FAILED, error="AMI reconnect failed")
+
+            # Qo'ng'iroq boshlash
+            result = await self.ami.originate_call(phone_number, audio_file)
+
+            if result.status == CallStatus.FAILED:
+                del self._active_calls[clean_number]
+                return result
+
+            # Natija kutish
             try:
-                await asyncio.wait_for(self._call_completed_event.wait(), timeout=30)
+                await asyncio.wait_for(call_event.wait(), timeout=45)
             except asyncio.TimeoutError:
-                logger.error("Avvalgi qo'ng'iroq timeout, davom etilmoqda")
-            await asyncio.sleep(2)  # Aloqa to'liq uzilishi uchun kutish
+                logger.warning(f"Qo'ng'iroq timeout: {phone_number}")
+                self._active_calls[clean_number]["result"] = CallResult(
+                    status=CallStatus.NO_ANSWER,
+                    error="Timeout"
+                )
 
-        self._call_in_progress = True
-        self._call_completed_event.clear()
-        self._last_call_result = None
+            # Natijani olish va tozalash
+            call_result = self._active_calls.get(clean_number, {}).get("result")
+            if clean_number in self._active_calls:
+                del self._active_calls[clean_number]
 
-        # AMI ulanish tekshirish va qayta ulanish
-        if not self.ami._connected:
-            logger.warning("AMI ulanish yo'q, qayta ulanish...")
-            reconnected = await self.ami.reconnect()
-            if not reconnected:
+            return call_result or CallResult(status=CallStatus.FAILED, error="No result")
+
+        else:
+            # KETMA-KET rejim (eski usul)
+            if self._call_in_progress:
+                logger.warning("Avvalgi qo'ng'iroq hali tugamagan, kutilmoqda...")
+                try:
+                    await asyncio.wait_for(self._call_completed_event.wait(), timeout=30)
+                except asyncio.TimeoutError:
+                    logger.error("Avvalgi qo'ng'iroq timeout, davom etilmoqda")
+                await asyncio.sleep(2)
+
+            self._call_in_progress = True
+            self._call_completed_event.clear()
+            self._last_call_result = None
+
+            # AMI ulanish tekshirish va qayta ulanish
+            if not self.ami._connected:
+                logger.warning("AMI ulanish yo'q, qayta ulanish...")
+                reconnected = await self.ami.reconnect()
+                if not reconnected:
+                    self._call_in_progress = False
+                    logger.error("AMI qayta ulanish muvaffaqiyatsiz")
+                    return CallResult(status=CallStatus.FAILED, error="AMI reconnect failed")
+
+            # Qo'ng'iroq boshlash
+            result = await self.ami.originate_call(phone_number, audio_file)
+
+            if result.status == CallStatus.FAILED:
                 self._call_in_progress = False
-                logger.error("AMI qayta ulanish muvaffaqiyatsiz")
-                return CallResult(status=CallStatus.FAILED, error="AMI reconnect failed")
+                return result
 
-        # Qo'ng'iroq boshlash
-        result = await self.ami.originate_call(phone_number, audio_file)
+            # Natija kutish (30 soniya)
+            try:
+                await asyncio.wait_for(
+                    self._call_completed_event.wait(),
+                    timeout=45
+                )
+            except asyncio.TimeoutError:
+                logger.warning("Qo'ng'iroq timeout")
+                self._last_call_result = CallResult(
+                    status=CallStatus.NO_ANSWER,
+                    error="Timeout"
+                )
 
-        if result.status == CallStatus.FAILED:
+            # Qo'ng'iroq tugadi
             self._call_in_progress = False
-            return result
-
-        # Natija kutish (30 soniya)
-        try:
-            await asyncio.wait_for(
-                self._call_completed_event.wait(),
-                timeout=45
-            )
-        except asyncio.TimeoutError:
-            logger.warning("Qo'ng'iroq timeout")
-            self._last_call_result = CallResult(
-                status=CallStatus.NO_ANSWER,
-                error="Timeout"
-            )
-
-        # Qo'ng'iroq tugadi - biroz kutish (aloqa to'liq uzilishi uchun)
-        self._call_in_progress = False
-        await asyncio.sleep(2)  # 2 soniya kutish
-        logger.debug("Qo'ng'iroq to'liq tugadi, davom etish mumkin")
-        return self._last_call_result or CallResult(status=CallStatus.FAILED)
+            await asyncio.sleep(2)  # 2 soniya kutish
+            logger.debug("Qo'ng'iroq to'liq tugadi, davom etish mumkin")
+            return self._last_call_result or CallResult(status=CallStatus.FAILED)

@@ -676,7 +676,6 @@ class AutodialerPro:
                 delivery_time = ""
                 if raw_planned_time:
                     try:
-                        from datetime import datetime
                         dt = datetime.fromisoformat(str(raw_planned_time).replace('Z', '+00:00'))
                         delivery_time = dt.strftime("%d.%m %H:%M")
                     except:
@@ -700,9 +699,18 @@ class AutodialerPro:
                     if not delivery_time:
                         logger.warning(f"Buyurtma #{order_id} is_planned=True lekin delivery_time topilmadi. Order keys: {list(order.keys())}")
 
+                # Qabul qilish muddati tugadimi tekshirish
+                display_status = status
+                if status == "CHECKING" and order_id in self.state.order_timestamps:
+                    order_age = (datetime.now() - self.state.order_timestamps[order_id]).total_seconds()
+                    # Qo'ng'iroqlar tugagan va muddat o'tgan bo'lsa
+                    if order_age >= self.telegram_alert_time and not self.state.waiting_for_call:
+                        display_status = "ACCEPT_EXPIRED"
+                        logger.debug(f"Buyurtma #{order_id} qabul muddati tugadi ({order_age:.0f}s)")
+
                 order_data = {
                     "order_number": str(order_id),
-                    "status": status,
+                    "status": display_status,
                     "seller_name": biz_title or "Noma'lum",
                     "client_name": client_name,
                     "client_phone": client_phone,
@@ -718,17 +726,17 @@ class AutodialerPro:
                 if order_id in self._group_order_messages:
                     # Mavjud xabar - status o'zgargan bo'lsa yangilash
                     tracked = self._group_order_messages[order_id]
-                    if tracked.get("status") != status:
+                    if tracked.get("status") != display_status:
                         success = await self.telegram.update_business_order_message(
                             message_id=tracked["msg_id"],
                             order_data=order_data,
                             chat_id=group_chat_id
                         )
                         if success:
-                            tracked["status"] = status
+                            tracked["status"] = display_status
                             tracked["order_data"] = order_data  # order_data ni ham yangilash
                             self._save_group_messages()
-                            logger.info(f"Guruh: buyurtma #{order_id} status yangilandi: {status}")
+                            logger.info(f"Guruh: buyurtma #{order_id} status yangilandi: {display_status}")
                 else:
                     # Yangi buyurtma - tracking da yo'q
                     # MUHIM: Agar buyurtma allaqachon yakuniy statusda bo'lsa, yangi xabar yubormaymiz
@@ -748,11 +756,11 @@ class AutodialerPro:
                                 "msg_id": msg_id,
                                 "biz_id": biz_id,
                                 "chat_id": group_chat_id,
-                                "status": status,
+                                "status": display_status,
                                 "order_data": order_data,
                             }
                             self._save_group_messages()
-                            logger.info(f"Guruhga xabar yuborildi: buyurtma #{order_id}, status: {status}")
+                            logger.info(f"Guruhga xabar yuborildi: buyurtma #{order_id}, status: {display_status}")
 
             # For loop tugadi - endi API dan yo'qolgan buyurtmalarni tozalash
             # MUHIM: Faqat API da YO'Q bo'lgan buyurtmalarni o'chiramiz

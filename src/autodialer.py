@@ -236,7 +236,7 @@ class AutodialerPro:
 
         self.nonbor_poller = NonborPoller(
             nonbor_service=self.nonbor,
-            polling_interval=3,
+            polling_interval=5,
             on_new_orders=self._on_new_orders,
             on_orders_resolved=self._on_orders_resolved
         )

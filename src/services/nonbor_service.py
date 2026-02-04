@@ -315,7 +315,7 @@ class NonborPoller:
     def __init__(
         self,
         nonbor_service: NonborService,
-        polling_interval: int = 3,
+        polling_interval: int = 5,
         on_new_orders: callable = None,
         on_orders_resolved: callable = None
     ):

@@ -225,6 +225,15 @@ class AutodialerPro:
         # Guruh xabarlari - order_id -> {msg_id, biz_id, chat_id}
         self._group_order_messages: Dict[int, dict] = {}
 
+        # Lock - guruh xabarlarini yangilashda race condition oldini olish uchun
+        self._group_messages_lock = asyncio.Lock()
+
+        # In-progress set - xabar yuborilayotgan buyurtmalar (duplicate oldini olish)
+        self._sending_order_messages: set = set()
+
+        # Guruh xabari kutayotgan yangi buyurtmalar (2s loopda yuboriladi)
+        self._pending_group_message_orders: set = set()
+
         # Qo'ng'iroq urinishlari soni - HAR BIR SOTUVCHI UCHUN ALOHIDA
         # {seller_phone: call_attempts}
         self._seller_call_attempts: Dict[str, int] = {}
@@ -542,13 +551,27 @@ class AutodialerPro:
 
             if should_check_status:
                 self.state.last_group_status_check = now
-                await self._update_group_messages()
+                # Pending buyurtmalarni olish va tozalash (atomik)
+                pending_orders = set(self._pending_group_message_orders)
+                self._pending_group_message_orders.clear()
+                # MUHIM: Allaqachon tracking da bo'lgan buyurtmalarni olib tashlash
+                pending_orders = pending_orders - set(self._group_order_messages.keys())
+                # Guruh xabarlarini yangilash (pending bilan)
+                if pending_orders:
+                    logger.info(f"Guruh xabarlari: {len(pending_orders)} ta yangi buyurtma yuborilmoqda")
+                await self._update_group_messages(new_order_ids=pending_orders if pending_orders else None)
 
     async def _update_group_messages(self, new_order_ids: set = None):
         """
         Biriktirilgan guruhlarga har bir buyurtma uchun alohida xabar yuborish/yangilash.
         new_order_ids: yangi kelgan buyurtma ID lari (faqat ular uchun xabar yuboriladi)
         """
+        # Lock bilan ishlaymiz - race condition oldini olish
+        async with self._group_messages_lock:
+            await self._update_group_messages_internal(new_order_ids)
+
+    async def _update_group_messages_internal(self, new_order_ids: set = None):
+        """Internal: Lock ichida chaqiriladi"""
         try:
             orders = await self.nonbor.get_orders()
             if not orders:
@@ -746,21 +769,40 @@ class AutodialerPro:
                         # Yakuniy statusdagi buyurtma - yangi xabar yubormaymiz
                         continue
 
-                    should_send = (new_order_ids is None) or (order_id in new_order_ids)
+                    # MUHIM: Yangi xabar FAQAT new_order_ids berilganda yuboriladi
+                    # Status tekshirish loopida (new_order_ids=None) yangi xabar YUBORILMAYDI
+                    should_send = (new_order_ids is not None) and (order_id in new_order_ids)
+
+                    # DUPLICATE OLDINI OLISH: Agar xabar allaqachon yuborilayotgan bo'lsa, o'tkazib yuboring
+                    if order_id in self._sending_order_messages:
+                        logger.debug(f"Buyurtma #{order_id} uchun xabar allaqachon yuborilmoqda, o'tkazib yuborildi")
+                        continue
+
+                    # Qayta tekshirish: tracking da bormi (lock ichida ham)
+                    if order_id in self._group_order_messages:
+                        logger.debug(f"Buyurtma #{order_id} allaqachon tracking da, o'tkazib yuborildi")
+                        continue
+
                     if should_send:
-                        msg_id = await self.telegram.send_business_order_message(
-                            order_data=order_data, chat_id=group_chat_id
-                        )
-                        if msg_id:
-                            self._group_order_messages[order_id] = {
-                                "msg_id": msg_id,
-                                "biz_id": biz_id,
-                                "chat_id": group_chat_id,
-                                "status": display_status,
-                                "order_data": order_data,
-                            }
-                            self._save_group_messages()
-                            logger.info(f"Guruhga xabar yuborildi: buyurtma #{order_id}, status: {display_status}")
+                        # Xabar yuborilayotgan buyurtma sifatida belgilash
+                        self._sending_order_messages.add(order_id)
+                        try:
+                            msg_id = await self.telegram.send_business_order_message(
+                                order_data=order_data, chat_id=group_chat_id
+                            )
+                            if msg_id:
+                                self._group_order_messages[order_id] = {
+                                    "msg_id": msg_id,
+                                    "biz_id": biz_id,
+                                    "chat_id": group_chat_id,
+                                    "status": display_status,
+                                    "order_data": order_data,
+                                }
+                                self._save_group_messages()
+                                logger.info(f"Guruhga xabar yuborildi: buyurtma #{order_id}, status: {display_status}")
+                        finally:
+                            # Yuborish tugadi - ro'yxatdan o'chirish
+                            self._sending_order_messages.discard(order_id)
 
             # For loop tugadi - endi API dan yo'qolgan buyurtmalarni tozalash
             # MUHIM: Faqat API da YO'Q bo'lgan buyurtmalarni o'chiramiz
@@ -857,9 +899,17 @@ class AutodialerPro:
 
             logger.info(f"To'planayotgan yangi buyurtmalar: {len(self.state.new_order_ids_for_call)} ta")
 
-            # DARHOL: Biriktirilgan guruhga har bir yangi buyurtma uchun alohida xabar
+            # Guruh xabari uchun navbatga qo'shish - 2s loopda yuboriladi
+            # MUHIM: _on_new_orders dan TO'G'RIDAN-TO'G'RI yubormaymiz (duplicate oldini olish)
             if self.stats_handler and hasattr(self.stats_handler, '_business_groups') and self.stats_handler._business_groups:
-                await self._update_group_messages(new_order_ids=truly_new_ids)
+                added_count = 0
+                for new_id in truly_new_ids:
+                    # MUHIM: Allaqachon tracking da bo'lsa QOSHMAYMIZ
+                    if new_id not in self._group_order_messages and new_id not in self._pending_group_message_orders:
+                        self._pending_group_message_orders.add(new_id)
+                        added_count += 1
+                if added_count > 0:
+                    logger.info(f"Guruh xabari navbatiga qo'shildi: {added_count} ta buyurtma")
 
             # 1. MUHIM: Yangi buyurtma kelganda Telegram xabar DARHOL yangilanmaydi
             # Har bir buyurtma uchun 180s kutish kerak - _check_and_process() da 180s timer ishlaydi
@@ -1145,14 +1195,37 @@ class AutodialerPro:
             # Buyurtma IDlari
             order_ids = [o.get("lead_id") for o in seller_data["orders"]]
 
-            # Status tekshirish callback
+            # Status tekshirish va yangi buyurtmalar sonini olish callback
             async def check_orders_still_pending():
+                # API dan hozirgi CHECKING buyurtmalarni olish
+                current_orders = await self.nonbor.get_orders()
+                checking_orders = [o for o in current_orders if o.get("state") == "CHECKING"]
+
+                # Shu sotuvchining CHECKING buyurtmalari
+                seller_checking = [
+                    o for o in checking_orders
+                    if o.get("business", {}).get("phone") == seller_phone
+                ]
+
+                new_count = len(seller_checking)
+                logger.info(f"Qayta tekshirish: {seller_name} ({seller_phone}) - {new_count} ta CHECKING buyurtma")
+
+                if new_count == 0:
+                    logger.info(f"Barcha buyurtmalar qabul qilindi, qo'ng'iroq to'xtatildi")
+                    return (False, None)
+
+                # Eski buyurtmalar hali CHECKING da ekanini tekshirish
                 for order_id in order_ids:
                     status = await self.nonbor.get_order_status(order_id)
                     if status and status != "CHECKING":
                         logger.info(f"Buyurtma #{order_id} statusi o'zgardi: {status}")
-                        return False
-                return True
+                        return (False, None)
+
+                # Yangi TTS audio yaratish (yangilangan son bilan)
+                new_audio_path = await self.tts.generate_order_message(new_count)
+                logger.info(f"Yangi audio yaratildi: {new_count} ta buyurtma")
+
+                return (True, str(new_audio_path) if new_audio_path else None)
 
             # Qo'ng'iroq qilish
             result = await self.call_manager.make_call_with_retry(

@@ -1010,6 +1010,17 @@ class AutodialerPro:
                 seller_phone = order_data.get("seller_phone", "Noma'lum")
                 affected_sellers.add(seller_phone)
 
+                # MUHIM: Buyurtma statusiga qarab natijani aniqlash
+                order_status = order_data.get("state", order_data.get("status", ""))
+                rejected_statuses = [
+                    "CANCELLED", "CANCELLED_SELLER", "CANCELLED_USER", "CANCELLED_ADMIN",
+                    "ACCEPT_EXPIRED", "PAYMENT_EXPIRED", "REJECTED"
+                ]
+                if order_status in rejected_statuses:
+                    order_result = OrderResult.REJECTED
+                else:
+                    order_result = OrderResult.ACCEPTED
+
                 self.stats.record_order(
                     order_id=order_id,
                     order_number=order_data.get("order_number", str(order_id)),
@@ -1018,12 +1029,12 @@ class AutodialerPro:
                     client_name=order_data.get("client_name", "Noma'lum"),
                     product_name=order_data.get("product_name", "Noma'lum"),
                     price=order_data.get("price", 0),
-                    result=OrderResult.ACCEPTED,
+                    result=order_result,
                     call_attempts=self.state.call_attempts,
                     telegram_sent=telegram_was_sent
                 )
                 self._recorded_orders.add(order_id)
-                logger.info(f"Buyurtma #{order_id} statistikaga yozildi (Kesh hajmi: {self._recorded_orders.size()})")
+                logger.info(f"Buyurtma #{order_id} statistikaga yozildi: {order_result.value} (status={order_status})")
             except Exception as e:
                 logger.error(f"Buyurtma #{order_id} statistika yozishda xato: {e}")
 

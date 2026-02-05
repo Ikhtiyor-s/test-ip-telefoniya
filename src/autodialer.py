@@ -1031,7 +1031,8 @@ class AutodialerPro:
                     price=order_data.get("price", 0),
                     result=order_result,
                     call_attempts=self.state.call_attempts,
-                    telegram_sent=telegram_was_sent
+                    telegram_sent=telegram_was_sent,
+                    order_status=order_status
                 )
                 self._recorded_orders.add(order_id)
                 logger.info(f"Buyurtma #{order_id} statistikaga yozildi: {order_result.value} (status={order_status})")

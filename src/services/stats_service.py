@@ -64,6 +64,7 @@ class OrderRecord:
     call_attempts: int
     telegram_sent: bool
     timestamp: str
+    order_status: str = ""  # API dan kelgan asl status (ACCEPT_EXPIRED, CANCELLED_SELLER, etc.)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -206,7 +207,8 @@ class StatsService:
         price: int,
         result: OrderResult,
         call_attempts: int,
-        telegram_sent: bool
+        telegram_sent: bool,
+        order_status: str = ""
     ):
         """Buyurtmani qayd etish"""
         self._ensure_today()
@@ -222,7 +224,8 @@ class StatsService:
             result=result.value,
             call_attempts=call_attempts,
             telegram_sent=telegram_sent,
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now().isoformat(),
+            order_status=order_status
         )
 
         self._today_stats.order_records.append(record.to_dict())

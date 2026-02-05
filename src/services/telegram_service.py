@@ -1758,6 +1758,8 @@ class TelegramStatsHandler:
                         orders_list.append(record)
                     elif status_filter == "rejected" and record.get("result") == "rejected":
                         orders_list.append(record)
+                    elif status_filter == "expired" and record.get("order_status") == "ACCEPT_EXPIRED":
+                        orders_list.append(record)
                     elif status_filter == "notg" and record.get("telegram_sent") == False:
                         orders_list.append(record)
 
@@ -1775,13 +1777,14 @@ class TelegramStatsHandler:
         page_orders = orders_list[start_idx:end_idx]
 
         # Status nomi
-        status_names = {"all": "Barchasi", "accepted": "Qabul qilingan", "rejected": "Bekor qilingan", "notg": "Telegram'siz"}
+        status_names = {"all": "Barchasi", "accepted": "Qabul qilingan", "rejected": "Bekor qilingan", "expired": "Muddati o'tgan", "notg": "Telegram'siz"}
         status_name = status_names.get(status_filter, "Barchasi")
 
         # Statistika - barcha buyurtmalar uchun
         all_seller_orders = [r for r in stats.order_records if r.get("seller_phone") == user_phone] if self.stats_service and user_phone else []
         accepted_count = sum(1 for o in all_seller_orders if o.get("result") == "accepted")
         rejected_count = sum(1 for o in all_seller_orders if o.get("result") == "rejected")
+        expired_count = sum(1 for o in all_seller_orders if o.get("order_status") == "ACCEPT_EXPIRED")
         notg_count = sum(1 for o in all_seller_orders if o.get("telegram_sent") == False)
 
         # Matn
@@ -1832,7 +1835,7 @@ class TelegramStatsHandler:
         # Footer
         text += f"━━━━━━━━━━━━━━━━━━━━\n"
         if status_filter == "all":
-            text += f"📊 Jami: {total_orders} ta (✅{accepted_count} | ❌{rejected_count} | 🚀{notg_count})\n"
+            text += f"📊 Jami: {total_orders} ta (✅{accepted_count} | ❌{rejected_count} | ⏰{expired_count} | 🚀{notg_count})\n"
         else:
             text += f"📊 Jami: {total_orders} ta\n"
         if total_pages > 1:
@@ -1851,7 +1854,7 @@ class TelegramStatsHandler:
                 period_row.append({"text": emoji, "callback_data": f"{CALLBACK_OWNER_PERIOD}{p}"})
         keyboard_rows.append(period_row)
 
-        # 2. Status filter tugmalari (2 qator)
+        # 2. Status filter tugmalari (3 qator)
         status_row1 = []
         statuses1 = [("📋 Barchasi", "all"), ("✅ Qabul", "accepted")]
         for label, s in statuses1:
@@ -1862,13 +1865,22 @@ class TelegramStatsHandler:
         keyboard_rows.append(status_row1)
 
         status_row2 = []
-        statuses2 = [("❌ Bekor", "rejected"), ("🚀 Tg'siz", "notg")]
+        statuses2 = [("❌ Bekor", "rejected"), ("⏰ Muddati o'tgan", "expired")]
         for label, s in statuses2:
             if s == status_filter:
                 status_row2.append({"text": f"✓ {label}", "callback_data": f"{CALLBACK_OWNER_STATUS}{s}"})
             else:
                 status_row2.append({"text": label, "callback_data": f"{CALLBACK_OWNER_STATUS}{s}"})
         keyboard_rows.append(status_row2)
+
+        status_row3 = []
+        statuses3 = [("🚀 Tg'siz", "notg")]
+        for label, s in statuses3:
+            if s == status_filter:
+                status_row3.append({"text": f"✓ {label}", "callback_data": f"{CALLBACK_OWNER_STATUS}{s}"})
+            else:
+                status_row3.append({"text": label, "callback_data": f"{CALLBACK_OWNER_STATUS}{s}"})
+        keyboard_rows.append(status_row3)
 
         # 3. Pagination
         if total_pages > 1:

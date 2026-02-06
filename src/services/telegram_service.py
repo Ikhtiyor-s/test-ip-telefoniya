@@ -1031,16 +1031,22 @@ class TelegramStatsHandler:
         self._auth_states[chat_id] = AUTH_AWAITING_PHONE
         await self.telegram.send_message(
             text=(
-                "📋 <b>Nonbor Buyurtmalar Bot</b>\n\n"
-                "Buyurtmalar haqida xabar va statistika.\n\n"
+                "📋 <b>Assalomu alaykum Nonbor buyurtmalar botiga xush kelibsiz!</b>\n\n"
+                "Bot orqali siz buyurtmalar haqida xabar va statistikalarni ko'rishingiz mumkin.\n\n"
                 "<b>Kirish:</b>\n"
-                "1. business.nonbor.uz da ro'yxatdan o'ting\n"
-                "2. Ro'yxatdagi raqamni quyida yozing\n"
-                "3. Tasdiqlash kodini kiriting\n\n"
+                "1. business.nonbor.uz da ro'yxatdan o'ting.\n"
+                "2. Ro'yxatdagi raqamni quyida yozing.\n"
+                "3. Tasdiqlash kodini kiriting.\n\n"
                 "<b>Guruhga ulash (ixtiyoriy):</b>\n"
-                "1. Guruh yarating va @Nonborbuyurtmalar_bot ni admin qiling\n"
-                "2. @userinfobot ga guruhdan xabar forward qiling — ID olasiz\n"
-                "3. Botda \"Bizneslar\" → biznesingiz → \"Guruh ID\" → ID kiriting\n\n"
+                "1. Guruh yarating va @Nonborbuyurtmalar_bot ni guruhingizga admin qiling. "
+                "(o'zingizning guruhingiz bo'sa keyingi qadamlarni bajaring).\n"
+                "2. @userinfobot ga kirib start bosing.\n"
+                "3. Menyudan Group bo'limini tanlab o'zingizning guruhingizni yuboring. "
+                "Bot sizga guruhingiz IDsini yuboradi. ID raqamni nusxalang.\n"
+                "4. Botda \"Bizneslar\" → biznesingiz → \"Guruh ID\" → ID kiriting "
+                "va yuborish tugmasini bosing.\n"
+                "Tabriklaymiz sizning guruhingiz muvaffaqiyatli qo'shildi. "
+                "Endi buyurtmalaringizni onlayn kuzatib borishingiz mumkin.\n\n"
                 "━━━━━━━━━━━━━━━━━━━\n"
                 "📱 <b>Telefon raqamingizni kiriting:</b>\n"
                 "<i>Masalan: +998901234567</i>"
@@ -1756,9 +1762,15 @@ class TelegramStatsHandler:
                         orders_list.append(record)
                     elif status_filter == "accepted" and record.get("result") == "accepted":
                         orders_list.append(record)
-                    elif status_filter == "rejected" and record.get("result") == "rejected":
+                    elif status_filter == "rejected" and record.get("order_status", "").startswith("CANCELLED"):
                         orders_list.append(record)
                     elif status_filter == "expired" and record.get("order_status") == "ACCEPT_EXPIRED":
+                        orders_list.append(record)
+                    elif status_filter == "checking" and record.get("order_status") == "CHECKING":
+                        orders_list.append(record)
+                    elif status_filter == "delivering" and record.get("order_status") == "DELIVERING":
+                        orders_list.append(record)
+                    elif status_filter == "delivered" and record.get("order_status") == "DELIVERED":
                         orders_list.append(record)
                     elif status_filter == "notg" and record.get("telegram_sent") == False:
                         orders_list.append(record)
@@ -1777,7 +1789,7 @@ class TelegramStatsHandler:
         page_orders = orders_list[start_idx:end_idx]
 
         # Status nomi
-        status_names = {"all": "Barchasi", "accepted": "Qabul qilingan", "rejected": "Bekor qilingan", "expired": "Muddati o'tgan", "notg": "Telegram'siz"}
+        status_names = {"all": "Barchasi", "checking": "Tekshirilmoqda", "accepted": "Qabul qilingan", "rejected": "Bekor qilingan", "expired": "Muddati o'tgan", "delivering": "Yetkazilmoqda", "delivered": "Yetkazildi", "notg": "Telegram'siz"}
         status_name = status_names.get(status_filter, "Barchasi")
 
         # Statistika - barcha buyurtmalar uchun
@@ -1855,32 +1867,20 @@ class TelegramStatsHandler:
         keyboard_rows.append(period_row)
 
         # 2. Status filter tugmalari (3 qator)
-        status_row1 = []
-        statuses1 = [("📋 Barchasi", "all"), ("✅ Qabul", "accepted")]
-        for label, s in statuses1:
-            if s == status_filter:
-                status_row1.append({"text": f"✓ {label}", "callback_data": f"{CALLBACK_OWNER_STATUS}{s}"})
-            else:
-                status_row1.append({"text": label, "callback_data": f"{CALLBACK_OWNER_STATUS}{s}"})
-        keyboard_rows.append(status_row1)
-
-        status_row2 = []
-        statuses2 = [("❌ Bekor", "rejected"), ("⏰ Muddati o'tgan", "expired")]
-        for label, s in statuses2:
-            if s == status_filter:
-                status_row2.append({"text": f"✓ {label}", "callback_data": f"{CALLBACK_OWNER_STATUS}{s}"})
-            else:
-                status_row2.append({"text": label, "callback_data": f"{CALLBACK_OWNER_STATUS}{s}"})
-        keyboard_rows.append(status_row2)
-
-        status_row3 = []
-        statuses3 = [("🚀 Tg'siz", "notg")]
-        for label, s in statuses3:
-            if s == status_filter:
-                status_row3.append({"text": f"✓ {label}", "callback_data": f"{CALLBACK_OWNER_STATUS}{s}"})
-            else:
-                status_row3.append({"text": label, "callback_data": f"{CALLBACK_OWNER_STATUS}{s}"})
-        keyboard_rows.append(status_row3)
+        all_statuses = [
+            [("📋 Barchasi", "all"), ("🔍 Tekshirilmoqda", "checking")],
+            [("✅ Qabul", "accepted"), ("❌ Bekor", "rejected")],
+            [("⏰ Muddati o'tgan", "expired"), ("🚚 Yetkazilmoqda", "delivering")],
+            [("📬 Yetkazildi", "delivered"), ("🚀 Tg'siz", "notg")],
+        ]
+        for row_statuses in all_statuses:
+            row = []
+            for label, s in row_statuses:
+                if s == status_filter:
+                    row.append({"text": f"✓ {label}", "callback_data": f"{CALLBACK_OWNER_STATUS}{s}"})
+                else:
+                    row.append({"text": label, "callback_data": f"{CALLBACK_OWNER_STATUS}{s}"})
+            keyboard_rows.append(row)
 
         # 3. Pagination
         if total_pages > 1:
@@ -2592,7 +2592,15 @@ class TelegramStatsHandler:
                 orders_list.append(record)
             elif status_filter == "accepted" and record.get("result") == "accepted":
                 orders_list.append(record)
-            elif status_filter == "rejected" and record.get("result") == "rejected":
+            elif status_filter == "rejected" and record.get("order_status", "").startswith("CANCELLED"):
+                orders_list.append(record)
+            elif status_filter == "expired" and record.get("order_status") == "ACCEPT_EXPIRED":
+                orders_list.append(record)
+            elif status_filter == "checking" and record.get("order_status") == "CHECKING":
+                orders_list.append(record)
+            elif status_filter == "delivering" and record.get("order_status") == "DELIVERING":
+                orders_list.append(record)
+            elif status_filter == "delivered" and record.get("order_status") == "DELIVERED":
                 orders_list.append(record)
             elif status_filter == "notg" and record.get("telegram_sent") == False:
                 orders_list.append(record)
@@ -2615,6 +2623,10 @@ class TelegramStatsHandler:
             "all": "Barchasi",
             "accepted": "Qabul qilingan",
             "rejected": "Bekor qilingan",
+            "expired": "Muddati o'tgan",
+            "checking": "Tekshirilmoqda",
+            "delivering": "Yetkazilmoqda",
+            "delivered": "Yetkazildi",
             "notg": "Telegram'siz"
         }
         status_name = status_names.get(status_filter, "Barchasi")
@@ -2677,36 +2689,29 @@ class TelegramStatsHandler:
         if status_filter == "all":
             accepted = stats.accepted_orders
             rejected = stats.rejected_orders
+            expired = sum(1 for r in stats.order_records if r.get("order_status") == "ACCEPT_EXPIRED")
             notg = stats.accepted_without_telegram
-            text += f" (✅{accepted} | ❌{rejected} | 🚀{notg})"
+            text += f" (✅{accepted} | ❌{rejected} | ⏰{expired} | 🚀{notg})"
         if total_pages > 1:
             text += f"\n📄 Sahifa: {page + 1}/{total_pages}"
 
         # Keyboard
         keyboard_rows = []
 
-        # 1. Status filter tugmalari
-        status_row1 = []
-        status_row2 = []
-        statuses = [
-            ("📋 Barchasi", "all"),
-            ("✅ Qabul", "accepted"),
-            ("❌ Bekor", "rejected"),
-            ("🚀 Tg'siz", "notg")
-        ]
-        for label, s in statuses[:2]:
-            if s == status_filter:
-                status_row1.append({"text": f"✓ {label}", "callback_data": f"{CALLBACK_ADMIN_ORDERS_STATUS}{s}"})
-            else:
-                status_row1.append({"text": label, "callback_data": f"{CALLBACK_ADMIN_ORDERS_STATUS}{s}"})
-        for label, s in statuses[2:]:
-            if s == status_filter:
-                status_row2.append({"text": f"✓ {label}", "callback_data": f"{CALLBACK_ADMIN_ORDERS_STATUS}{s}"})
-            else:
-                status_row2.append({"text": label, "callback_data": f"{CALLBACK_ADMIN_ORDERS_STATUS}{s}"})
+        # 1. Status filter tugmalari (4 qator)
+        statuses1 = [("📋 Barchasi", "all"), ("🔍 Tekshirilmoqda", "checking")]
+        statuses2 = [("✅ Qabul", "accepted"), ("❌ Bekor", "rejected")]
+        statuses3 = [("⏰ Muddati o'tgan", "expired"), ("🚚 Yetkazilmoqda", "delivering")]
+        statuses4 = [("📬 Yetkazildi", "delivered"), ("🚀 Tg'siz", "notg")]
 
-        keyboard_rows.append(status_row1)
-        keyboard_rows.append(status_row2)
+        for row_statuses in [statuses1, statuses2, statuses3, statuses4]:
+            row = []
+            for label, s in row_statuses:
+                if s == status_filter:
+                    row.append({"text": f"✓ {label}", "callback_data": f"{CALLBACK_ADMIN_ORDERS_STATUS}{s}"})
+                else:
+                    row.append({"text": label, "callback_data": f"{CALLBACK_ADMIN_ORDERS_STATUS}{s}"})
+            keyboard_rows.append(row)
 
         # 2. Pagination
         if total_pages > 1:

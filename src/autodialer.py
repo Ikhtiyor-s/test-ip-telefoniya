@@ -197,7 +197,7 @@ class AutodialerPro:
         telegram_token: str = None,
         telegram_chat_id: str = None,
         # Sotuvchi
-        seller_phone: str = "+998948679300",
+        seller_phone: str = "+998901009300",
         # Vaqtlar
         wait_before_call: int = 90,  # 1.5 daqiqa
         telegram_alert_time: int = 180,  # 3 daqiqa
@@ -213,6 +213,11 @@ class AutodialerPro:
         self.max_call_attempts = max_call_attempts
         self.retry_interval = retry_interval
         self.audio_dir = Path(audio_dir)
+
+        # Telefon raqam override (test uchun) - {biznes_nomi: telefon}
+        self.phone_overrides = {
+            "Milliy": "+998901009300",
+        }
 
         # Holat
         self.state = AutodialerState()
@@ -1146,6 +1151,13 @@ class AutodialerPro:
                 order_data = await self.nonbor.get_order_full_data(order_id)
                 seller_phone = order_data.get("seller_phone", "Noma'lum")
 
+                # Biznes nomi bo'yicha telefon override (test uchun)
+                seller_name = order_data.get("seller_name", "")
+                logger.info(f"Buyurtma #{order_id}: seller_name='{seller_name}', seller_phone='{seller_phone}'")
+                if seller_name in self.phone_overrides:
+                    seller_phone = self.phone_overrides[seller_name]
+                    logger.info(f"Buyurtma #{order_id}: {seller_name} telefoni override: {seller_phone}")
+
                 # Telefon raqamini formatlash
                 if seller_phone and seller_phone != "Noma'lum":
                     # Faqat raqamlarni olish
@@ -1649,7 +1661,7 @@ async def main():
         telegram_chat_id=os.getenv("TELEGRAM_CHAT_ID"),
 
         # Sotuvchi
-        seller_phone=os.getenv("SELLER_PHONE", "+998948679300"),
+        seller_phone=os.getenv("SELLER_PHONE", "+998901009300"),
 
         # Vaqtlar
         wait_before_call=int(os.getenv("WAIT_BEFORE_CALL", "90")),

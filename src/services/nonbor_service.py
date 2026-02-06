@@ -40,6 +40,7 @@ class NonborService:
         # Cache
         self._known_leads: Set[int] = set()
         self._businesses_cache: Dict[int, Dict] = {}
+        self._seller_id_cache: Dict[str, int] = {}  # phone -> seller_id
         self._session: Optional[aiohttp.ClientSession] = None
         self._consecutive_errors: int = 0
 
@@ -310,6 +311,133 @@ class NonborService:
         result["lead_name"] = f"#{order['id']} | {result['client_name']} | {order.get('payment_method', 'CASH')} | {result['price']}"
 
         return result
+
+    async def get_seller_id(self, phone: str) -> Optional[int]:
+        """
+        Telefon raqam bo'yicha seller_id olish
+        POST /telegram_bot/get_seller_info/ → {username: phone} → result[0].id
+
+        Args:
+            phone: Telefon raqami (masalan: +998948679300)
+
+        Returns:
+            Seller ID yoki None
+        """
+        # Cache tekshirish
+        if phone in self._seller_id_cache:
+            return self._seller_id_cache[phone]
+
+        # + belgisini olib tashlash
+        username = phone.lstrip("+")
+
+        session = await self._get_session()
+        url = f"{self.base_url}/telegram_bot/get_seller_info/"
+        timeout = aiohttp.ClientTimeout(total=10)
+
+        try:
+            async with session.post(url, json={"username": username}, timeout=timeout) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    if data.get("success") and data.get("result"):
+                        seller_id = data["result"][0].get("id")
+                        if seller_id:
+                            self._seller_id_cache[phone] = seller_id
+                            logger.info(f"Seller ID topildi: {phone} -> {seller_id}")
+                            return seller_id
+                else:
+                    logger.error(f"get_seller_info xato: {response.status}")
+        except Exception as e:
+            logger.error(f"get_seller_info xato: {e}")
+        return None
+
+    async def get_seller_orders(self, seller_id: int) -> List[Dict]:
+        """
+        Seller buyurtmalarini olish
+        GET /telegram_bot/sellers/{seller_id}/orders/
+
+        Returns:
+            Buyurtmalar ro'yxati
+        """
+        data = await self._make_request("GET", f"telegram_bot/sellers/{seller_id}/orders/")
+        if not data or not data.get("success"):
+            return []
+
+        orders = data.get("result", [])
+        logger.info(f"Seller #{seller_id} buyurtmalari: {len(orders)} ta")
+        return orders
+
+    async def get_seller_order_detail(self, seller_id: int, order_id: int) -> Optional[Dict]:
+        """
+        Bitta buyurtmaning batafsil ma'lumotlarini olish
+        GET /telegram_bot/sellers/{seller_id}/orders/{order_id}/
+
+        Returns:
+            Buyurtma tafsilotlari (items, payment_method, delivery_method) yoki None
+        """
+        data = await self._make_request("GET", f"telegram_bot/sellers/{seller_id}/orders/{order_id}/")
+        if not data or not data.get("success"):
+            return None
+
+        results = data.get("result", [])
+        if results:
+            return results[0]
+        return None
+
+    async def get_seller_orders_details_batch(self, seller_id: int, order_ids: List[int]) -> Dict[int, Dict]:
+        """
+        Bir nechta buyurtmaning batafsil ma'lumotlarini parallel olish
+
+        Returns:
+            {order_id: detail_dict} mapping
+        """
+        async def fetch_one(oid):
+            detail = await self.get_seller_order_detail(seller_id, oid)
+            return oid, detail
+
+        results = await asyncio.gather(*[fetch_one(oid) for oid in order_ids], return_exceptions=True)
+
+        details = {}
+        for r in results:
+            if isinstance(r, tuple) and r[1] is not None:
+                details[r[0]] = r[1]
+        return details
+
+    async def get_seller_order_counts(self, seller_id: int) -> Optional[Dict]:
+        """
+        Seller buyurtmalari status bo'yicha sonini olish
+        GET /telegram_bot/sellers/{seller_id}/orders/status_count/
+
+        Returns:
+            Status counts dict yoki None
+        """
+        data = await self._make_request("GET", f"telegram_bot/sellers/{seller_id}/orders/status_count/")
+        if not data or not data.get("success"):
+            return None
+
+        return data.get("result", {})
+
+    async def get_orders_by_business(self, business_id: int) -> List[Dict]:
+        """
+        Biznes ID bo'yicha buyurtmalarni olish (API dan)
+
+        Args:
+            business_id: Biznes ID
+
+        Returns:
+            Buyurtmalar ro'yxati (bo'sh list agar xato yuz bersa)
+        """
+        orders = await self.get_orders()
+        if not orders:
+            return []
+
+        # Biznes ID bo'yicha filtrlash
+        business_orders = [
+            order for order in orders
+            if order.get("business", {}).get("id") == business_id
+        ]
+
+        logger.info(f"Biznes #{business_id} buyurtmalari: {len(business_orders)} ta (jami: {len(orders)})")
+        return business_orders
 
     def reset_known_leads(self):
         """Ko'rilgan buyurtmalar ro'yxatini tozalash"""

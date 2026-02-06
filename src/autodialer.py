@@ -1011,7 +1011,13 @@ class AutodialerPro:
                 affected_sellers.add(seller_phone)
 
                 # MUHIM: Buyurtma statusiga qarab natijani aniqlash
+                # Avval order_data dan, keyin individual API dan status olish
                 order_status = order_data.get("state", order_data.get("status", ""))
+                if not order_status:
+                    api_status = await self.nonbor.get_order_status(order_id)
+                    if api_status:
+                        order_status = api_status
+                        logger.info(f"Buyurtma #{order_id} status API dan olindi: {order_status}")
                 rejected_statuses = [
                     "CANCELLED", "CANCELLED_SELLER", "CANCELLED_USER", "CANCELLED_ADMIN",
                     "ACCEPT_EXPIRED", "PAYMENT_EXPIRED", "REJECTED"

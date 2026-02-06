@@ -260,11 +260,17 @@ class NonborService:
                 break
 
         if not order:
-            return result
+            # Ro'yxatda topilmadi - individual endpoint dan olish
+            order_details = await self.get_order_details(order_id)
+            if order_details:
+                order = order_details.get("result", order_details)
+                logger.info(f"Buyurtma #{order_id} individual endpoint dan olindi")
+            else:
+                return result
 
         # Buyurtma ma'lumotlari
-        result["lead_id"] = order["id"]
-        result["order_number"] = str(order["id"])
+        result["lead_id"] = order.get("id", order_id)
+        result["order_number"] = str(order.get("id", order_id))
         result["price"] = (order.get("total_price", 0) or 0) / 100
 
         # Biznes (sotuvchi) ma'lumotlari

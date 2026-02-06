@@ -546,7 +546,7 @@ class AutodialerPro:
                 should_check_status = True
             else:
                 time_since_check = (now - self.state.last_group_status_check).total_seconds()
-                if time_since_check >= 2:  # Har 2 soniyada tekshirish
+                if time_since_check >= 5:  # Har 5 soniyada tekshirish (server yuklamasini kamaytirish)
                     should_check_status = True
 
             if should_check_status:

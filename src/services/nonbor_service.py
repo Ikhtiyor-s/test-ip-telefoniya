@@ -41,6 +41,7 @@ class NonborService:
         self._known_leads: Set[int] = set()
         self._businesses_cache: Dict[int, Dict] = {}
         self._session: Optional[aiohttp.ClientSession] = None
+        self._consecutive_errors: int = 0
 
         logger.info(f"Nonbor servisi ishga tushdi")
 
@@ -59,20 +60,26 @@ class NonborService:
         """API so'rov yuborish"""
         session = await self._get_session()
         url = f"{self.base_url}/{endpoint}"
-        timeout = aiohttp.ClientTimeout(total=10)
+        timeout = aiohttp.ClientTimeout(total=15)
 
         try:
             async with session.request(method, url, timeout=timeout) as response:
                 if response.status == 200:
+                    self._consecutive_errors = 0  # Muvaffaqiyatli - reset
                     return await response.json()
                 else:
+                    self._consecutive_errors += 1
                     logger.error(f"Nonbor API xatosi: {response.status}")
                     return None
         except asyncio.TimeoutError:
-            logger.error(f"Nonbor API timeout: {endpoint}")
+            self._consecutive_errors += 1
+            if self._consecutive_errors <= 3 or self._consecutive_errors % 10 == 0:
+                logger.error(f"Nonbor API timeout: {endpoint} (ketma-ket: {self._consecutive_errors})")
             return None
         except aiohttp.ClientError as e:
-            logger.error(f"Nonbor API ulanish xatosi: {e}")
+            self._consecutive_errors += 1
+            if self._consecutive_errors <= 3 or self._consecutive_errors % 10 == 0:
+                logger.error(f"Nonbor API ulanish xatosi: {e} (ketma-ket: {self._consecutive_errors})")
             return None
 
     async def get_businesses(self) -> List[Dict]:
@@ -356,14 +363,32 @@ class NonborPoller:
         logger.info("Nonbor Polling to'xtatildi")
 
     async def _poll_loop(self):
-        """Asosiy polling sikli - faqat o'zgarishlar bo'lganda callback chaqiriladi"""
+        """Asosiy polling sikli - exponential backoff bilan"""
         while self._running:
             try:
                 count, current_ids = await self.nonbor.check_for_new_leads()
 
                 if count is None:
-                    await asyncio.sleep(self.polling_interval)
-                    continue
+                    # Xatolik — backoff hisoblash (5s, 10s, 20s, 40s, 60s max)
+                    errors = self.nonbor._consecutive_errors
+                    backoff = min(self.polling_interval * (2 ** min(errors - 1, 4)), 60)
+
+                    # Bo'lakli kutish: har 5s da API ni tekshirib turadi
+                    waited = 0
+                    while waited < backoff and self._running:
+                        await asyncio.sleep(self.polling_interval)
+                        waited += self.polling_interval
+
+                        # Har bo'lakda API ni tekshirish
+                        test_count, test_ids = await self.nonbor.check_for_new_leads()
+                        if test_count is not None:
+                            # API tiklandi — darhol normal rejimga qaytish
+                            count, current_ids = test_count, test_ids
+                            logger.info(f"API tiklandi! Normal rejimga qaytildi ({waited}s da)")
+                            break
+                    else:
+                        # Backoff tugadi, API hali ham ishlamayapti
+                        continue
 
                 current_id_set = set(current_ids) if current_ids else set()
 

@@ -579,12 +579,15 @@ class CallManager:
             phone_number: Telefon raqami
             audio_file: Audio fayl
             on_attempt: Har bir urinishda chaqiriladigan callback
-            before_retry_check: Retry dan oldin chaqiriladigan callback (False qaytarsa - to'xtatiladi)
+            before_retry_check: Retry dan oldin chaqiriladigan callback
+                - (False, None) qaytarsa - to'xtatiladi
+                - (True, new_audio_path) qaytarsa - yangi audio bilan davom etadi
 
         Returns:
             Yakuniy CallResult
         """
         self._current_attempt = 0
+        current_audio = audio_file
 
         while self._current_attempt < self.max_attempts:
             self._current_attempt += 1
@@ -596,17 +599,27 @@ class CallManager:
                 f"Qo'ng'iroq urinishi {self._current_attempt}/{self.max_attempts}: {phone_number}"
             )
 
-            result = await self._make_single_call(phone_number, audio_file)
+            result = await self._make_single_call(phone_number, current_audio)
 
             if result.is_answered:
                 logger.info(f"Qo'ng'iroq muvaffaqiyatli: {phone_number}")
                 return result
 
             if self._current_attempt < self.max_attempts:
-                # Birinchi - status tekshirish (qo'ng'iroq tugagandan keyin darhol)
+                # Birinchi - buyurtmalarni qayta tekshirish va yangi audio olish
                 if before_retry_check:
-                    logger.info(f"Buyurtma statusini tekshirish...")
-                    should_continue = await before_retry_check()
+                    logger.info(f"Buyurtmalarni qayta tekshirish...")
+                    check_result = await before_retry_check()
+
+                    # Tuple (should_continue, new_audio) yoki bool qaytishi mumkin
+                    if isinstance(check_result, tuple):
+                        should_continue, new_audio = check_result
+                        if new_audio:
+                            current_audio = new_audio
+                            logger.info(f"Yangi audio yangilandi: {new_audio}")
+                    else:
+                        should_continue = check_result
+
                     if not should_continue:
                         logger.info(f"Buyurtma statusi o'zgardi, qo'ng'iroq to'xtatildi: {phone_number}")
                         result.status = CallStatus.CANCELLED

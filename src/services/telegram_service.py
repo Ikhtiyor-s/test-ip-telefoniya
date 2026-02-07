@@ -59,6 +59,7 @@ CALLBACK_OWNER_PAGE = "oo_page_"        # oo_page_0, oo_page_1, ...
 CALLBACK_OWNER_STATUS = "oo_status_"    # oo_status_all, oo_status_accepted, oo_status_rejected
 CALLBACK_OWNER_GROUP = "owner_group"    # Guruh boshqaruvi
 CALLBACK_OWNER_GROUP_DEL = "owner_grp_del"  # Guruhni o'chirish
+CALLBACK_OWNER_MAIN_PERIOD = "om_period_"  # om_period_daily, om_period_weekly, etc.
 
 # Admin orders (admin buyurtmalar bo'limi)
 CALLBACK_ADMIN_ORDERS_PAGE = "ao_page_"      # ao_page_0, ao_page_1, ...
@@ -1376,6 +1377,11 @@ class TelegramStatsHandler:
                 # Asosiy menyuga qaytish
                 await self._update_business_owner_message(message_id, chat_id)
                 return
+            elif data.startswith(CALLBACK_OWNER_MAIN_PERIOD):
+                # Asosiy sahifada davr o'zgartirish
+                period = data.replace(CALLBACK_OWNER_MAIN_PERIOD, "")
+                await self._update_business_owner_message(message_id, chat_id, period=period)
+                return
             elif data == CALLBACK_OWNER_GROUP:
                 # Guruh boshqaruvi
                 await self._show_owner_group(message_id, chat_id)
@@ -1531,6 +1537,9 @@ class TelegramStatsHandler:
             await self._show_owner_orders(message_id, chat_id)
         elif data == CALLBACK_OWNER_BACK or data == "owner_back":
             await self._update_business_owner_message(message_id, chat_id)
+        elif data.startswith(CALLBACK_OWNER_MAIN_PERIOD):
+            period = data.replace(CALLBACK_OWNER_MAIN_PERIOD, "")
+            await self._update_business_owner_message(message_id, chat_id, period=period)
         elif data == CALLBACK_OWNER_GROUP:
             await self._show_owner_group(message_id, chat_id)
         elif data == CALLBACK_OWNER_GROUP_DEL:
@@ -1615,35 +1624,72 @@ class TelegramStatsHandler:
             reply_markup=keyboard
         )
 
-    async def _send_business_owner_message(self, chat_id: str) -> Optional[int]:
-        """Biznes egasi uchun oddiy ko'rinish - faqat buyurtmalar va guruh"""
+    async def _build_owner_main_content(self, chat_id: str, period: str = "daily"):
+        """Biznes egasi asosiy sahifa matn va klaviaturasini yaratish"""
         user_data = self._verified_users.get(chat_id, {})
         biz_id = user_data.get("business_id")
         biz_title = user_data.get("business_title", "Noma'lum")
         user_phone = user_data.get("phone", "")
 
-        # Guruh holati
         group_id = self._business_groups.get(str(biz_id), "") if biz_id else ""
 
-        # Buyurtmalar statistikasi (biznes nomi yoki telefon bo'yicha)
-        orders_today = 0
-        accepted_today = 0
-        rejected_today = 0
-        if self.stats_service:
-            stats = self.stats_service.get_period_stats("daily")
-            for record in stats.order_records:
-                if record.get("seller_name") == biz_title or (user_phone and record.get("seller_phone") == user_phone):
-                    orders_today += 1
-                    if record.get("result") == "accepted":
-                        accepted_today += 1
-                    elif record.get("result") == "rejected":
-                        rejected_today += 1
+        # Davr nomlari
+        period_names = {
+            "daily": "Bugungi",
+            "weekly": "Haftalik",
+            "monthly": "Oylik",
+            "yearly": "Yillik"
+        }
+        period_name = period_names.get(period, "Bugungi")
+
+        # Nonbor API dan buyurtmalar statistikasi
+        status_counts = {"checking": 0, "accepted": 0, "delivering": 0, "delivered": 0, "completed": 0, "rejected": 0, "expired": 0}
+        orders_count = 0
+
+        if self.nonbor_service and user_phone:
+            seller_id = await self.nonbor_service.get_seller_id(user_phone)
+            if seller_id:
+                from datetime import timedelta, timezone
+                now = datetime.now(timezone(timedelta(hours=5)))
+                if period == "daily":
+                    start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                elif period == "weekly":
+                    start_date = now - timedelta(days=7)
+                elif period == "monthly":
+                    start_date = now - timedelta(days=30)
+                elif period == "yearly":
+                    start_date = now - timedelta(days=365)
+                else:
+                    start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+                raw_orders = await self.nonbor_service.get_seller_orders(seller_id)
+                for order in raw_orders:
+                    created_at = order.get("created_at", "")
+                    if created_at:
+                        try:
+                            order_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                            if order_dt < start_date:
+                                continue
+                        except:
+                            pass
+                    orders_count += 1
+                    state = (order.get("state") or "").upper()
+                    mapped = self._map_api_state(state)
+                    if mapped in status_counts:
+                        status_counts[mapped] += 1
 
         text = f"🏪 <b>{biz_title}</b>\n"
         text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
-        text += f"📦 <b>Bugungi buyurtmalar:</b> {orders_today} ta\n"
-        text += f"├ ✅ Qabul qilindi: {accepted_today}\n"
-        text += f"└ ❌ Bekor qilindi: {rejected_today}\n\n"
+        text += f"📦 <b>{period_name} buyurtmalar:</b> {orders_count} ta\n"
+        if orders_count > 0:
+            text += f"├ 🕐 Kutilmoqda: {status_counts['checking']}\n"
+            text += f"├ ✅ Qabul qilindi: {status_counts['accepted']}\n"
+            text += f"├ 🚗 Yetkazilmoqda: {status_counts['delivering']}\n"
+            text += f"├ 📬 Yetkazildi: {status_counts['delivered']}\n"
+            text += f"├ ✔️ Yakunlandi: {status_counts['completed']}\n"
+            text += f"├ ❌ Bekor qilindi: {status_counts['rejected']}\n"
+            text += f"└ ⏰ Muddati o'tgan: {status_counts['expired']}\n"
+        text += "\n"
 
         if group_id:
             text += f"👥 <b>Guruh:</b> Ulangan ✅\n"
@@ -1653,6 +1699,13 @@ class TelegramStatsHandler:
 
         # Keyboard
         keyboard_rows = []
+
+        # 0-qator: Davr tugmalari
+        period_row = []
+        for p_key, p_label in [("daily", "Kunlik"), ("weekly", "Haftalik"), ("monthly", "Oylik"), ("yearly", "Yillik")]:
+            btn_text = f"✓ {p_label}" if p_key == period else p_label
+            period_row.append({"text": btn_text, "callback_data": f"{CALLBACK_OWNER_MAIN_PERIOD}{p_key}"})
+        keyboard_rows.append(period_row)
 
         # 1-qator: Buyurtmalar | Biznes guruh
         row1 = [{"text": "📦 Buyurtmalar", "callback_data": "owner_orders"}]
@@ -1669,67 +1722,29 @@ class TelegramStatsHandler:
             {"text": "🆘 Qo'llab quvvatlash", "url": "https://t.me/NonborSupportBot"}
         ])
 
+        return text, {"inline_keyboard": keyboard_rows}
+
+    async def _send_business_owner_message(self, chat_id: str) -> Optional[int]:
+        """Biznes egasi uchun oddiy ko'rinish - faqat buyurtmalar va guruh"""
+        text, reply_markup = await self._build_owner_main_content(chat_id)
+
         return await self.telegram.send_message(
             text=text,
             chat_id=chat_id,
             parse_mode="HTML",
-            reply_markup={"inline_keyboard": keyboard_rows}
+            reply_markup=reply_markup
         )
 
-    async def _update_business_owner_message(self, message_id: int, chat_id: str):
+    async def _update_business_owner_message(self, message_id: int, chat_id: str, period: str = "daily"):
         """Biznes egasi uchun xabarni tahrirlash (orqaga qaytish)"""
-        user_data = self._verified_users.get(chat_id, {})
-        biz_id = user_data.get("business_id")
-        biz_title = user_data.get("business_title", "Noma'lum")
-        user_phone = user_data.get("phone", "")
-
-        group_id = self._business_groups.get(str(biz_id), "") if biz_id else ""
-
-        orders_today = 0
-        accepted_today = 0
-        rejected_today = 0
-        if self.stats_service:
-            stats = self.stats_service.get_period_stats("daily")
-            for record in stats.order_records:
-                if record.get("seller_name") == biz_title or (user_phone and record.get("seller_phone") == user_phone):
-                    orders_today += 1
-                    if record.get("result") == "accepted":
-                        accepted_today += 1
-                    elif record.get("result") == "rejected":
-                        rejected_today += 1
-
-        text = f"🏪 <b>{biz_title}</b>\n"
-        text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
-        text += f"📦 <b>Bugungi buyurtmalar:</b> {orders_today} ta\n"
-        text += f"├ ✅ Qabul qilindi: {accepted_today}\n"
-        text += f"└ ❌ Bekor qilindi: {rejected_today}\n\n"
-
-        if group_id:
-            text += f"👥 <b>Guruh:</b> Ulangan ✅\n"
-        else:
-            text += f"👥 <b>Guruh:</b> Ulanmagan ❌\n"
-            text += f"<i>Guruh qo'shsangiz, buyurtmalar haqida xabar keladi</i>\n"
-
-        keyboard_rows = []
-        row1 = [{"text": "📦 Buyurtmalar", "callback_data": "owner_orders"}]
-        if biz_id:
-            if group_id:
-                row1.append({"text": "👥 Biznes guruh", "callback_data": CALLBACK_OWNER_GROUP})
-            else:
-                row1.append({"text": "➕ Biznes guruh", "callback_data": CALLBACK_OWNER_GROUP})
-        keyboard_rows.append(row1)
-
-        keyboard_rows.append([
-            {"text": "🛒 Buyurtma berish", "web_app": {"url": "https://nonbor.uz"}},
-            {"text": "🆘 Qo'llab quvvatlash", "url": "https://t.me/NonborSupportBot"}
-        ])
+        text, reply_markup = await self._build_owner_main_content(chat_id, period=period)
 
         await self.telegram.edit_message(
             message_id=message_id,
             text=text,
             chat_id=chat_id,
             parse_mode="HTML",
-            reply_markup={"inline_keyboard": keyboard_rows}
+            reply_markup=reply_markup
         )
 
     async def _show_owner_group(self, message_id: int, chat_id: str):
@@ -1807,49 +1822,57 @@ class TelegramStatsHandler:
         user_phone = user_data.get("phone", "")
 
         # State dan olish (agar parametr berilmagan bo'lsa)
+        if period is None:
+            period = self._owner_orders_period.get(chat_id, "daily")
         if page is None:
             page = self._owner_orders_page.get(chat_id, 0)
         if status_filter is None:
             status_filter = self._owner_orders_status.get(chat_id, "all")
 
         # State ni yangilash
+        self._owner_orders_period[chat_id] = period
         self._owner_orders_page[chat_id] = page
         self._owner_orders_status[chat_id] = status_filter
+
+        # Davr bo'yicha sana chegarasi
+        from datetime import timedelta, timezone
+        now = datetime.now(timezone(timedelta(hours=5)))  # UZ timezone +5
+        if period == "daily":
+            start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif period == "weekly":
+            start_date = now - timedelta(days=7)
+        elif period == "monthly":
+            start_date = now - timedelta(days=30)
+        elif period == "yearly":
+            start_date = now - timedelta(days=365)
+        else:
+            start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
         # Seller ID olish (phone orqali)
         seller_id = None
         api_orders = []
-        status_counts = {"all": 0, "checking": 0, "accepted": 0, "rejected": 0, "expired": 0, "delivering": 0, "delivered": 0, "completed": 0}
 
         if self.nonbor_service and user_phone:
             seller_id = await self.nonbor_service.get_seller_id(user_phone)
 
         if seller_id:
-            # Buyurtmalar va status counts ni parallel olish
-            api_orders = await self.nonbor_service.get_seller_orders(seller_id)
-            api_counts = await self.nonbor_service.get_seller_order_counts(seller_id)
+            raw_orders = await self.nonbor_service.get_seller_orders(seller_id)
 
-            if api_counts:
-                # API status nomlari → ichki filter nomlari
-                checking = api_counts.get("CHECKING", 0) + api_counts.get("PENDING", 0) + api_counts.get("WAITING_PAYMENT", 0)
-                accepted = api_counts.get("ACCEPTED", 0) + api_counts.get("READY", 0)
-                rejected = api_counts.get("CANCELLED_CLIENT", 0) + api_counts.get("CANCELLED_SELLER", 0)
-                expired = api_counts.get("ACCEPT_EXPIRED", 0) + api_counts.get("PAYMENT_EXPIRED", 0)
-                delivering = api_counts.get("DELIVERING", 0)
-                delivered = api_counts.get("DELIVERED", 0)
-                completed = api_counts.get("COMPLETED", 0)
-                total = checking + accepted + rejected + expired + delivering + delivered + completed
+            # Sana bo'yicha filtrlash
+            for order in raw_orders:
+                created_at = order.get("created_at", "")
+                if created_at:
+                    try:
+                        order_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                        if order_dt >= start_date:
+                            api_orders.append(order)
+                    except:
+                        api_orders.append(order)
+                else:
+                    api_orders.append(order)
 
-                status_counts = {
-                    "all": total,
-                    "checking": checking,
-                    "accepted": accepted,
-                    "rejected": rejected,
-                    "expired": expired,
-                    "delivering": delivering,
-                    "delivered": delivered,
-                    "completed": completed,
-                }
+        # Status counts ni filtrlangan buyurtmalardan hisoblash
+        status_counts = {"all": 0, "checking": 0, "accepted": 0, "rejected": 0, "expired": 0, "delivering": 0, "delivered": 0, "completed": 0}
 
         # API buyurtmalarni ichki formatga o'tkazish
         all_orders = []
@@ -1874,6 +1897,12 @@ class TelegramStatsHandler:
                 "timestamp": timestamp,
             })
 
+            # Status counts ni filtrlangan buyurtmalardan hisoblash
+            ms = mapped_status
+            if ms in status_counts:
+                status_counts[ms] += 1
+            status_counts["all"] += 1
+
         # Status filter qo'llash
         if status_filter != "all":
             orders_list = [o for o in all_orders if o["mapped_status"] == status_filter]
@@ -1890,12 +1919,14 @@ class TelegramStatsHandler:
         end_idx = min(start_idx + ITEMS_PER_PAGE, total_orders)
         page_orders = orders_list[start_idx:end_idx]
 
-        # Status nomi
+        # Status va davr nomlari
         status_names = {"all": "Barchasi", "checking": "Tekshirilmoqda", "accepted": "Qabul qilingan", "rejected": "Bekor qilingan", "expired": "Muddati o'tgan", "delivering": "Yetkazilmoqda", "delivered": "Yetkazildi", "completed": "Tayyor"}
         status_name = status_names.get(status_filter, "Barchasi")
+        period_names = {"daily": "Bugungi", "weekly": "Haftalik", "monthly": "Oylik", "yearly": "Yillik"}
+        period_name = period_names.get(period, "Bugungi")
 
         # Matn
-        text = f"📦 <b>{biz_title}</b>\n"
+        text = f"📦 <b>{biz_title}</b> ({period_name})\n"
         text += f"━━━━━━━━━━━━━━━━━━━━\n"
         text += f"🔍 {status_name}\n"
         text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
@@ -1925,7 +1956,7 @@ class TelegramStatsHandler:
                 if timestamp:
                     try:
                         dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-                        time_str = dt.strftime("%H:%M")
+                        time_str = dt.strftime("%d.%m %H:%M")
                     except:
                         pass
 
@@ -1977,14 +2008,18 @@ class TelegramStatsHandler:
         # Keyboard
         keyboard_rows = []
 
-        # 1. Yangilash tugmasi
-        keyboard_rows.append([{"text": "🔄 Yangilash", "callback_data": CALLBACK_OWNER_ORDERS}])
+        # 1. Davr tugmalari
+        period_row = []
+        for p_key, p_label in [("daily", "Kunlik"), ("weekly", "Hafta"), ("monthly", "Oylik"), ("yearly", "Yillik")]:
+            btn_text = f"✓ {p_label}" if p_key == period else p_label
+            period_row.append({"text": btn_text, "callback_data": f"{CALLBACK_OWNER_PERIOD}{p_key}"})
+        keyboard_rows.append(period_row)
 
         # 2. Status filter tugmalari (sonlar bilan)
         all_statuses = [
             [("📋 Barchasi", "all"), ("🔍 Tekshiruv", "checking")],
             [("✅ Qabul", "accepted"), ("❌ Bekor", "rejected")],
-            [("⏰ Muddati", "expired"), ("🚚 Yetkazuv", "delivering")],
+            [("⏰ Mud o'tgan", "expired"), ("🚚 Yetkazuv", "delivering")],
             [("📬 Yetkazildi", "delivered"), ("🏁 Tayyor", "completed")],
         ]
         for row_statuses in all_statuses:

@@ -58,7 +58,8 @@ CALLBACK_OWNER_PERIOD = "oo_period_"    # oo_period_daily, oo_period_weekly, etc
 CALLBACK_OWNER_PAGE = "oo_page_"        # oo_page_0, oo_page_1, ...
 CALLBACK_OWNER_STATUS = "oo_status_"    # oo_status_all, oo_status_accepted, oo_status_rejected
 CALLBACK_OWNER_GROUP = "owner_group"    # Guruh boshqaruvi
-CALLBACK_OWNER_GROUP_DEL = "owner_grp_del"  # Guruhni o'chirish
+CALLBACK_OWNER_GROUP_DEL = "owner_grp_del"  # Guruhni o'chirish (tasdiqlash)
+CALLBACK_OWNER_GROUP_DEL_CONFIRM = "owner_grp_del_yes"  # Guruhni o'chirish tasdiqlandi
 CALLBACK_OWNER_MAIN_PERIOD = "om_period_"  # om_period_daily, om_period_weekly, etc.
 
 # Admin orders (admin buyurtmalar bo'limi)
@@ -1387,7 +1388,11 @@ class TelegramStatsHandler:
                 await self._show_owner_group(message_id, chat_id)
                 return
             elif data == CALLBACK_OWNER_GROUP_DEL:
-                # Guruhni o'chirish
+                # Guruhni o'chirish - tasdiqlash so'rash
+                await self._confirm_delete_owner_group(message_id, chat_id)
+                return
+            elif data == CALLBACK_OWNER_GROUP_DEL_CONFIRM:
+                # Guruhni o'chirish tasdiqlandi
                 await self._delete_owner_group(message_id, chat_id)
                 return
             elif data.startswith(CALLBACK_OWNER_PERIOD):
@@ -1678,6 +1683,8 @@ class TelegramStatsHandler:
                     if mapped in status_counts:
                         status_counts[mapped] += 1
 
+                logger.info(f"Asosiy sahifa: {len(raw_orders)} -> {orders_count} ({period}, start={start_date.strftime('%Y-%m-%d %H:%M')})")
+
         text = f"🏪 <b>{biz_title}</b>\n"
         text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
         text += f"📦 <b>{period_name} buyurtmalar:</b> {orders_count} ta\n"
@@ -1783,6 +1790,33 @@ class TelegramStatsHandler:
             reply_markup={"inline_keyboard": keyboard_rows}
         )
 
+    async def _confirm_delete_owner_group(self, message_id: int, chat_id: str):
+        """Guruh o'chirish uchun tasdiqlash so'rash"""
+        user_data = self._verified_users.get(chat_id, {})
+        biz_title = user_data.get("business_title", "Noma'lum")
+        biz_id = user_data.get("business_id")
+        group_id = self._business_groups.get(str(biz_id), "") if biz_id else ""
+
+        text = f"⚠️ <b>Guruhni o'chirishni tasdiqlaysizmi?</b>\n\n"
+        text += f"🏪 <b>Biznes:</b> {biz_title}\n"
+        text += f"👥 <b>Guruh:</b> <code>{group_id}</code>\n\n"
+        text += f"<i>O'chirilgandan keyin buyurtmalar haqida guruhga xabar kelmaydi.</i>"
+
+        keyboard = {"inline_keyboard": [
+            [
+                {"text": "✅ Ha, o'chirish", "callback_data": CALLBACK_OWNER_GROUP_DEL_CONFIRM},
+                {"text": "❌ Bekor qilish", "callback_data": CALLBACK_OWNER_GROUP}
+            ]
+        ]}
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )
+
     async def _delete_owner_group(self, message_id: int, chat_id: str):
         """Biznes egasi guruhini o'chirish"""
         user_data = self._verified_users.get(chat_id, {})
@@ -1870,6 +1904,8 @@ class TelegramStatsHandler:
                         api_orders.append(order)
                 else:
                     api_orders.append(order)
+
+            logger.info(f"Buyurtmalar filtrlandi: {len(raw_orders)} -> {len(api_orders)} ({period}, start={start_date.strftime('%Y-%m-%d %H:%M')})")
 
         # Status counts ni filtrlangan buyurtmalardan hisoblash
         status_counts = {"all": 0, "checking": 0, "accepted": 0, "rejected": 0, "expired": 0, "delivering": 0, "delivered": 0, "completed": 0}

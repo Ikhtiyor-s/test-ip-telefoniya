@@ -255,7 +255,10 @@ class TTSService:
         # Auto-detect: Windows = wsl, Linux = linux
         default_platform = "wsl" if os.name == "nt" else "linux"
         platform = os.getenv("PLATFORM", default_platform).lower()
-        sounds_path = os.getenv("ASTERISK_SOUNDS_PATH", "/tmp/autodialer")
+        # Linux da default: /var/lib/asterisk/sounds/autodialer
+        # Windows da default: /tmp/autodialer (WSL ichida)
+        default_sounds = "/tmp/autodialer" if os.name == "nt" else "/var/lib/asterisk/sounds/autodialer"
+        sounds_path = os.getenv("ASTERISK_SOUNDS_PATH", default_sounds)
 
         try:
             import glob

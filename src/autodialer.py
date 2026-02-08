@@ -45,14 +45,16 @@ from services import (
     OrderResult
 )
 
-# Logging
+# Logging - UTF-8 encoding (Windows cp1251 muammosini hal qilish)
+import sys as _sys
+_log_format = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+_stream_handler = logging.StreamHandler()
+_stream_handler.stream = open(_sys.stdout.fileno(), mode='w', encoding='utf-8', errors='replace', closefd=False)
+_file_handler = logging.FileHandler("logs/autodialer.log", encoding='utf-8')
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler("logs/autodialer.log")
-    ]
+    format=_log_format,
+    handlers=[_stream_handler, _file_handler]
 )
 logger = logging.getLogger("autodialer")
 
@@ -1276,7 +1278,7 @@ class AutodialerPro:
             self._seller_call_attempts[seller_phone] = self.state.call_attempts
 
             if result.is_answered:
-                logger.info(f"✅ Qo'ng'iroq muvaffaqiyatli: {seller_name} ({seller_phone})")
+                logger.info(f"[OK] Qo'ng'iroq muvaffaqiyatli: {seller_name} ({seller_phone})")
                 self.stats.record_call(
                     phone=seller_phone,
                     seller_name=seller_name,
@@ -1286,7 +1288,7 @@ class AutodialerPro:
                     order_ids=order_ids
                 )
             else:
-                logger.warning(f"❌ Qo'ng'iroq javobsiz: {seller_name} ({seller_phone}) - {result.status}")
+                logger.warning(f"[X] Qo'ng'iroq javobsiz: {seller_name} ({seller_phone}) - {result.status}")
                 self.stats.record_call(
                     phone=seller_phone,
                     seller_name=seller_name,
@@ -1308,7 +1310,7 @@ class AutodialerPro:
         # Natijalarni log qilish
         answered_count = sum(1 for r in results if r and hasattr(r, 'is_answered') and r.is_answered)
         failed_count = len(results) - answered_count
-        logger.info(f"Parallel qo'ng'iroq tugadi: ✅ {answered_count} javob, ❌ {failed_count} javobsiz")
+        logger.info(f"Parallel qo'ng'iroq tugadi: [OK] {answered_count} javob, [X] {failed_count} javobsiz")
 
         # Barcha qo'ng'iroqlar tugadi
         # Qo'ng'iroq jarayonini tugatish
@@ -1649,9 +1651,13 @@ class AutodialerPro:
 async def main():
     """Asosiy funksiya"""
 
+    # Platformaga qarab default AMI host
+    # Windows (WSL) = 172.29.124.85, Linux (prod) = 127.0.0.1
+    default_ami_host = "172.29.124.85" if os.name == "nt" else "127.0.0.1"
+
     autodialer = AutodialerPro(
-        # Asterisk AMI (WSL)
-        sip_host=os.getenv("AMI_HOST", "172.29.124.85"),
+        # Asterisk AMI
+        sip_host=os.getenv("AMI_HOST", default_ami_host),
         ami_port=int(os.getenv("AMI_PORT", "5038")),
         ami_username=os.getenv("AMI_USERNAME", "autodialer"),
         ami_password=os.getenv("AMI_PASSWORD", "autodialer123"),

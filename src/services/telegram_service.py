@@ -2014,7 +2014,7 @@ class TelegramStatsHandler:
                         product = item.get("product", {})
                         product_name = (product.get("name") or product.get("title", "?"))[:20]
                         price = product.get("price", 0)
-                        price_som = int(price) if price else 0
+                        price_som = int(price) // 100 if price else 0
                         total_sum += price_som
                         text += f"   📌 {product_name} = {price_som:,} so'm\n"
                     if len(order_items) > 1:

@@ -1,0 +1,27 @@
+{
+  "verified_users": {
+    "1368371885": {
+      "phone": "+998932543733",
+      "business_id": 12,
+      "business_title": "S-kafe",
+      "verified_at": "2026-02-10T16:50:00.000000"
+    },
+    "498436763": {
+      "phone": "+998909564222",
+      "business_id": 4,
+      "business_title": "Samarqand Kafe",
+      "verified_at": "2026-02-10T16:50:00.000000"
+    },
+    "5813487451": {
+      "phone": "+998948679300",
+      "business_id": 1,
+      "business_title": "Samo",
+      "verified_at": "2026-02-10T16:50:00.000000"
+    }
+  },
+  "phone_to_chat": {
+    "+998932543733": "1368371885",
+    "+998909564222": "498436763",
+    "+998948679300": "5813487451"
+  }
+}

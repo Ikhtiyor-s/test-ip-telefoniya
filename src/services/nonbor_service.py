@@ -169,6 +169,25 @@ class NonborService:
             logger.info(f"API buyurtmalar: {len(results)} ta, statuslar: {states}")
         return results
 
+    async def get_orders_by_business(self, business_id: int) -> List[Dict]:
+        """
+        Biznes ID bo'yicha buyurtmalarni olish (get-order-for-courier dan)
+
+        Returns:
+            Bitta biznesga tegishli buyurtmalar ro'yxati
+        """
+        orders = await self.get_orders()
+        if not orders:
+            return []
+
+        # business_id bo'yicha filtrlash
+        biz_orders = [
+            o for o in orders
+            if o.get("business", {}).get("id") == business_id
+        ]
+        logger.info(f"Biznes #{business_id} buyurtmalari: {len(biz_orders)} ta (jami: {len(orders)})")
+        return biz_orders
+
     async def get_leads_by_status(self) -> Optional[List[Dict]]:
         """
         CHECKING statusidagi barcha buyurtmalarni olish

@@ -1647,43 +1647,42 @@ class TelegramStatsHandler:
         }
         period_name = period_names.get(period, "Bugungi")
 
-        # Nonbor API dan buyurtmalar statistikasi
+        # Nonbor API dan buyurtmalar statistikasi (get-order-for-courier)
         status_counts = {"checking": 0, "accepted": 0, "delivering": 0, "delivered": 0, "completed": 0, "rejected": 0, "expired": 0}
         orders_count = 0
 
-        if self.nonbor_service and user_phone:
-            seller_id = await self.nonbor_service.get_seller_id(user_phone)
-            if seller_id:
-                from datetime import timedelta, timezone
-                now = datetime.now(timezone(timedelta(hours=5)))
-                if period == "daily":
-                    start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
-                elif period == "weekly":
-                    start_date = now - timedelta(days=7)
-                elif period == "monthly":
-                    start_date = now - timedelta(days=30)
-                elif period == "yearly":
-                    start_date = now - timedelta(days=365)
-                else:
-                    start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        if self.nonbor_service and biz_id:
+            raw_orders = await self.nonbor_service.get_orders_by_business(biz_id)
 
-                raw_orders = await self.nonbor_service.get_seller_orders(seller_id)
-                for order in raw_orders:
-                    created_at = order.get("created_at", "")
-                    if created_at:
-                        try:
-                            order_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-                            if order_dt < start_date:
-                                continue
-                        except:
-                            pass
-                    orders_count += 1
-                    state = (order.get("state") or "").upper()
-                    mapped = self._map_api_state(state)
-                    if mapped in status_counts:
-                        status_counts[mapped] += 1
+            from datetime import timedelta, timezone
+            now = datetime.now(timezone(timedelta(hours=5)))
+            if period == "daily":
+                start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            elif period == "weekly":
+                start_date = now - timedelta(days=7)
+            elif period == "monthly":
+                start_date = now - timedelta(days=30)
+            elif period == "yearly":
+                start_date = now - timedelta(days=365)
+            else:
+                start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-                logger.info(f"Asosiy sahifa: {len(raw_orders)} -> {orders_count} ({period}, start={start_date.strftime('%Y-%m-%d %H:%M')})")
+            for order in raw_orders:
+                created_at = order.get("created_at", "")
+                if created_at:
+                    try:
+                        order_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                        if order_dt < start_date:
+                            continue
+                    except:
+                        pass
+                orders_count += 1
+                state = (order.get("state") or "").upper()
+                mapped = self._map_api_state(state)
+                if mapped in status_counts:
+                    status_counts[mapped] += 1
+
+            logger.info(f"Asosiy sahifa: {len(raw_orders)} -> {orders_count} ({period}, start={start_date.strftime('%Y-%m-%d %H:%M')})")
 
         text = f"🏪 <b>{biz_title}</b>\n"
         text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
@@ -1850,10 +1849,10 @@ class TelegramStatsHandler:
         return "checking"
 
     async def _show_owner_orders(self, message_id: int, chat_id: str, period: str = None, page: int = None, status_filter: str = None):
-        """Biznes egasi uchun buyurtmalar ro'yxati - Nonbor API dan (seller endpoints)"""
+        """Biznes egasi uchun buyurtmalar ro'yxati - Nonbor API dan (get-order-for-courier)"""
         user_data = self._verified_users.get(chat_id, {})
         biz_title = user_data.get("business_title", "Noma'lum")
-        user_phone = user_data.get("phone", "")
+        biz_id = user_data.get("business_id")
 
         # State dan olish (agar parametr berilmagan bo'lsa)
         if period is None:
@@ -1882,15 +1881,11 @@ class TelegramStatsHandler:
         else:
             start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-        # Seller ID olish (phone orqali)
-        seller_id = None
+        # get-order-for-courier dan business_id bo'yicha olish
         api_orders = []
 
-        if self.nonbor_service and user_phone:
-            seller_id = await self.nonbor_service.get_seller_id(user_phone)
-
-        if seller_id:
-            raw_orders = await self.nonbor_service.get_seller_orders(seller_id)
+        if self.nonbor_service and biz_id:
+            raw_orders = await self.nonbor_service.get_orders_by_business(biz_id)
 
             # Sana bo'yicha filtrlash
             for order in raw_orders:
@@ -1931,6 +1926,7 @@ class TelegramStatsHandler:
                 "mapped_status": mapped_status,
                 "client_name": client_name,
                 "timestamp": timestamp,
+                "items": order.get("order_item") or order.get("items") or [],
             })
 
             # Status counts ni filtrlangan buyurtmalardan hisoblash
@@ -1967,19 +1963,11 @@ class TelegramStatsHandler:
         text += f"🔍 {status_name}\n"
         text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
 
-        if not seller_id and self.nonbor_service:
-            text += "<i>Seller topilmadi</i>\n"
+        if not biz_id and self.nonbor_service:
+            text += "<i>Biznes topilmadi</i>\n"
         elif not page_orders:
             text += "<i>Buyurtmalar topilmadi</i>\n"
         else:
-            # Buyurtma tafsilotlarini parallel olish
-            order_details = {}
-            if self.nonbor_service and seller_id:
-                try:
-                    order_ids = [int(o.get("order_number", 0)) for o in page_orders if o.get("order_number")]
-                    order_details = await self.nonbor_service.get_seller_orders_details_batch(seller_id, order_ids)
-                except Exception as e:
-                    logger.error(f"Buyurtma tafsilotlarini olishda xato: {e}")
 
             for i, order in enumerate(page_orders, start_idx + 1):
                 order_num = order.get("order_number", "?")
@@ -2018,20 +2006,20 @@ class TelegramStatsHandler:
                     text += f" ({time_str})"
                 text += f" - {client_name}\n"
 
-                # Mahsulotlar tafsiloti
-                detail = order_details.get(int(order_num), None) if order_num != "?" else None
-                if detail and detail.get("items"):
+                # Mahsulotlar tafsiloti (get-order-for-courier dan)
+                order_items = order.get("items", [])
+                if order_items:
                     total_sum = 0
-                    for item in detail["items"]:
-                        product_name = item.get("product_name", "?")[:20]
-                        qty = item.get("quantity", 1)
+                    for item in order_items:
+                        product = item.get("product", {})
+                        product_name = (product.get("name") or product.get("title", "?"))[:20]
+                        qty = item.get("count", 1)
                         price = item.get("price", 0)
-                        # Price tiyin da keladi, so'm ga o'girish
                         price_som = int(price) // 100 if price else 0
                         item_total = price_som * qty
                         total_sum += item_total
                         text += f"   📌 {product_name} x{qty} = {item_total:,} so'm\n"
-                    if len(detail["items"]) > 1:
+                    if len(order_items) > 1:
                         text += f"   💰 <b>Jami: {total_sum:,} so'm</b>\n"
                 text += "\n"
 

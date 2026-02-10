@@ -206,7 +206,9 @@ class AutodialerPro:
         max_call_attempts: int = 2,
         retry_interval: int = 30,  # 30 soniya (birinchi qo'ng'iroqdan keyin)
         # Yo'llar
-        audio_dir: str = "audio"
+        audio_dir: str = "audio",
+        # Platform
+        skip_asterisk: bool = False,  # Windows da True - Asterisk o'tkazib yuboriladi
     ):
         # Konfiguratsiya
         self.seller_phone = seller_phone
@@ -215,6 +217,12 @@ class AutodialerPro:
         self.max_call_attempts = max_call_attempts
         self.retry_interval = retry_interval
         self.audio_dir = Path(audio_dir)
+        self.skip_asterisk = skip_asterisk
+
+        if self.skip_asterisk:
+            logger.info("⚠ ASTERISK O'TKAZIB YUBORILADI (Windows rejim - faqat Telegram)")
+        else:
+            logger.info("✓ ASTERISK FAOL (Linux/Production rejim - to'liq funksional)")
 
         # Telefon raqam override (test uchun) - {biznes_nomi: telefon}
         self.phone_overrides = {
@@ -335,24 +343,31 @@ class AutodialerPro:
                     sig, lambda: asyncio.create_task(self.stop())
                 )
 
-        # TTS oldindan yaratish
-        logger.info("TTS xabarlarini tayyorlash...")
-        await self.tts.pregenerate_messages(max_count=20)
+        # TTS oldindan yaratish (faqat Asterisk faol bo'lganda kerak)
+        if not self.skip_asterisk:
+            logger.info("TTS xabarlarini tayyorlash...")
+            await self.tts.pregenerate_messages(max_count=20)
+        else:
+            logger.info("TTS o'tkazib yuborildi (Asterisk o'chirilgan)")
 
-        # AMI ulanish
-        logger.info("Asterisk AMI ga ulanish...")
-        ami_connected = await self.ami.connect()
-        if not ami_connected:
-            logger.error("AMI ulanish muvaffaqiyatsiz!")
-            # AMI siz ham davom etish mumkin (faqat Telegram)
+        # AMI ulanish (faqat Asterisk faol bo'lganda)
+        ami_connected = False
+        if not self.skip_asterisk:
+            logger.info("Asterisk AMI ga ulanish...")
+            ami_connected = await self.ami.connect()
+            if not ami_connected:
+                logger.error("AMI ulanish muvaffaqiyatsiz!")
+                # AMI siz ham davom etish mumkin (faqat Telegram)
 
-        # SIP registratsiya tekshirish
-        if ami_connected:
-            registered = await self.ami.check_registration()
-            if registered:
-                logger.info("SIP registratsiya: OK")
-            else:
-                logger.warning("SIP registratsiya: MUVAFFAQIYATSIZ")
+            # SIP registratsiya tekshirish
+            if ami_connected:
+                registered = await self.ami.check_registration()
+                if registered:
+                    logger.info("SIP registratsiya: OK")
+                else:
+                    logger.warning("SIP registratsiya: MUVAFFAQIYATSIZ")
+        else:
+            logger.info("AMI ulanish o'tkazib yuborildi (Windows rejim)")
 
         # Nonbor API polling boshlash
         logger.info("Nonbor API polling boshlash...")
@@ -393,7 +408,8 @@ class AutodialerPro:
         await self.nonbor_poller.stop()
         if self.stats_handler:
             await self.stats_handler.stop_polling()
-        await self.ami.disconnect()
+        if not self.skip_asterisk:
+            await self.ami.disconnect()
         await self.nonbor.close()
         if self.telegram:
             await self.telegram.close()
@@ -1112,6 +1128,13 @@ class AutodialerPro:
 
     async def _make_call(self):
         """Har bir sotuvchiga alohida qo'ng'iroq qilish"""
+
+        # Windows rejimda qo'ng'iroq o'tkazib yuboriladi
+        if self.skip_asterisk:
+            logger.info("⚠ QO'NG'IROQ O'TKAZIB YUBORILDI (Windows rejim) - faqat Telegram xabar yuboriladi")
+            self.state.call_in_progress = False
+            return
+
         # Qo'ng'iroq jarayonini boshlash - yangi buyurtmalar keyingi qo'ng'iroqqa qoladi
         self.state.call_in_progress = True
 
@@ -1189,6 +1212,7 @@ class AutodialerPro:
                     sellers[seller_phone] = {
                         "seller_name": order_data.get("seller_name", "Noma'lum"),
                         "seller_phone": seller_phone,
+                        "business_id": order_data.get("business_id"),
                         "orders": []
                     }
                 sellers[seller_phone]["orders"].append(order_data)
@@ -1228,19 +1252,21 @@ class AutodialerPro:
             order_ids = [o.get("lead_id") for o in seller_data["orders"]]
 
             # Status tekshirish va yangi buyurtmalar sonini olish callback
+            seller_biz_id = seller_data.get("business_id")
+
             async def check_orders_still_pending():
                 # API dan hozirgi CHECKING buyurtmalarni olish
                 current_orders = await self.nonbor.get_orders()
                 checking_orders = [o for o in current_orders if o.get("state") == "CHECKING"]
 
-                # Shu sotuvchining CHECKING buyurtmalari
+                # Shu sotuvchining CHECKING buyurtmalari (business ID bo'yicha)
                 seller_checking = [
                     o for o in checking_orders
-                    if o.get("business", {}).get("phone") == seller_phone
+                    if o.get("business", {}).get("id") == seller_biz_id
                 ]
 
                 new_count = len(seller_checking)
-                logger.info(f"Qayta tekshirish: {seller_name} ({seller_phone}) - {new_count} ta CHECKING buyurtma")
+                logger.info(f"Qayta tekshirish: {seller_name} ({seller_phone}, biz_id={seller_biz_id}) - {new_count} ta CHECKING buyurtma")
 
                 if new_count == 0:
                     logger.info(f"Barcha buyurtmalar qabul qilindi, qo'ng'iroq to'xtatildi")
@@ -1655,6 +1681,14 @@ async def main():
     # Windows (WSL) = 172.29.124.85, Linux (prod) = 127.0.0.1
     default_ami_host = "172.29.124.85" if os.name == "nt" else "127.0.0.1"
 
+    # SKIP_ASTERISK - Windows da avtomatik True, Linux da False
+    # .env da o'zgartirish mumkin
+    default_skip = "true" if os.name == "nt" else "false"
+    skip_asterisk = os.getenv("SKIP_ASTERISK", default_skip).lower() in ("true", "1", "yes")
+
+    logger.info(f"Platform: {'Windows' if os.name == 'nt' else 'Linux'}")
+    logger.info(f"Asterisk: {'O`chirilgan (faqat Telegram)' if skip_asterisk else 'Faol (to`liq rejim)'}")
+
     autodialer = AutodialerPro(
         # Asterisk AMI
         sip_host=os.getenv("AMI_HOST", default_ami_host),
@@ -1674,6 +1708,9 @@ async def main():
         telegram_alert_time=int(os.getenv("TELEGRAM_ALERT_TIME", "180")),
         max_call_attempts=int(os.getenv("MAX_CALL_ATTEMPTS", "2")),
         retry_interval=int(os.getenv("RETRY_INTERVAL", "30")),
+
+        # Platform
+        skip_asterisk=skip_asterisk,
     )
 
     await autodialer.start()

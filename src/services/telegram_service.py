@@ -466,15 +466,18 @@ SOTUVCHI:
         if delivery_time:
             text += f"🕐 Tayyorlab berish vaqti: {delivery_time}\n"
 
-        # Mijoz ma'lumotlari
-        if client_name and client_name != "Noma'lum":
-            text += f"👤 Mijoz: {client_name}\n"
-        if client_phone:
-            text += f"📞 Tel: {client_phone}\n"
-        if delivery_address:
-            text += f"📍 Manzil: {delivery_address}\n"
-        if delivery_lat and delivery_lon:
-            text += f"🗺 Lokatsiya: https://maps.google.com/?q={delivery_lat},{delivery_lon}\n"
+        # Mijoz ma'lumotlari - faqat READY, DELIVERING, DELIVERED statuslarida ko'rsatiladi
+        # COMPLETED (yakunlandi) da avtomatik yashiriladi
+        show_client_statuses = {"READY", "DELIVERING", "DELIVERED"}
+        if status in show_client_statuses:
+            if client_name and client_name != "Noma'lum":
+                text += f"👤 Mijoz: {client_name}\n"
+            if client_phone:
+                text += f"📞 Tel: {client_phone}\n"
+            if delivery_address:
+                text += f"📍 Manzil: {delivery_address}\n"
+            if delivery_lat and delivery_lon:
+                text += f"🗺 Lokatsiya: https://maps.google.com/?q={delivery_lat},{delivery_lon}\n"
 
         if product_name:
             text += f"🏷 Mahsulot: {product_name}\n"

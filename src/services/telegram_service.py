@@ -1926,7 +1926,7 @@ class TelegramStatsHandler:
                 "mapped_status": mapped_status,
                 "client_name": client_name,
                 "timestamp": timestamp,
-                "items": order.get("order_item") or order.get("items") or [],
+                "order_item": order.get("order_item") or [],
             })
 
             # Status counts ni filtrlangan buyurtmalardan hisoblash
@@ -2006,19 +2006,17 @@ class TelegramStatsHandler:
                     text += f" ({time_str})"
                 text += f" - {client_name}\n"
 
-                # Mahsulotlar tafsiloti (get-order-for-courier dan)
-                order_items = order.get("items", [])
+                # Mahsulotlar tafsiloti (order_item dan)
+                order_items = order.get("order_item", [])
                 if order_items:
                     total_sum = 0
                     for item in order_items:
                         product = item.get("product", {})
                         product_name = (product.get("name") or product.get("title", "?"))[:20]
-                        qty = item.get("count", 1)
-                        price = item.get("price", 0)
-                        price_som = int(price) // 100 if price else 0
-                        item_total = price_som * qty
-                        total_sum += item_total
-                        text += f"   📌 {product_name} x{qty} = {item_total:,} so'm\n"
+                        price = product.get("price", 0)
+                        price_som = int(price) if price else 0
+                        total_sum += price_som
+                        text += f"   📌 {product_name} = {price_som:,} so'm\n"
                     if len(order_items) > 1:
                         text += f"   💰 <b>Jami: {total_sum:,} so'm</b>\n"
                 text += "\n"

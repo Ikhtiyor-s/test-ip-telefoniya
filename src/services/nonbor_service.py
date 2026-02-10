@@ -438,6 +438,7 @@ class NonborService:
     async def get_orders_by_business(self, business_id: int) -> List[Dict]:
         """
         Biznes ID bo'yicha buyurtmalarni olish (API dan)
+        API da business.id yo'q, shuning uchun title orqali moslashtirish
 
         Args:
             business_id: Biznes ID
@@ -449,13 +450,29 @@ class NonborService:
         if not orders:
             return []
 
-        # Biznes ID bo'yicha filtrlash
-        business_orders = [
-            order for order in orders
-            if order.get("business", {}).get("id") == business_id
-        ]
+        # Biznes title ni cache dan olish (business_id -> title)
+        biz_cache = self._businesses_cache.get(business_id, {})
+        biz_title = biz_cache.get("title", "").strip().lower()
 
-        logger.info(f"Biznes #{business_id} buyurtmalari: {len(business_orders)} ta (jami: {len(orders)})")
+        if not biz_title and not biz_cache:
+            # Cache bo'sh - API dan yuklash
+            await self.get_businesses()
+            biz_cache = self._businesses_cache.get(business_id, {})
+            biz_title = biz_cache.get("title", "").strip().lower()
+
+        # API da business.id yo'q, title orqali filtrlash
+        business_orders = []
+        for order in orders:
+            order_biz = order.get("business", {})
+            order_biz_title = (order_biz.get("title") or "").strip().lower()
+            # Title moslik: to'liq yoki boshlanishini tekshirish (API da ".." bilan qisqartiriladi)
+            if biz_title and order_biz_title:
+                clean_order = order_biz_title.rstrip(".")
+                clean_biz = biz_title.rstrip(".")
+                if clean_order == clean_biz or clean_biz.startswith(clean_order) or clean_order.startswith(clean_biz):
+                    business_orders.append(order)
+
+        logger.info(f"Biznes #{business_id} ({biz_title}) buyurtmalari: {len(business_orders)} ta (jami: {len(orders)})")
         return business_orders
 
     def reset_known_leads(self):

@@ -559,7 +559,15 @@ class CallManager:
             call_data = self._active_calls[phone_match]
             call_data["result"] = result
             call_data["event"].set()
-            logger.debug(f"Parallel call completed: {phone_match} -> {dial_status}")
+            logger.info(f"Parallel call completed: {phone_match} -> {dial_status}")
+        elif self._active_calls:
+            # Channel bo'sh kelganda - faol qo'ng'iroqni topib signal qilish
+            for number, call_data in self._active_calls.items():
+                if not call_data["event"].is_set():
+                    call_data["result"] = result
+                    call_data["event"].set()
+                    logger.info(f"DialEnd fallback match: {number} -> {dial_status}")
+                    break
         else:
             # Eski usul - bitta qo'ng'iroq uchun
             self._last_call_result = result

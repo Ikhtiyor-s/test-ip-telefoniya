@@ -1118,8 +1118,14 @@ class AutodialerPro:
             ]
             logger.info(f"Qolgan {remaining_count} ta buyurtma, Telegram yangilanmoqda")
 
-            # Buyurtma hal qilinganda Telegram yangilanadi (faqat 180s+ eski buyurtmalar)
-            if self.state.telegram_notified:
+            # Buyurtma hal qilinganda Telegram yangilanadi
+            # telegram_notified o'rniga active_message_ids tekshiramiz
+            # chunki state.reset() telegram_notified ni False qiladi
+            has_active_messages = (
+                self.notification_manager and
+                self.notification_manager._active_message_ids
+            )
+            if self.state.telegram_notified or has_active_messages:
                 logger.info(f"Telegram xabar yangilanmoqda: {remaining_count} ta buyurtma qoldi")
                 await self._send_telegram_for_remaining()
 

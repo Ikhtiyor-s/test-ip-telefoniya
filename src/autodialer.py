@@ -767,6 +767,8 @@ class AutodialerPro:
                     "delivery_lat": delivery_lat,
                     "delivery_lon": delivery_lon,
                     "delivery_time": delivery_time,
+                    "delivery_method": order.get("delivery_method", ""),
+                    "payment_method": order.get("payment_method", ""),
                 }
 
                 if order_id in self._group_order_messages:
@@ -1235,9 +1237,15 @@ class AutodialerPro:
             """Bitta sotuvchiga qo'ng'iroq qilish"""
             order_count = len(seller_data["orders"])
             seller_name = seller_data["seller_name"]
+            seller_biz_id = seller_data.get("business_id")
 
             if order_count == 0:
                 logger.debug(f"Sotuvchi {seller_name} ({seller_phone}) uchun yangi buyurtmalar yo'q")
+                return None
+
+            # Biznes uchun avtoqo'ng'iroq o'chirilganmi tekshirish
+            if seller_biz_id and self.telegram and not self.telegram.is_call_enabled(seller_biz_id):
+                logger.info(f"Avtoqo'ng'iroq O'CHIRILGAN: {seller_name} (biz_id={seller_biz_id}) - qo'ng'iroq qilinmaydi")
                 return None
 
             logger.info(f"Qo'ng'iroq: {seller_name} ({seller_phone}), {order_count} ta buyurtma")

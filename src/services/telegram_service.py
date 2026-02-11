@@ -44,6 +44,7 @@ CALLBACK_BIZ_DISTRICT = "biz_dist_"   # biz_dist_0_1 (region_idx_district_idx)
 CALLBACK_BIZ_DIST_BACK = "biz_dback_" # biz_dback_0 (region_idx ga qaytish)
 CALLBACK_BIZ_ITEM = "biz_item_"       # biz_item_5 (business id)
 CALLBACK_BIZ_ADD_GROUP = "biz_grp_"   # biz_grp_5 (business id - guruh qo'shish)
+CALLBACK_BIZ_TOGGLE_CALL = "biz_call_"  # biz_call_5 (avtoqo'ng'iroqni yoqish/o'chirish)
 
 # Davr tugmalari
 CALLBACK_DAILY = "period_daily"
@@ -75,6 +76,7 @@ AUTH_VERIFIED = "verified"
 # Admin telefon raqamlari - barcha funksiyalarga to'liq kirish
 ADMIN_PHONES = {
     "+998773088888",
+    "+998948679300",
 }
 
 
@@ -455,12 +457,27 @@ SOTUVCHI:
         delivery_lon = order_data.get("delivery_lon", "")
         delivery_time = order_data.get("delivery_time", "")
 
+        # Yetkazish va to'lov usuli
+        delivery_method = order_data.get("delivery_method", "")
+        payment_method = order_data.get("payment_method", "")
+
+        DELIVERY_LABELS = {"DELIVERY": "Yetkazib berish", "PICKUP": "Olib ketish"}
+        PAYMENT_LABELS = {"CASH": "Naqd", "CARD": "Karta", "ONLINE": "Online"}
+
         # Status label
         status_label = self.STATUS_LABELS.get(status, f"📋 {status}")
 
         text = f"📦 Buyurtma #{order_number}\n"
         text += f"━━━━━━━━━━━━━━━━━━━\n"
         text += f"📊 Status: {status_label}\n"
+
+        # Yetkazish va to'lov usuli
+        if delivery_method:
+            dm_label = DELIVERY_LABELS.get(delivery_method.upper(), delivery_method)
+            text += f"🚚 Yetkazish: {dm_label}\n"
+        if payment_method:
+            pm_label = PAYMENT_LABELS.get(payment_method.upper(), payment_method)
+            text += f"💳 To'lov: {pm_label}\n"
 
         # Tayyorlab berish vaqti - har doim ko'rsatish
         if delivery_time:
@@ -883,6 +900,13 @@ class TelegramStatsHandler:
         )
         self._business_groups: Dict[str, str] = self._load_groups()
 
+        # Avtoqo'ng'iroq sozlamalari
+        self._call_settings_file = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "data", "call_settings.json"
+        )
+        self._disabled_businesses: set = self._load_call_settings()
+
         # Auth tizimi
         self._auth_states: Dict[str, str] = {}          # chat_id -> state
         self._auth_phones: Dict[str, str] = {}          # chat_id -> phone (vaqtinchalik)
@@ -930,6 +954,32 @@ class TelegramStatsHandler:
                 json.dump(self._business_groups, f, indent=2)
         except Exception as e:
             logger.error(f"Guruhlar faylini saqlash xatosi: {e}")
+
+    # ===== AVTOQO'NG'IROQ SOZLAMALARI =====
+
+    def _load_call_settings(self) -> set:
+        """O'chirilgan bizneslar ro'yxatini yuklash"""
+        try:
+            if os.path.exists(self._call_settings_file):
+                with open(self._call_settings_file, "r") as f:
+                    data = json.load(f)
+                    return set(data.get("disabled_businesses", []))
+        except Exception as e:
+            logger.error(f"Call settings yuklash xatosi: {e}")
+        return set()
+
+    def _save_call_settings(self):
+        """O'chirilgan bizneslar ro'yxatini saqlash"""
+        try:
+            os.makedirs(os.path.dirname(self._call_settings_file), exist_ok=True)
+            with open(self._call_settings_file, "w") as f:
+                json.dump({"disabled_businesses": list(self._disabled_businesses)}, f, indent=2)
+        except Exception as e:
+            logger.error(f"Call settings saqlash xatosi: {e}")
+
+    def is_call_enabled(self, business_id: int) -> bool:
+        """Biznes uchun avtoqo'ng'iroq yoqilganmi?"""
+        return business_id not in self._disabled_businesses
 
     # ===== AUTH METODLAR =====
 
@@ -1506,6 +1556,19 @@ class TelegramStatsHandler:
             await self._show_region_districts(message_id, chat_id, region_idx)
         elif data.startswith(CALLBACK_BIZ_ITEM):
             biz_id = int(data.replace(CALLBACK_BIZ_ITEM, ""))
+            await self._show_business_detail(message_id, chat_id, biz_id)
+        elif data.startswith(CALLBACK_BIZ_TOGGLE_CALL):
+            biz_id = int(data.replace(CALLBACK_BIZ_TOGGLE_CALL, ""))
+            if not self._is_admin(chat_id):
+                return
+            # Toggle
+            if biz_id in self._disabled_businesses:
+                self._disabled_businesses.discard(biz_id)
+                logger.info(f"Avtoqo'ng'iroq YOQILDI: business_id={biz_id}")
+            else:
+                self._disabled_businesses.add(biz_id)
+                logger.info(f"Avtoqo'ng'iroq O'CHIRILDI: business_id={biz_id}")
+            self._save_call_settings()
             await self._show_business_detail(message_id, chat_id, biz_id)
         elif data.startswith(CALLBACK_BIZ_ADD_GROUP):
             biz_id = int(data.replace(CALLBACK_BIZ_ADD_GROUP, ""))
@@ -2542,6 +2605,8 @@ class TelegramStatsHandler:
 
         # Guruh ID
         group_id = self._business_groups.get(str(biz_id), "")
+        # Avtoqo'ng'iroq holati
+        call_enabled = self.is_call_enabled(biz_id)
 
         text = f"🏪 <b>{title}</b>\n"
         text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
@@ -2554,12 +2619,17 @@ class TelegramStatsHandler:
         else:
             if address and address != "Ko'rsatilmagan":
                 text += f"🏠 <b>Manzil:</b> {address}\n"
+        text += f"📞 <b>Avtoqo'ng'iroq:</b> {'ON' if call_enabled else 'OFF'}\n"
 
         keyboard_rows = []
         if group_id:
             keyboard_rows.append([{"text": "✏️ Guruhni o'zgartirish", "callback_data": f"{CALLBACK_BIZ_ADD_GROUP}{biz_id}"}])
         else:
             keyboard_rows.append([{"text": "➕ Guruh qo'shish", "callback_data": f"{CALLBACK_BIZ_ADD_GROUP}{biz_id}"}])
+        # Avtoqo'ng'iroq toggle tugmasi (faqat admin)
+        if self._is_admin(chat_id):
+            call_btn_text = "🔕 Qo'ng'iroqni O'CHIRISH" if call_enabled else "🔔 Qo'ng'iroqni YOQISH"
+            keyboard_rows.append([{"text": call_btn_text, "callback_data": f"{CALLBACK_BIZ_TOGGLE_CALL}{biz_id}"}])
         # Orqaga tugmasi faqat admin uchun
         if self._is_admin(chat_id):
             keyboard_rows.append([

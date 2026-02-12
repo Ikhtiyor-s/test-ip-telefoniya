@@ -1,7 +1,8 @@
 [Unit]
-Description=Autodialer Pro - Nonbor buyurtmalar bot
+Description=Autodialer Pro - Telegram bot + Nonbor buyurtmalar
 After=network.target asterisk.service
 Wants=asterisk.service
+PartOf=autodialer-stack.target
 
 [Service]
 Type=simple
@@ -15,4 +16,4 @@ StandardOutput=append:/var/log/autodialer/autodialer.log
 StandardError=append:/var/log/autodialer/autodialer.log
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=autodialer-stack.target

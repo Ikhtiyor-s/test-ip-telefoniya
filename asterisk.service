@@ -1,0 +1,17 @@
+[Unit]
+Description=Asterisk PBX - IP telefoniya
+After=network.target
+PartOf=autodialer-stack.target
+
+[Service]
+Type=simple
+User=root
+ExecStartPre=/usr/sbin/asterisk -rx "core show version" || true
+ExecStart=/usr/sbin/asterisk -f -C /etc/asterisk/asterisk.conf
+ExecReload=/usr/sbin/asterisk -rx "core reload"
+ExecStop=/usr/sbin/asterisk -rx "core stop gracefully"
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=autodialer-stack.target

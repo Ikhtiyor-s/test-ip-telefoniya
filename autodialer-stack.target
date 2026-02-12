@@ -1,0 +1,6 @@
+[Unit]
+Description=Autodialer Stack - Bot + Asterisk
+After=network.target
+
+[Install]
+WantedBy=multi-user.target

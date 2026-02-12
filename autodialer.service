@@ -1,0 +1,18 @@
+[Unit]
+Description=Autodialer Pro - Nonbor buyurtmalar bot
+After=network.target asterisk.service
+Wants=asterisk.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/autodialer-pro/src
+ExecStart=/usr/bin/python3 autodialer.py
+EnvironmentFile=/opt/autodialer-pro/.env
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/autodialer/autodialer.log
+StandardError=append:/var/log/autodialer/autodialer.log
+
+[Install]
+WantedBy=multi-user.target

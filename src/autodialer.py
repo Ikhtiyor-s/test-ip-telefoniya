@@ -782,7 +782,7 @@ class AutodialerPro:
                         )
                         if success:
                             tracked["status"] = display_status
-                            tracked["order_data"] = order_data  # order_data ni ham yangilash
+                            tracked["order_data"] = order_data
                             self._save_group_messages()
                             logger.info(f"Guruh: buyurtma #{order_id} status yangilandi: {display_status}")
                 else:
@@ -836,7 +836,7 @@ class AutodialerPro:
 
             deleted_any = False
             for tracked_order_id in list(self._group_order_messages.keys()):
-                # Faqat API da yo'q bo'lgan buyurtmalarni o'chirish
+                # Faqat API da yo'q bo'lgan buyurtmalarni tracking dan o'chirish
                 if tracked_order_id not in current_order_ids:
                     tracked = self._group_order_messages[tracked_order_id]
                     tracked_status = tracked.get("status", "")
@@ -1250,7 +1250,7 @@ class AutodialerPro:
                 return None
 
             # Biznes uchun avtoqo'ng'iroq o'chirilganmi tekshirish
-            if seller_biz_id and self.telegram and not self.telegram.is_call_enabled(seller_biz_id):
+            if seller_biz_id and self.stats_handler and not self.stats_handler.is_call_enabled(seller_biz_id):
                 logger.info(f"Avtoqo'ng'iroq O'CHIRILGAN: {seller_name} (biz_id={seller_biz_id}) - qo'ng'iroq qilinmaydi")
                 return None
 

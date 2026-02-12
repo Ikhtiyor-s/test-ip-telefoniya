@@ -12,10 +12,10 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-NONBOR_BASE_URL = os.getenv("NONBOR_BASE_URL", "https://test.nonbor.uz/api/v2")
+NONBOR_BASE_URL = os.getenv("NONBOR_BASE_URL", "http://192.168.127.28:10000")
 NONBOR_SECRET = os.getenv("NONBOR_SECRET", "nonbor-secret-key")
 # Domain ni base_url dan olish (orders endpoint uchun)
-NONBOR_DOMAIN = NONBOR_BASE_URL.split("/api/")[0]  # https://nonbor.uz
+NONBOR_DOMAIN = NONBOR_BASE_URL.rstrip("/")  # http://192.168.127.28:10000
 
 
 class NonborService:

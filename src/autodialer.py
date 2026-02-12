@@ -289,7 +289,7 @@ class AutodialerPro:
 
         self.stats = StatsService(data_dir=data_dir)
 
-        if telegram_token and telegram_chat_id:
+        if telegram_token:
             self.telegram = TelegramService(
                 bot_token=telegram_token,
                 default_chat_id=telegram_chat_id

@@ -474,6 +474,7 @@ SOTUVCHI:
         quantity = order_data.get("quantity", 1)
         price = order_data.get("price", 0)
         price_str = f"{price:,.0f}".replace(",", " ") + " so'm" if price else "—"
+        is_planned = order_data.get("is_planned", False)
 
         # Yetkazib berish ma'lumotlari
         delivery_address = order_data.get("delivery_address", "")
@@ -491,7 +492,11 @@ SOTUVCHI:
         # Status label
         status_label = self.STATUS_LABELS.get(status, f"📋 {status}")
 
-        text = f"📦 Buyurtma #{order_number}\n"
+        # Reja buyurtma header
+        if is_planned:
+            text = f"📅 Reja buyurtma #{order_number}\n"
+        else:
+            text = f"📦 Buyurtma #{order_number}\n"
         text += f"━━━━━━━━━━━━━━━━━━━\n"
         text += f"📊 Status: {status_label}\n"
 
@@ -503,9 +508,12 @@ SOTUVCHI:
             pm_label = PAYMENT_LABELS.get(payment_method.upper(), payment_method)
             text += f"💳 To'lov: {pm_label}\n"
 
-        # Tayyorlab berish vaqti - har doim ko'rsatish
+        # Reja vaqti
         if delivery_time:
-            text += f"🕐 Tayyorlab berish vaqti: {delivery_time}\n"
+            if is_planned:
+                text += f"📅 Reja vaqti: {delivery_time} ❗❗❗\n"
+            else:
+                text += f"🕐 Tayyorlab berish vaqti: {delivery_time}\n"
 
         # Mijoz ma'lumotlari - faqat READY, DELIVERING, DELIVERED statuslarida ko'rsatiladi
         # COMPLETED (yakunlandi) da avtomatik yashiriladi

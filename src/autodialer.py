@@ -21,7 +21,7 @@ import logging
 import signal
 import sys
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict
 from pathlib import Path
 from collections import OrderedDict
@@ -249,6 +249,9 @@ class AutodialerPro:
         # Guruh xabari kutayotgan yangi buyurtmalar (2s loopda yuboriladi)
         self._pending_group_message_orders: set = set()
 
+        # Reja buyurtmalar uchun 20 daqiqa oldin eslatma yuborilgan buyurtmalar
+        self._planned_reminders_sent: set = set()
+
         # Qo'ng'iroq urinishlari soni - HAR BIR SOTUVCHI UCHUN ALOHIDA
         # {seller_phone: call_attempts}
         self._seller_call_attempts: Dict[str, int] = {}
@@ -286,6 +289,10 @@ class AutodialerPro:
         # Guruh xabarlarini saqlash fayli
         self._group_messages_file = project_root / "data" / "group_order_messages.json"
         self._load_group_messages()
+
+        # Reja eslatmalar fayli
+        self._planned_reminders_file = project_root / "data" / "planned_reminders.json"
+        self._load_planned_reminders()
 
         self.stats = StatsService(data_dir=data_dir)
 
@@ -327,6 +334,116 @@ class AutodialerPro:
                 json.dump(self._group_order_messages, f, indent=2, ensure_ascii=False)
         except Exception as e:
             logger.error(f"Guruh xabarlarini saqlashda xato: {e}")
+
+    def _load_planned_reminders(self):
+        """Reja eslatmalarini fayldan yuklash"""
+        try:
+            if self._planned_reminders_file.exists():
+                import json
+                with open(self._planned_reminders_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    self._planned_reminders_sent = set(data.get("sent", []))
+                    logger.info(f"Reja eslatmalari yuklandi: {len(self._planned_reminders_sent)} ta")
+        except Exception as e:
+            logger.error(f"Reja eslatmalarini yuklashda xato: {e}")
+            self._planned_reminders_sent = set()
+
+    def _save_planned_reminders(self):
+        """Reja eslatmalarini faylga saqlash"""
+        try:
+            import json
+            self._planned_reminders_file.parent.mkdir(exist_ok=True)
+            with open(self._planned_reminders_file, "w", encoding="utf-8") as f:
+                json.dump({"sent": list(self._planned_reminders_sent)}, f, indent=2)
+        except Exception as e:
+            logger.error(f"Reja eslatmalarini saqlashda xato: {e}")
+
+    async def _check_planned_reminders(self):
+        """
+        Reja buyurtmalar uchun 20 daqiqa oldin eslatma yuborish.
+        Qabul qilingan (ACCEPTED/READY) reja buyurtmalarning vaqti yaqinlashganda
+        biznes guruhiga eslatma xabar yuboriladi.
+        """
+        try:
+            now = datetime.now(timezone(timedelta(hours=5)))  # UZ vaqt zonasi
+
+            # Biznes guruhlar bo'yicha reja buyurtmalarni yig'ish
+            # {chat_id: [order_data1, order_data2, ...]}
+            biz_planned: Dict[str, list] = {}
+
+            for order_id, tracked in self._group_order_messages.items():
+                order_data = tracked.get("order_data", {})
+
+                # Faqat reja buyurtmalar
+                if not order_data.get("is_planned"):
+                    continue
+
+                # Faqat qabul qilingan buyurtmalar (CHECKING emas)
+                status = order_data.get("status", "").upper()
+                if status in ("CHECKING", "ACCEPT_EXPIRED", "CANCELLED", "CANCELLED_SELLER",
+                              "CANCELLED_CLIENT", "CANCELLED_USER", "CANCELLED_ADMIN",
+                              "COMPLETED", "DELIVERED", "PAYMENT_EXPIRED"):
+                    continue
+
+                # Allaqachon eslatma yuborilgan
+                if order_id in self._planned_reminders_sent:
+                    continue
+
+                # planned_datetime_raw ni tekshirish
+                raw_dt = order_data.get("planned_datetime_raw", "")
+                if not raw_dt:
+                    continue
+
+                try:
+                    planned_dt = datetime.fromisoformat(str(raw_dt).replace('Z', '+00:00'))
+                    minutes_left = (planned_dt - now).total_seconds() / 60
+
+                    # 20 daqiqa yoki kamroq qolgan bo'lsa (lekin o'tmagan bo'lsa)
+                    if 0 <= minutes_left <= 20:
+                        chat_id = tracked.get("chat_id", "")
+                        if chat_id:
+                            if chat_id not in biz_planned:
+                                biz_planned[chat_id] = []
+                            biz_planned[chat_id].append({
+                                "order_id": order_id,
+                                "order_number": order_data.get("order_number", ""),
+                                "delivery_time": order_data.get("delivery_time", ""),
+                                "product_name": order_data.get("product_name", ""),
+                            })
+                except Exception:
+                    continue
+
+            # Har bir biznes guruhga eslatma yuborish
+            for chat_id, orders in biz_planned.items():
+                count = len(orders)
+                text = f"⏰ <b>ESLATMA: {count} ta reja buyurtma!</b>\n"
+                text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
+                text += f"Sizda <b>{count}</b> ta reja bo'yicha buyurtmalaringiz bor:\n\n"
+
+                for i, o in enumerate(orders, 1):
+                    text += f"  {i}. Buyurtma #{o['order_number']}"
+                    if o['delivery_time']:
+                        text += f" — 📅 {o['delivery_time']}"
+                    if o['product_name']:
+                        text += f"\n     🏷 {o['product_name']}"
+                    text += "\n"
+
+                text += f"\n❗❗❗ Tayyorlashni boshlang!"
+
+                try:
+                    await self.telegram.send_message(
+                        text=text, chat_id=chat_id, parse_mode="HTML"
+                    )
+                    # Eslatma yuborildi - barcha buyurtmalarni belgilash
+                    for o in orders:
+                        self._planned_reminders_sent.add(o["order_id"])
+                    self._save_planned_reminders()
+                    logger.info(f"Reja eslatma yuborildi: chat={chat_id}, {count} ta buyurtma")
+                except Exception as e:
+                    logger.error(f"Reja eslatma xatosi: {e}")
+
+        except Exception as e:
+            logger.error(f"Reja eslatma tekshirish xatosi: {e}")
 
     async def start(self):
         """Autodialer ni ishga tushirish"""
@@ -600,6 +717,22 @@ class AutodialerPro:
                 self._last_notif_check = now
                 await self._process_scheduled_notifications()
 
+        # REJA ESLATMA: Har 60 sekundda reja buyurtmalarni tekshirish
+        if self.telegram and self._group_order_messages:
+            if not hasattr(self, '_last_planned_check'):
+                self._last_planned_check = None
+            should_check_planned = False
+            if self._last_planned_check is None:
+                should_check_planned = True
+            else:
+                time_since_planned = (now - self._last_planned_check).total_seconds()
+                if time_since_planned >= 60:
+                    should_check_planned = True
+
+            if should_check_planned:
+                self._last_planned_check = now
+                await self._check_planned_reminders()
+
     async def _process_scheduled_notifications(self):
         """Rejalashtirilgan xabarnomalarni tekshirish va yuborish"""
         try:
@@ -827,6 +960,8 @@ class AutodialerPro:
                     "delivery_time": delivery_time,
                     "delivery_method": order.get("delivery_method", ""),
                     "payment_method": order.get("payment_method", ""),
+                    "is_planned": bool(is_planned),
+                    "planned_datetime_raw": str(raw_planned_time) if raw_planned_time else "",
                 }
 
                 if order_id in self._group_order_messages:

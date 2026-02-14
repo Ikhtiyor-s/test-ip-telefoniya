@@ -63,10 +63,17 @@ CALLBACK_OWNER_GROUP = "owner_group"    # Guruh boshqaruvi
 CALLBACK_OWNER_GROUP_DEL = "owner_grp_del"  # Guruhni o'chirish (tasdiqlash)
 CALLBACK_OWNER_GROUP_DEL_CONFIRM = "owner_grp_del_yes"  # Guruhni o'chirish tasdiqlandi
 CALLBACK_OWNER_MAIN_PERIOD = "om_period_"  # om_period_daily, om_period_weekly, etc.
+CALLBACK_OWNER_PLANNED = "owner_planned"       # Biznes egasi reja buyurtmalari
+CALLBACK_OWNER_PLANNED_PAGE = "opl_page_"      # opl_page_0 (sahifalash)
 
 # Admin orders (admin buyurtmalar bo'limi)
 CALLBACK_ADMIN_ORDERS_PAGE = "ao_page_"      # ao_page_0, ao_page_1, ...
 CALLBACK_ADMIN_ORDERS_STATUS = "ao_status_"  # ao_status_all, ao_status_accepted, ao_status_rejected, ao_status_notg
+CALLBACK_ADMIN_ORDERS_PERIOD = "ao_period_"  # ao_period_daily, ao_period_weekly, etc.
+
+# Rejalashtirilgan buyurtmalar
+CALLBACK_MENU_PLANNED = "menu_planned"        # Reja buyurtmalar bo'limi
+CALLBACK_PLANNED_PAGE = "pl_page_"            # pl_page_0, pl_page_1, ...
 
 # Xabarnomalar (scheduled notifications)
 CALLBACK_MENU_NOTIF = "menu_notif"           # Asosiy menyudan xabarnomalar
@@ -1535,6 +1542,16 @@ class TelegramStatsHandler:
                 # Asosiy menyuga qaytish
                 await self._update_business_owner_message(message_id, chat_id)
                 return
+            elif data == CALLBACK_OWNER_PLANNED:
+                await self._show_owner_planned_orders(message_id, chat_id)
+                return
+            elif data.startswith(CALLBACK_OWNER_PLANNED_PAGE):
+                try:
+                    page = int(data.replace(CALLBACK_OWNER_PLANNED_PAGE, ""))
+                    await self._show_owner_planned_orders(message_id, chat_id, page=page)
+                except ValueError:
+                    pass
+                return
             elif data.startswith(CALLBACK_OWNER_MAIN_PERIOD):
                 # Asosiy sahifada davr o'zgartirish
                 period = data.replace(CALLBACK_OWNER_MAIN_PERIOD, "")
@@ -1630,6 +1647,12 @@ class TelegramStatsHandler:
             await self._show_orders_menu(message_id, chat_id)
         elif data == CALLBACK_MENU_BACK:
             await self._show_main_stats(message_id, chat_id)
+        # Reja buyurtmalar
+        elif data == CALLBACK_MENU_PLANNED:
+            await self._show_planned_orders(message_id, chat_id)
+        elif data.startswith(CALLBACK_PLANNED_PAGE):
+            page = int(data.replace(CALLBACK_PLANNED_PAGE, ""))
+            await self._show_planned_orders(message_id, chat_id, page=page)
         # Xabarnomalar
         elif data == CALLBACK_MENU_NOTIF:
             await self._show_notif_menu(message_id, chat_id)
@@ -1706,6 +1729,11 @@ class TelegramStatsHandler:
             status = data.replace(CALLBACK_ADMIN_ORDERS_STATUS, "")
             self._admin_orders_page[chat_id] = 0  # Sahifani reset
             await self._show_orders_menu(message_id, chat_id, status_filter=status)
+        elif data.startswith(CALLBACK_ADMIN_ORDERS_PERIOD):
+            period = data.replace(CALLBACK_ADMIN_ORDERS_PERIOD, "")
+            self._current_period = period
+            self._admin_orders_page[chat_id] = 0
+            await self._show_orders_menu(message_id, chat_id)
         # Bizneslar pagination va region
         elif data.startswith(CALLBACK_BIZ_PAGE):
             page = int(data.replace(CALLBACK_BIZ_PAGE, ""))
@@ -1948,14 +1976,19 @@ class TelegramStatsHandler:
             period_row.append({"text": btn_text, "callback_data": f"{CALLBACK_OWNER_MAIN_PERIOD}{p_key}"})
         keyboard_rows.append(period_row)
 
-        # 1-qator: Buyurtmalar | Biznes guruh
-        row1 = [{"text": "📦 Buyurtmalar", "callback_data": "owner_orders"}]
+        # 1-qator: Buyurtmalar | Reja buyurtmalar
+        row1 = [
+            {"text": "📦 Buyurtmalar", "callback_data": "owner_orders"},
+            {"text": "📅 Reja", "callback_data": CALLBACK_OWNER_PLANNED}
+        ]
+        keyboard_rows.append(row1)
+
+        # 2-qator: Biznes guruh
         if biz_id:
             if group_id:
-                row1.append({"text": "👥 Biznes guruh", "callback_data": CALLBACK_OWNER_GROUP})
+                keyboard_rows.append([{"text": "👥 Biznes guruh", "callback_data": CALLBACK_OWNER_GROUP}])
             else:
-                row1.append({"text": "➕ Biznes guruh", "callback_data": CALLBACK_OWNER_GROUP})
-        keyboard_rows.append(row1)
+                keyboard_rows.append([{"text": "➕ Biznes guruh", "callback_data": CALLBACK_OWNER_GROUP}])
 
         # 2-qator: Buyurtma berish | Qo'llab quvvatlash
         keyboard_rows.append([
@@ -2082,6 +2115,132 @@ class TelegramStatsHandler:
         elif state == "COMPLETED":
             return "completed"
         return "checking"
+
+    async def _show_owner_planned_orders(self, message_id: int, chat_id: str, page: int = 0):
+        """Biznes egasi uchun reja buyurtmalar ro'yxati"""
+        user_data = self._verified_users.get(chat_id, {})
+        biz_id = user_data.get("business_id")
+        biz_title = user_data.get("business_title", "Noma'lum")
+
+        if not self.nonbor_service or not biz_id:
+            await self.telegram.edit_message(
+                message_id=message_id,
+                text="❌ Ma'lumot olishda xatolik",
+                chat_id=chat_id,
+                parse_mode="HTML",
+                reply_markup={"inline_keyboard": [[{"text": "◀️ Orqaga", "callback_data": CALLBACK_OWNER_BACK}]]}
+            )
+            return
+
+        # Biznesga tegishli barcha buyurtmalarni olish
+        orders = await self.nonbor_service.get_orders_by_business(int(biz_id))
+
+        # Faqat reja buyurtmalar
+        planned_orders = []
+        for order in orders:
+            is_planned = order.get("is_planned") or order.get("is_planner")
+            if not is_planned:
+                continue
+            status = (order.get("state") or "CHECKING").upper()
+            skip = ["PENDING", "WAITING_PAYMENT", "PAYMENTPENDING", "PAYMENT_PENDING"]
+            if status in skip:
+                continue
+            planned_orders.append(order)
+
+        # Pagination
+        ITEMS_PER_PAGE = 10
+        total = len(planned_orders)
+        total_pages = max(1, (total + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE)
+        page = max(0, min(page, total_pages - 1))
+        start_idx = page * ITEMS_PER_PAGE
+        end_idx = min(start_idx + ITEMS_PER_PAGE, total)
+        page_orders = planned_orders[start_idx:end_idx]
+
+        STATUS_EMOJI = {
+            "CHECKING": "🟡", "ACCEPTED": "🟢", "READY": "✅",
+            "DELIVERING": "🚗", "DELIVERED": "📦", "COMPLETED": "🏁",
+            "CANCELLED": "❌", "CANCELLED_SELLER": "🚫", "CANCELLED_CLIENT": "❌",
+            "ACCEPT_EXPIRED": "⏰",
+        }
+        STATUS_NAMES = {
+            "CHECKING": "Tekshirilmoqda", "ACCEPTED": "Qabul qilindi",
+            "READY": "Tayyor", "DELIVERING": "Yetkazilmoqda",
+            "DELIVERED": "Yetkazildi", "COMPLETED": "Yakunlandi",
+            "CANCELLED": "Bekor qilindi", "CANCELLED_SELLER": "Sotuvchi bekor qildi",
+            "CANCELLED_CLIENT": "Mijoz bekor qildi", "ACCEPT_EXPIRED": "Muddati o'tdi",
+        }
+
+        text = f"📅 <b>REJA BUYURTMALAR</b>\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n"
+        text += f"🏪 {biz_title}\n"
+        text += f"📊 Jami: <b>{total}</b> ta\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
+
+        if not page_orders:
+            text += "<i>Reja buyurtmalar topilmadi</i>\n"
+        else:
+            for i, order in enumerate(page_orders, start_idx + 1):
+                order_id = order.get("id", "?")
+                status = (order.get("state") or "CHECKING").upper()
+                emoji = STATUS_EMOJI.get(status, "📋")
+
+                # Mahsulot
+                items = order.get("order_item") or order.get("items") or []
+                product_name = ""
+                if items:
+                    product = items[0].get("product") or {}
+                    product_name = (product.get("title") or product.get("name") or "")[:20]
+
+                # Narx
+                price = (order.get("total_price", 0) or 0) / 100
+                price_str = f"{price:,.0f}".replace(",", " ") if price else ""
+
+                # Reja vaqti
+                raw_planned = order.get("planned_datetime") or order.get("planned_time") or ""
+                planned_time = ""
+                if raw_planned:
+                    try:
+                        dt = datetime.fromisoformat(str(raw_planned).replace('Z', '+00:00'))
+                        planned_time = dt.strftime("%d.%m %H:%M")
+                    except:
+                        planned_time = str(raw_planned)
+
+                status_name = STATUS_NAMES.get(status, status)
+
+                text += f"<b>{i}.</b> {emoji} <b>#{order_id}</b>"
+                if planned_time:
+                    text += f" — 📅 {planned_time}"
+                text += f"\n   📊 {status_name}"
+                if product_name:
+                    text += f"\n   🏷 {product_name}"
+                if price_str:
+                    text += f" | 💰 {price_str}"
+                text += "\n\n"
+
+        # Keyboard
+        keyboard_rows = []
+        if total_pages > 1:
+            nav_row = []
+            if page > 0:
+                nav_row.append({"text": "⬅️", "callback_data": f"{CALLBACK_OWNER_PLANNED_PAGE}{page - 1}"})
+            else:
+                nav_row.append({"text": "·", "callback_data": "noop"})
+            nav_row.append({"text": f"{page + 1}/{total_pages}", "callback_data": "noop"})
+            if page < total_pages - 1:
+                nav_row.append({"text": "➡️", "callback_data": f"{CALLBACK_OWNER_PLANNED_PAGE}{page + 1}"})
+            else:
+                nav_row.append({"text": "·", "callback_data": "noop"})
+            keyboard_rows.append(nav_row)
+
+        keyboard_rows.append([{"text": "◀️ Orqaga", "callback_data": CALLBACK_OWNER_BACK}])
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup={"inline_keyboard": keyboard_rows}
+        )
 
     async def _show_owner_orders(self, message_id: int, chat_id: str, period: str = None, page: int = None, status_filter: str = None):
         """Biznes egasi uchun buyurtmalar ro'yxati - Nonbor API dan (get-order-for-courier)"""
@@ -2319,7 +2478,7 @@ class TelegramStatsHandler:
             reply_markup={"inline_keyboard": keyboard_rows}
         )
 
-    def _get_stats_keyboard(self, stats) -> dict:
+    def _get_stats_keyboard(self, stats, planned_count: int = 0) -> dict:
         """Statistika inline keyboard"""
         # Davr tugmalari - tanlangan davr belgilanadi
         period_buttons = []
@@ -2346,6 +2505,9 @@ class TelegramStatsHandler:
                 [
                     {"text": "👥 Bizneslar", "callback_data": CALLBACK_MENU_BUSINESSES},
                     {"text": "📢 Xabarnomalar", "callback_data": CALLBACK_MENU_NOTIF}
+                ],
+                [
+                    {"text": f"📅 Reja buyurtmalar ({planned_count})", "callback_data": CALLBACK_MENU_PLANNED}
                 ]
             ]
         }
@@ -2357,6 +2519,16 @@ class TelegramStatsHandler:
 
         stats = self.stats_service.get_period_stats(self._current_period)
         title = self._get_period_title()
+
+        # Reja buyurtmalar sonini olish
+        planned_count = 0
+        if self.nonbor_service:
+            try:
+                orders = await self.nonbor_service.get_orders()
+                if orders:
+                    planned_count = sum(1 for o in orders if o.get("is_planned") or o.get("is_planner"))
+            except Exception:
+                pass
 
         text = f"""📊 <b>{title} STATISTIKA</b>
 ━━━━━━━━━━━━━━━━━━━━
@@ -2372,11 +2544,13 @@ class TelegramStatsHandler:
 ├ ❌ Bekor qilindi: {stats.rejected_orders}
 └ 🚀 Telegram'siz qabul: {stats.accepted_without_telegram}
 
+📅 <b>REJA BUYURTMALAR:</b> {planned_count} ta
+
 📅 Davr: {stats.date}
 
 <i>Batafsil ko'rish uchun tugmalarni bosing:</i>"""
 
-        keyboard = self._get_stats_keyboard(stats)
+        keyboard = self._get_stats_keyboard(stats, planned_count=planned_count)
 
         await self.telegram.edit_message(
             message_id=message_id,
@@ -3115,6 +3289,18 @@ class TelegramStatsHandler:
         # Keyboard
         keyboard_rows = []
 
+        # 0. Davr tugmalari
+        period_row1 = []
+        period_row2 = []
+        for p_key, p_label in [("daily", "📅 Kunlik"), ("weekly", "📆 Haftalik")]:
+            btn_text = f"✓ {p_label}" if p_key == self._current_period else p_label
+            period_row1.append({"text": btn_text, "callback_data": f"{CALLBACK_ADMIN_ORDERS_PERIOD}{p_key}"})
+        for p_key, p_label in [("monthly", "🗓 Oylik"), ("yearly", "📊 Yillik")]:
+            btn_text = f"✓ {p_label}" if p_key == self._current_period else p_label
+            period_row2.append({"text": btn_text, "callback_data": f"{CALLBACK_ADMIN_ORDERS_PERIOD}{p_key}"})
+        keyboard_rows.append(period_row1)
+        keyboard_rows.append(period_row2)
+
         # 1. Status filter tugmalari (4 qator)
         statuses1 = [("📋 Barchasi", "all"), ("🔍 Tekshirilmoqda", "checking")]
         statuses2 = [("✅ Qabul", "accepted"), ("❌ Bekor", "rejected")]
@@ -3251,6 +3437,145 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
             chat_id=chat_id,
             parse_mode="HTML",
             reply_markup=keyboard
+        )
+
+    # ===== REJA BUYURTMALAR UI =====
+
+    async def _show_planned_orders(self, message_id: int, chat_id: str, page: int = 0):
+        """Rejalashtirilgan buyurtmalar ro'yxati - API dan olish"""
+        if not self.nonbor_service:
+            await self.telegram.edit_message(
+                message_id=message_id,
+                text="❌ Nonbor servisi ulanmagan",
+                chat_id=chat_id,
+                parse_mode="HTML",
+                reply_markup={"inline_keyboard": [[{"text": "◀️ Orqaga", "callback_data": CALLBACK_BACK}]]}
+            )
+            return
+
+        # API dan barcha buyurtmalarni olish
+        orders = await self.nonbor_service.get_orders()
+        if orders is None:
+            orders = []
+
+        # Faqat reja buyurtmalarni filtrlash
+        planned_orders = []
+        for order in orders:
+            is_planned = order.get("is_planned") or order.get("is_planner")
+            if not is_planned:
+                continue
+
+            status = (order.get("state") or "CHECKING").upper()
+            # PENDING va to'lov kutilayotganlarni o'tkazib yuborish
+            skip = ["PENDING", "WAITING_PAYMENT", "PAYMENTPENDING", "PAYMENT_PENDING"]
+            if status in skip:
+                continue
+
+            planned_orders.append(order)
+
+        # Pagination
+        ITEMS_PER_PAGE = 10
+        total = len(planned_orders)
+        total_pages = max(1, (total + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE)
+        page = max(0, min(page, total_pages - 1))
+
+        start_idx = page * ITEMS_PER_PAGE
+        end_idx = min(start_idx + ITEMS_PER_PAGE, total)
+        page_orders = planned_orders[start_idx:end_idx]
+
+        # Matn
+        text = f"📅 <b>REJA BUYURTMALAR</b>\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n"
+        text += f"📊 Jami: <b>{total}</b> ta\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
+
+        STATUS_EMOJI = {
+            "CHECKING": "🟡", "ACCEPTED": "🟢", "READY": "✅",
+            "DELIVERING": "🚗", "DELIVERED": "📦", "COMPLETED": "🏁",
+            "CANCELLED": "❌", "CANCELLED_SELLER": "🚫", "CANCELLED_CLIENT": "❌",
+            "ACCEPT_EXPIRED": "⏰",
+        }
+
+        if not page_orders:
+            text += "<i>Reja buyurtmalar topilmadi</i>\n"
+        else:
+            for i, order in enumerate(page_orders, start_idx + 1):
+                order_id = order.get("id", "?")
+                status = (order.get("state") or "CHECKING").upper()
+                emoji = STATUS_EMOJI.get(status, "📋")
+
+                # Biznes nomi
+                business = order.get("business") or {}
+                biz_name = (business.get("title") or business.get("name") or "")[:20]
+
+                # Mahsulot
+                items = order.get("order_item") or order.get("items") or []
+                product_name = ""
+                if items:
+                    product = items[0].get("product") or {}
+                    product_name = (product.get("title") or product.get("name") or "")[:20]
+
+                # Narx
+                price = (order.get("total_price", 0) or 0) / 100
+                price_str = f"{price:,.0f}".replace(",", " ") if price else ""
+
+                # Reja vaqti
+                raw_planned = order.get("planned_datetime") or order.get("planned_time") or ""
+                planned_time = ""
+                if raw_planned:
+                    try:
+                        dt = datetime.fromisoformat(str(raw_planned).replace('Z', '+00:00'))
+                        planned_time = dt.strftime("%d.%m %H:%M")
+                    except:
+                        planned_time = str(raw_planned)
+
+                # Status nomi
+                STATUS_NAMES = {
+                    "CHECKING": "Tekshirilmoqda", "ACCEPTED": "Qabul qilindi",
+                    "READY": "Tayyor", "DELIVERING": "Yetkazilmoqda",
+                    "DELIVERED": "Yetkazildi", "COMPLETED": "Yakunlandi",
+                    "CANCELLED": "Bekor qilindi", "CANCELLED_SELLER": "Sotuvchi bekor qildi",
+                    "CANCELLED_CLIENT": "Mijoz bekor qildi", "ACCEPT_EXPIRED": "Muddati o'tdi",
+                }
+                status_name = STATUS_NAMES.get(status, status)
+
+                text += f"<b>{i}.</b> {emoji} <b>#{order_id}</b>"
+                if planned_time:
+                    text += f" — 📅 {planned_time}"
+                text += f"\n   📊 {status_name}"
+                if biz_name:
+                    text += f" | 🏪 {biz_name}"
+                if product_name:
+                    text += f"\n   🏷 {product_name}"
+                if price_str:
+                    text += f" | 💰 {price_str}"
+                text += "\n\n"
+
+        # Keyboard
+        keyboard_rows = []
+
+        # Pagination
+        if total_pages > 1:
+            nav_row = []
+            if page > 0:
+                nav_row.append({"text": "⬅️", "callback_data": f"{CALLBACK_PLANNED_PAGE}{page - 1}"})
+            else:
+                nav_row.append({"text": "·", "callback_data": "noop"})
+            nav_row.append({"text": f"{page + 1}/{total_pages}", "callback_data": "noop"})
+            if page < total_pages - 1:
+                nav_row.append({"text": "➡️", "callback_data": f"{CALLBACK_PLANNED_PAGE}{page + 1}"})
+            else:
+                nav_row.append({"text": "·", "callback_data": "noop"})
+            keyboard_rows.append(nav_row)
+
+        keyboard_rows.append([{"text": "◀️ Orqaga", "callback_data": CALLBACK_BACK}])
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup={"inline_keyboard": keyboard_rows}
         )
 
     # ===== XABARNOMALAR UI =====

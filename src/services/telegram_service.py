@@ -85,6 +85,10 @@ CALLBACK_NOTIF_CANCEL = "notif_cancel"       # Bekor qilish
 CALLBACK_NOTIF_BACK = "notif_back"           # Orqaga
 CALLBACK_NOTIF_DELETE = "notif_del_"         # notif_del_uuid (o'chirish)
 CALLBACK_NOTIF_PAGE = "notif_pg_"            # notif_pg_0 (ro'yxat sahifa)
+CALLBACK_NOTIF_CAL_MONTH = "ncm_"           # ncm_2026_2 (yil_oy - oy o'zgartirish)
+CALLBACK_NOTIF_CAL_DAY = "ncd_"             # ncd_2026_2_15 (yil_oy_kun tanlash)
+CALLBACK_NOTIF_CAL_HOUR = "nch_"            # nch_7 (soat tanlash)
+CALLBACK_NOTIF_CAL_MIN = "ncmin_"           # ncmin_0 (daqiqa tanlash)
 
 # Auth states
 AUTH_IDLE = "idle"
@@ -1450,12 +1454,6 @@ class TelegramStatsHandler:
                 await self._ask_notif_datetime(chat_id)
                 return
 
-            # Xabarnoma sana/vaqt kiritish kutilmoqda
-            if chat_id in self._awaiting_notif_datetime and text:
-                msg_id = self._awaiting_notif_datetime.pop(chat_id)
-                await self._handle_notif_datetime_input(chat_id, text.strip())
-                return
-
             # Guruh ID kiritish kutilmoqda
             if chat_id in self._awaiting_group_input and text:
                 biz_id = self._awaiting_group_input.pop(chat_id)
@@ -1660,6 +1658,20 @@ class TelegramStatsHandler:
         elif data.startswith(CALLBACK_NOTIF_PAGE):
             page = int(data.replace(CALLBACK_NOTIF_PAGE, ""))
             await self._show_notif_list(message_id, chat_id, page=page)
+        elif data.startswith(CALLBACK_NOTIF_CAL_MONTH):
+            parts = data.replace(CALLBACK_NOTIF_CAL_MONTH, "").split("_")
+            year, month = int(parts[0]), int(parts[1])
+            await self._show_notif_calendar(message_id, chat_id, year, month)
+        elif data.startswith(CALLBACK_NOTIF_CAL_DAY):
+            parts = data.replace(CALLBACK_NOTIF_CAL_DAY, "").split("_")
+            year, month, day = int(parts[0]), int(parts[1]), int(parts[2])
+            await self._handle_notif_day_select(message_id, chat_id, year, month, day)
+        elif data.startswith(CALLBACK_NOTIF_CAL_HOUR):
+            hour = int(data.replace(CALLBACK_NOTIF_CAL_HOUR, ""))
+            await self._handle_notif_hour_select(message_id, chat_id, hour)
+        elif data.startswith(CALLBACK_NOTIF_CAL_MIN):
+            minute = int(data.replace(CALLBACK_NOTIF_CAL_MIN, ""))
+            await self._handle_notif_min_select(message_id, chat_id, minute)
         # Admin orders pagination va status filter
         elif data.startswith(CALLBACK_ADMIN_ORDERS_PAGE):
             try:
@@ -3571,54 +3583,175 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
         )
 
     async def _ask_notif_datetime(self, chat_id: str):
-        """Sana va vaqt so'rash"""
-        text = "📅 <b>SANA VA VAQT</b>\n"
-        text += "━━━━━━━━━━━━━━━━━━━━\n\n"
-        text += "Quyidagi formatda kiriting:\n\n"
-        text += "<code>15.02.2026 07:00</code>\n\n"
-        text += "yoki <code>2026-02-15 07:00</code>"
+        """Kalendar ko'rsatish - kun tanlash"""
+        uz_tz = timezone(timedelta(hours=5))
+        now = datetime.now(uz_tz)
+        await self.telegram.send_message(
+            text="📅 <b>Kunni tanlang:</b>",
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup=self._build_calendar(now.year, now.month)
+        )
 
-        result = await self.telegram.send_message(
+    def _build_calendar(self, year: int, month: int) -> dict:
+        """Inline kalendar yaratish"""
+        import calendar
+        uz_tz = timezone(timedelta(hours=5))
+        now = datetime.now(uz_tz)
+        today = now.date()
+
+        month_names = {
+            1: "Yanvar", 2: "Fevral", 3: "Mart", 4: "Aprel",
+            5: "May", 6: "Iyun", 7: "Iyul", 8: "Avgust",
+            9: "Sentyabr", 10: "Oktyabr", 11: "Noyabr", 12: "Dekabr"
+        }
+
+        rows = []
+        # Oy nomi va navigatsiya
+        prev_month = month - 1 if month > 1 else 12
+        prev_year = year if month > 1 else year - 1
+        next_month = month + 1 if month < 12 else 1
+        next_year = year if month < 12 else year + 1
+
+        nav_row = [
+            {"text": "◀️", "callback_data": f"{CALLBACK_NOTIF_CAL_MONTH}{prev_year}_{prev_month}"},
+            {"text": f"📅 {month_names[month]} {year}", "callback_data": "noop"},
+            {"text": "▶️", "callback_data": f"{CALLBACK_NOTIF_CAL_MONTH}{next_year}_{next_month}"}
+        ]
+        rows.append(nav_row)
+
+        # Hafta kunlari
+        rows.append([
+            {"text": d, "callback_data": "noop"}
+            for d in ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"]
+        ])
+
+        # Kunlar
+        cal = calendar.monthcalendar(year, month)
+        for week in cal:
+            week_row = []
+            for day in week:
+                if day == 0:
+                    week_row.append({"text": " ", "callback_data": "noop"})
+                else:
+                    from datetime import date
+                    day_date = date(year, month, day)
+                    if day_date < today:
+                        # O'tgan kunlar - bosib bo'lmaydi
+                        week_row.append({"text": f"·{day}·", "callback_data": "noop"})
+                    elif day_date == today:
+                        week_row.append({"text": f"[{day}]", "callback_data": f"{CALLBACK_NOTIF_CAL_DAY}{year}_{month}_{day}"})
+                    else:
+                        week_row.append({"text": str(day), "callback_data": f"{CALLBACK_NOTIF_CAL_DAY}{year}_{month}_{day}"})
+            rows.append(week_row)
+
+        rows.append([{"text": "❌ Bekor qilish", "callback_data": CALLBACK_NOTIF_CANCEL}])
+
+        return {"inline_keyboard": rows}
+
+    async def _show_notif_calendar(self, message_id: int, chat_id: str, year: int, month: int):
+        """Kalendar oyini o'zgartirish"""
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text="📅 <b>Kunni tanlang:</b>",
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup=self._build_calendar(year, month)
+        )
+
+    async def _handle_notif_day_select(self, message_id: int, chat_id: str, year: int, month: int, day: int):
+        """Kun tanlanganda - soat tanlash"""
+        draft = self._notif_draft.get(chat_id, {})
+        draft["_cal_year"] = year
+        draft["_cal_month"] = month
+        draft["_cal_day"] = day
+        self._notif_draft[chat_id] = draft
+
+        text = f"🕐 <b>Soatni tanlang:</b>\n"
+        text += f"📅 {day:02d}.{month:02d}.{year}"
+
+        rows = []
+        # Soatlar - 3 qatorga
+        for start in range(6, 24, 6):
+            row = []
+            for h in range(start, min(start + 6, 24)):
+                row.append({"text": f"{h:02d}:00", "callback_data": f"{CALLBACK_NOTIF_CAL_HOUR}{h}"})
+            rows.append(row)
+
+        rows.append([{"text": "◀️ Kunni o'zgartirish", "callback_data": f"{CALLBACK_NOTIF_CAL_MONTH}{year}_{month}"}])
+        rows.append([{"text": "❌ Bekor qilish", "callback_data": CALLBACK_NOTIF_CANCEL}])
+
+        await self.telegram.edit_message(
+            message_id=message_id,
             text=text,
             chat_id=chat_id,
-            parse_mode="HTML"
+            parse_mode="HTML",
+            reply_markup={"inline_keyboard": rows}
         )
-        if result:
-            self._awaiting_notif_datetime[chat_id] = result
 
-    async def _handle_notif_datetime_input(self, chat_id: str, text: str):
-        """Sana/vaqt kiritilganda"""
-        dt = None
-        for fmt in ("%d.%m.%Y %H:%M", "%Y-%m-%d %H:%M", "%d/%m/%Y %H:%M"):
-            try:
-                dt = datetime.strptime(text, fmt)
-                break
-            except ValueError:
-                continue
+    async def _handle_notif_hour_select(self, message_id: int, chat_id: str, hour: int):
+        """Soat tanlanganda - daqiqa tanlash"""
+        draft = self._notif_draft.get(chat_id, {})
+        draft["_cal_hour"] = hour
+        self._notif_draft[chat_id] = draft
 
-        if dt is None:
-            await self.telegram.send_message(
-                text="❌ Noto'g'ri format! Masalan: <code>15.02.2026 07:00</code>",
-                chat_id=chat_id,
-                parse_mode="HTML"
-            )
-            self._awaiting_notif_datetime[chat_id] = 0
-            return
+        day = draft.get("_cal_day", 1)
+        month = draft.get("_cal_month", 1)
+        year = draft.get("_cal_year", 2026)
+
+        text = f"🕐 <b>Daqiqani tanlang:</b>\n"
+        text += f"📅 {day:02d}.{month:02d}.{year} {hour:02d}:??"
+
+        rows = []
+        row = []
+        for m in [0, 10, 15, 20, 30, 45]:
+            row.append({"text": f"{hour:02d}:{m:02d}", "callback_data": f"{CALLBACK_NOTIF_CAL_MIN}{m}"})
+            if len(row) == 3:
+                rows.append(row)
+                row = []
+        if row:
+            rows.append(row)
+
+        rows.append([{"text": "◀️ Soatni o'zgartirish", "callback_data": f"{CALLBACK_NOTIF_CAL_DAY}{year}_{month}_{day}"}])
+        rows.append([{"text": "❌ Bekor qilish", "callback_data": CALLBACK_NOTIF_CANCEL}])
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup={"inline_keyboard": rows}
+        )
+
+    async def _handle_notif_min_select(self, message_id: int, chat_id: str, minute: int):
+        """Daqiqa tanlanganda - vaqtni saqlash va tasdiqlashga o'tish"""
+        draft = self._notif_draft.get(chat_id, {})
+        year = draft.get("_cal_year", 2026)
+        month = draft.get("_cal_month", 1)
+        day = draft.get("_cal_day", 1)
+        hour = draft.get("_cal_hour", 0)
 
         uz_tz = timezone(timedelta(hours=5))
-        dt = dt.replace(tzinfo=uz_tz)
+        dt = datetime(year, month, day, hour, minute, tzinfo=uz_tz)
 
         now = datetime.now(uz_tz)
         if dt <= now:
-            await self.telegram.send_message(
-                text="❌ Vaqt o'tib ketgan! Kelajakdagi vaqtni kiriting.",
+            await self.telegram.edit_message(
+                message_id=message_id,
+                text="❌ Bu vaqt o'tib ketgan! Boshqa kun yoki soat tanlang.",
                 chat_id=chat_id,
-                parse_mode="HTML"
+                parse_mode="HTML",
+                reply_markup={"inline_keyboard": [
+                    [{"text": "📅 Qayta tanlash", "callback_data": f"{CALLBACK_NOTIF_CAL_MONTH}{year}_{month}"}],
+                    [{"text": "❌ Bekor qilish", "callback_data": CALLBACK_NOTIF_CANCEL}]
+                ]}
             )
-            self._awaiting_notif_datetime[chat_id] = 0
             return
 
-        draft = self._notif_draft.get(chat_id, {})
+        # Vaqtinchalik kalendardan tozalash
+        for key in ["_cal_year", "_cal_month", "_cal_day", "_cal_hour"]:
+            draft.pop(key, None)
+
         draft["send_at"] = dt.isoformat()
         self._notif_draft[chat_id] = draft
         await self._show_notif_confirm(chat_id)

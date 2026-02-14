@@ -83,7 +83,8 @@ CALLBACK_NOTIF_DONE_BIZ = "nsb_done"         # Bizneslar tanlash tugadi
 CALLBACK_NOTIF_CONFIRM = "notif_confirm"     # Tasdiqlash
 CALLBACK_NOTIF_CANCEL = "notif_cancel"       # Bekor qilish
 CALLBACK_NOTIF_BACK = "notif_back"           # Orqaga
-CALLBACK_NOTIF_DELETE = "notif_del_"         # notif_del_uuid (o'chirish)
+CALLBACK_NOTIF_DELETE = "notif_del_"         # notif_del_uuid (o'chirish - tasdiqlash)
+CALLBACK_NOTIF_DELETE_CONFIRM = "ndc_"       # ndc_uuid (o'chirish tasdiqlandi)
 CALLBACK_NOTIF_PAGE = "notif_pg_"            # notif_pg_0 (ro'yxat sahifa)
 CALLBACK_NOTIF_CAL_MONTH = "ncm_"           # ncm_2026_2 (yil_oy - oy o'zgartirish)
 CALLBACK_NOTIF_CAL_DAY = "ncd_"             # ncd_2026_2_15 (yil_oy_kun tanlash)
@@ -1447,10 +1448,15 @@ class TelegramStatsHandler:
 
             # Xabarnoma matn kiritish kutilmoqda
             if chat_id in self._awaiting_notif_text and text:
-                msg_id = self._awaiting_notif_text.pop(chat_id)
+                prompt_msg_id = self._awaiting_notif_text.pop(chat_id)
+                user_msg_id = message.get("message_id")
                 draft = self._notif_draft.get(chat_id, {})
                 draft["text"] = text
                 self._notif_draft[chat_id] = draft
+                # Eski xabarlarni o'chirish
+                await self.telegram.delete_message(prompt_msg_id, chat_id=chat_id)
+                await self.telegram.delete_message(user_msg_id, chat_id=chat_id)
+                # Kalendar yuborish (yangi xabar)
                 await self._ask_notif_datetime(chat_id)
                 return
 
@@ -1642,22 +1648,34 @@ class TelegramStatsHandler:
         elif data.startswith(CALLBACK_NOTIF_SEL_BIZ_PAGE):
             page = int(data.replace(CALLBACK_NOTIF_SEL_BIZ_PAGE, ""))
             await self._show_notif_biz_select(message_id, chat_id, page=page)
+        elif data == CALLBACK_NOTIF_DONE_BIZ:
+            draft = self._notif_draft.get(chat_id, {})
+            if not draft.get("target_ids"):
+                # Kamida bitta biznes tanlash kerak - xabar ko'rsatish
+                await self._show_notif_biz_select(message_id, chat_id, warning="❗ Kamida bitta biznes tanlang!")
+                return
+            await self._ask_notif_text(message_id, chat_id)
         elif data.startswith(CALLBACK_NOTIF_SEL_BIZ):
             biz_id = int(data.replace(CALLBACK_NOTIF_SEL_BIZ, ""))
             await self._handle_notif_biz_toggle(message_id, chat_id, biz_id)
-        elif data == CALLBACK_NOTIF_DONE_BIZ:
-            await self._ask_notif_text(message_id, chat_id)
         elif data == CALLBACK_NOTIF_CONFIRM:
             await self._save_notif_draft(message_id, chat_id)
         elif data == CALLBACK_NOTIF_CANCEL:
             self._notif_draft.pop(chat_id, None)
             await self._show_notif_menu(message_id, chat_id)
+        elif data.startswith(CALLBACK_NOTIF_DELETE_CONFIRM):
+            notif_id = data.replace(CALLBACK_NOTIF_DELETE_CONFIRM, "")
+            await self._delete_notification(message_id, chat_id, notif_id)
         elif data.startswith(CALLBACK_NOTIF_DELETE):
             notif_id = data.replace(CALLBACK_NOTIF_DELETE, "")
-            await self._delete_notification(message_id, chat_id, notif_id)
+            await self._confirm_delete_notification(message_id, chat_id, notif_id)
         elif data.startswith(CALLBACK_NOTIF_PAGE):
             page = int(data.replace(CALLBACK_NOTIF_PAGE, ""))
             await self._show_notif_list(message_id, chat_id, page=page)
+        elif data.startswith(CALLBACK_NOTIF_CAL_MIN):
+            # MUHIM: ncmin_ tekshiruvi ncm_ dan OLDIN bo'lishi kerak (prefiks to'qnashuvi)
+            minute = int(data.replace(CALLBACK_NOTIF_CAL_MIN, ""))
+            await self._handle_notif_min_select(message_id, chat_id, minute)
         elif data.startswith(CALLBACK_NOTIF_CAL_MONTH):
             parts = data.replace(CALLBACK_NOTIF_CAL_MONTH, "").split("_")
             year, month = int(parts[0]), int(parts[1])
@@ -1669,9 +1687,6 @@ class TelegramStatsHandler:
         elif data.startswith(CALLBACK_NOTIF_CAL_HOUR):
             hour = int(data.replace(CALLBACK_NOTIF_CAL_HOUR, ""))
             await self._handle_notif_hour_select(message_id, chat_id, hour)
-        elif data.startswith(CALLBACK_NOTIF_CAL_MIN):
-            minute = int(data.replace(CALLBACK_NOTIF_CAL_MIN, ""))
-            await self._handle_notif_min_select(message_id, chat_id, minute)
         # Admin orders pagination va status filter
         elif data.startswith(CALLBACK_ADMIN_ORDERS_PAGE):
             try:
@@ -3234,6 +3249,8 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
 
     async def _show_notif_menu(self, message_id: int, chat_id: str):
         """Xabarnomalar asosiy menyu"""
+        # Har doim fayldan qayta yuklash
+        self._notifications = self._load_notifications()
         pending_count = sum(1 for n in self._notifications if n.get("status") == "pending")
         sent_count = sum(1 for n in self._notifications if n.get("status") == "sent")
 
@@ -3449,7 +3466,7 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
 
         await self._ask_notif_text(message_id, chat_id)
 
-    async def _show_notif_biz_select(self, message_id: int, chat_id: str, page: int = 0):
+    async def _show_notif_biz_select(self, message_id: int, chat_id: str, page: int = 0, warning: str = ""):
         """Bizneslar tanlash (faqat guruh ulanganlar)"""
         if not self.nonbor_service:
             return
@@ -3480,6 +3497,8 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
 
         text = f"🏪 <b>BIZNES TANLANG</b> ({total} ta)\n"
         text += f"━━━━━━━━━━━━━━━━━━━━\n"
+        if warning:
+            text += f"\n⚠️ <b>{warning}</b>\n\n"
         text += f"Tanlangan: <b>{len(selected_ids)}</b> ta\n"
         text += f"📄 Sahifa {page + 1}/{total_pages}\n\n"
 
@@ -3583,15 +3602,19 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
         )
 
     async def _ask_notif_datetime(self, chat_id: str):
-        """Kalendar ko'rsatish - kun tanlash"""
+        """Kalendar ko'rsatish - kun tanlash (yangi xabar)"""
         uz_tz = timezone(timedelta(hours=5))
         now = datetime.now(uz_tz)
-        await self.telegram.send_message(
+        cal_msg_id = await self.telegram.send_message(
             text="📅 <b>Kunni tanlang:</b>",
             chat_id=chat_id,
             parse_mode="HTML",
             reply_markup=self._build_calendar(now.year, now.month)
         )
+        # Kalendar message_id ni saqlash - keyingi qadamlarda edit qilish uchun
+        draft = self._notif_draft.get(chat_id, {})
+        draft["_cal_msg_id"] = cal_msg_id
+        self._notif_draft[chat_id] = draft
 
     def _build_calendar(self, year: int, month: int) -> dict:
         """Inline kalendar yaratish"""
@@ -3757,8 +3780,10 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
         await self._show_notif_confirm(chat_id)
 
     async def _show_notif_confirm(self, chat_id: str):
-        """Xabarnomani tasdiqlash"""
+        """Xabarnomani tasdiqlash - kalendar xabarini tahrirlash"""
         draft = self._notif_draft.get(chat_id, {})
+        cal_msg_id = draft.get("_cal_msg_id")
+
         target_type_label = {
             "region": "🏙 Hudud",
             "district": "🏘 Tuman",
@@ -3796,12 +3821,21 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
             ]
         }
 
-        await self.telegram.send_message(
-            text=text,
-            chat_id=chat_id,
-            parse_mode="HTML",
-            reply_markup=keyboard
-        )
+        if cal_msg_id:
+            await self.telegram.edit_message(
+                message_id=cal_msg_id,
+                text=text,
+                chat_id=chat_id,
+                parse_mode="HTML",
+                reply_markup=keyboard
+            )
+        else:
+            await self.telegram.send_message(
+                text=text,
+                chat_id=chat_id,
+                parse_mode="HTML",
+                reply_markup=keyboard
+            )
 
     async def _save_notif_draft(self, message_id: int, chat_id: str):
         """Xabarnomani saqlash"""
@@ -3860,6 +3894,8 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
 
     async def _show_notif_list(self, message_id: int, chat_id: str, page: int = 0):
         """Xabarnomalar ro'yxati - muddatlari bilan"""
+        # Har doim fayldan qayta yuklash
+        self._notifications = self._load_notifications()
         if not self._notifications:
             await self.telegram.edit_message(
                 message_id=message_id,
@@ -3950,8 +3986,49 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
             reply_markup={"inline_keyboard": keyboard_rows}
         )
 
+    async def _confirm_delete_notification(self, message_id: int, chat_id: str, notif_id: str):
+        """Xabarnomani o'chirishni tasdiqlash"""
+        self._notifications = self._load_notifications()
+        notif = next((n for n in self._notifications if n.get("id") == notif_id), None)
+        if not notif:
+            await self._show_notif_list(message_id, chat_id)
+            return
+
+        send_at_str = ""
+        try:
+            dt = datetime.fromisoformat(notif["send_at"])
+            send_at_str = dt.strftime("%d.%m.%Y %H:%M")
+        except:
+            send_at_str = notif.get("send_at", "?")
+
+        target_name = notif.get("target_name", "")
+        preview = notif.get("text", "")[:100]
+
+        text = f"🗑 <b>O'CHIRISHNI TASDIQLANG</b>\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
+        text += f"📅 Yuborilish: <b>{send_at_str}</b>\n"
+        text += f"🏪 Target: <b>{target_name}</b>\n"
+        text += f"📝 Matn: {preview}\n\n"
+        text += f"⚠️ <b>Rostdan o'chirmoqchimisiz?</b>"
+
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "✅ Ha, o'chirish", "callback_data": f"{CALLBACK_NOTIF_DELETE_CONFIRM}{notif_id}"}],
+                [{"text": "❌ Yo'q, orqaga", "callback_data": CALLBACK_NOTIF_LIST}]
+            ]
+        }
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )
+
     async def _delete_notification(self, message_id: int, chat_id: str, notif_id: str):
         """Xabarnomani o'chirish"""
+        self._notifications = self._load_notifications()
         self._notifications = [n for n in self._notifications if n.get("id") != notif_id]
         self._save_notifications()
         logger.info(f"Xabarnoma o'chirildi: id={notif_id}")

@@ -584,6 +584,64 @@ class AutodialerPro:
                     logger.info(f"Guruh xabarlari: {len(pending_orders)} ta yangi buyurtma yuborilmoqda")
                 await self._update_group_messages(new_order_ids=pending_orders if pending_orders else None)
 
+        # XABARNOMALAR SCHEDULER: Har 30 sekundda tekshirish
+        if self.stats_handler:
+            should_check_notif = False
+            if not hasattr(self, '_last_notif_check'):
+                self._last_notif_check = None
+            if self._last_notif_check is None:
+                should_check_notif = True
+            else:
+                time_since_notif = (now - self._last_notif_check).total_seconds()
+                if time_since_notif >= 30:
+                    should_check_notif = True
+
+            if should_check_notif:
+                self._last_notif_check = now
+                await self._process_scheduled_notifications()
+
+    async def _process_scheduled_notifications(self):
+        """Rejalashtirilgan xabarnomalarni tekshirish va yuborish"""
+        try:
+            pending = self.stats_handler.get_pending_notifications()
+            if not pending:
+                return
+
+            for notif in pending:
+                notif_id = notif.get("id", "?")
+                target_ids = notif.get("target_ids", [])
+                text = notif.get("text", "")
+
+                if not target_ids or not text:
+                    self.stats_handler.mark_notification_sent(notif_id, 0, 0)
+                    continue
+
+                logger.info(f"Xabarnoma yuborilmoqda: id={notif_id}, targets={len(target_ids)}")
+
+                sent_count = 0
+                total_count = len(target_ids)
+
+                for biz_id in target_ids:
+                    group_id = self.stats_handler._business_groups.get(str(biz_id), "")
+                    if not group_id:
+                        continue
+                    try:
+                        await self.telegram.send_message(
+                            text=f"📢 <b>XABARNOMA</b>\n━━━━━━━━━━━━━━━━━━━━\n\n{text}",
+                            chat_id=group_id,
+                            parse_mode="HTML"
+                        )
+                        sent_count += 1
+                        await asyncio.sleep(0.5)  # Telegram rate limit
+                    except Exception as e:
+                        logger.error(f"Xabarnoma yuborish xatosi (biz={biz_id}, group={group_id}): {e}")
+
+                self.stats_handler.mark_notification_sent(notif_id, sent_count, total_count)
+                logger.info(f"Xabarnoma yuborildi: id={notif_id}, sent={sent_count}/{total_count}")
+
+        except Exception as e:
+            logger.error(f"Xabarnomalar scheduler xatosi: {e}")
+
     async def _update_group_messages(self, new_order_ids: set = None):
         """
         Biriktirilgan guruhlarga har bir buyurtma uchun alohida xabar yuborish/yangilash.

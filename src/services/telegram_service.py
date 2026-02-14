@@ -7,10 +7,11 @@ import logging
 import json
 import os
 import random
+import uuid
 import aiohttp
 import asyncio
 from typing import Optional, Dict, Any, List, Callable
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,24 @@ CALLBACK_OWNER_MAIN_PERIOD = "om_period_"  # om_period_daily, om_period_weekly, 
 # Admin orders (admin buyurtmalar bo'limi)
 CALLBACK_ADMIN_ORDERS_PAGE = "ao_page_"      # ao_page_0, ao_page_1, ...
 CALLBACK_ADMIN_ORDERS_STATUS = "ao_status_"  # ao_status_all, ao_status_accepted, ao_status_rejected, ao_status_notg
+
+# Xabarnomalar (scheduled notifications)
+CALLBACK_MENU_NOTIF = "menu_notif"           # Asosiy menyudan xabarnomalar
+CALLBACK_NOTIF_NEW = "notif_new"             # Yangi xabarnoma yaratish
+CALLBACK_NOTIF_LIST = "notif_list"           # Ro'yxatni ko'rish
+CALLBACK_NOTIF_TARGET_REGION = "nt_region"   # Hudud bo'yicha target
+CALLBACK_NOTIF_TARGET_DISTRICT = "nt_dist"   # Tuman bo'yicha target
+CALLBACK_NOTIF_TARGET_BIZ = "nt_biz"         # Bizneslar bo'yicha target
+CALLBACK_NOTIF_SEL_REGION = "nsr_"           # nsr_0 (region tanlash)
+CALLBACK_NOTIF_SEL_DISTRICT = "nsd_"         # nsd_0_1 (region_idx_district_idx)
+CALLBACK_NOTIF_SEL_BIZ = "nsb_"              # nsb_5 (business id tanlash)
+CALLBACK_NOTIF_SEL_BIZ_PAGE = "nsbp_"        # nsbp_0 (biznes sahifa)
+CALLBACK_NOTIF_DONE_BIZ = "nsb_done"         # Bizneslar tanlash tugadi
+CALLBACK_NOTIF_CONFIRM = "notif_confirm"     # Tasdiqlash
+CALLBACK_NOTIF_CANCEL = "notif_cancel"       # Bekor qilish
+CALLBACK_NOTIF_BACK = "notif_back"           # Orqaga
+CALLBACK_NOTIF_DELETE = "notif_del_"         # notif_del_uuid (o'chirish)
+CALLBACK_NOTIF_PAGE = "notif_pg_"            # notif_pg_0 (ro'yxat sahifa)
 
 # Auth states
 AUTH_IDLE = "idle"
@@ -928,6 +947,17 @@ class TelegramStatsHandler:
         self._admin_orders_page: Dict[str, int] = {}      # chat_id -> page (0-indexed)
         self._admin_orders_status: Dict[str, str] = {}    # chat_id -> status filter (all/accepted/rejected/notg)
 
+        # Xabarnomalar tizimi
+        self._notif_file = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "data", "scheduled_notifications.json"
+        )
+        self._notifications: List[dict] = self._load_notifications()
+        # Xabarnoma yaratish state (har bir admin chat uchun)
+        self._notif_draft: Dict[str, dict] = {}           # chat_id -> {target_type, target_ids, target_name, text, send_at}
+        self._awaiting_notif_text: Dict[str, int] = {}    # chat_id -> message_id
+        self._awaiting_notif_datetime: Dict[str, int] = {}  # chat_id -> message_id
+
     def set_stats_service(self, stats_service):
         """Stats servisini sozlash"""
         self.stats_service = stats_service
@@ -980,6 +1010,54 @@ class TelegramStatsHandler:
     def is_call_enabled(self, business_id: int) -> bool:
         """Biznes uchun avtoqo'ng'iroq yoqilganmi?"""
         return business_id not in self._disabled_businesses
+
+    # ===== XABARNOMALAR =====
+
+    def _load_notifications(self) -> list:
+        """Rejalashtirilgan xabarnomalarni yuklash"""
+        try:
+            if os.path.exists(self._notif_file):
+                with open(self._notif_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return data.get("notifications", [])
+        except Exception as e:
+            logger.error(f"Xabarnomalar yuklash xatosi: {e}")
+        return []
+
+    def _save_notifications(self):
+        """Xabarnomalarni saqlash"""
+        try:
+            os.makedirs(os.path.dirname(self._notif_file), exist_ok=True)
+            with open(self._notif_file, "w", encoding="utf-8") as f:
+                json.dump({"notifications": self._notifications}, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            logger.error(f"Xabarnomalar saqlash xatosi: {e}")
+
+    def get_pending_notifications(self) -> list:
+        """Yuborilishi kerak bo'lgan xabarnomalarni olish (vaqti kelgan)"""
+        now = datetime.now(timezone(timedelta(hours=5)))
+        pending = []
+        for notif in self._notifications:
+            if notif.get("status") != "pending":
+                continue
+            try:
+                send_at = datetime.fromisoformat(notif["send_at"])
+                if send_at <= now:
+                    pending.append(notif)
+            except (KeyError, ValueError):
+                continue
+        return pending
+
+    def mark_notification_sent(self, notif_id: str, sent_count: int, total_count: int):
+        """Xabarnomani yuborilgan deb belgilash"""
+        for notif in self._notifications:
+            if notif.get("id") == notif_id:
+                notif["status"] = "sent"
+                notif["sent_count"] = sent_count
+                notif["total_count"] = total_count
+                notif["sent_at"] = datetime.now(timezone(timedelta(hours=5))).isoformat()
+                break
+        self._save_notifications()
 
     # ===== AUTH METODLAR =====
 
@@ -1363,6 +1441,21 @@ class TelegramStatsHandler:
                 await self.send_stats_message(chat_id)
                 return
 
+            # Xabarnoma matn kiritish kutilmoqda
+            if chat_id in self._awaiting_notif_text and text:
+                msg_id = self._awaiting_notif_text.pop(chat_id)
+                draft = self._notif_draft.get(chat_id, {})
+                draft["text"] = text
+                self._notif_draft[chat_id] = draft
+                await self._ask_notif_datetime(chat_id)
+                return
+
+            # Xabarnoma sana/vaqt kiritish kutilmoqda
+            if chat_id in self._awaiting_notif_datetime and text:
+                msg_id = self._awaiting_notif_datetime.pop(chat_id)
+                await self._handle_notif_datetime_input(chat_id, text.strip())
+                return
+
             # Guruh ID kiritish kutilmoqda
             if chat_id in self._awaiting_group_input and text:
                 biz_id = self._awaiting_group_input.pop(chat_id)
@@ -1525,6 +1618,48 @@ class TelegramStatsHandler:
             await self._show_orders_menu(message_id, chat_id)
         elif data == CALLBACK_MENU_BACK:
             await self._show_main_stats(message_id, chat_id)
+        # Xabarnomalar
+        elif data == CALLBACK_MENU_NOTIF:
+            await self._show_notif_menu(message_id, chat_id)
+        elif data == CALLBACK_NOTIF_NEW:
+            await self._show_notif_target_type(message_id, chat_id)
+        elif data == CALLBACK_NOTIF_LIST:
+            await self._show_notif_list(message_id, chat_id)
+        elif data == CALLBACK_NOTIF_BACK:
+            await self._show_notif_menu(message_id, chat_id)
+        elif data == CALLBACK_NOTIF_TARGET_REGION:
+            await self._show_notif_regions(message_id, chat_id)
+        elif data == CALLBACK_NOTIF_TARGET_DISTRICT:
+            await self._show_notif_regions(message_id, chat_id, for_district=True)
+        elif data == CALLBACK_NOTIF_TARGET_BIZ:
+            self._notif_draft[chat_id] = {"target_type": "businesses", "target_ids": [], "target_names": []}
+            await self._show_notif_biz_select(message_id, chat_id)
+        elif data.startswith(CALLBACK_NOTIF_SEL_REGION):
+            region_val = data.replace(CALLBACK_NOTIF_SEL_REGION, "")
+            await self._handle_notif_region_select(message_id, chat_id, region_val)
+        elif data.startswith(CALLBACK_NOTIF_SEL_DISTRICT):
+            parts = data.replace(CALLBACK_NOTIF_SEL_DISTRICT, "").split("_")
+            region_idx, district_idx = int(parts[0]), int(parts[1])
+            await self._handle_notif_district_select(message_id, chat_id, region_idx, district_idx)
+        elif data.startswith(CALLBACK_NOTIF_SEL_BIZ_PAGE):
+            page = int(data.replace(CALLBACK_NOTIF_SEL_BIZ_PAGE, ""))
+            await self._show_notif_biz_select(message_id, chat_id, page=page)
+        elif data.startswith(CALLBACK_NOTIF_SEL_BIZ):
+            biz_id = int(data.replace(CALLBACK_NOTIF_SEL_BIZ, ""))
+            await self._handle_notif_biz_toggle(message_id, chat_id, biz_id)
+        elif data == CALLBACK_NOTIF_DONE_BIZ:
+            await self._ask_notif_text(message_id, chat_id)
+        elif data == CALLBACK_NOTIF_CONFIRM:
+            await self._save_notif_draft(message_id, chat_id)
+        elif data == CALLBACK_NOTIF_CANCEL:
+            self._notif_draft.pop(chat_id, None)
+            await self._show_notif_menu(message_id, chat_id)
+        elif data.startswith(CALLBACK_NOTIF_DELETE):
+            notif_id = data.replace(CALLBACK_NOTIF_DELETE, "")
+            await self._delete_notification(message_id, chat_id, notif_id)
+        elif data.startswith(CALLBACK_NOTIF_PAGE):
+            page = int(data.replace(CALLBACK_NOTIF_PAGE, ""))
+            await self._show_notif_list(message_id, chat_id, page=page)
         # Admin orders pagination va status filter
         elif data.startswith(CALLBACK_ADMIN_ORDERS_PAGE):
             try:
@@ -2174,7 +2309,8 @@ class TelegramStatsHandler:
                     {"text": f"📦 Buyurtmalar ({stats.total_orders})", "callback_data": CALLBACK_MENU_ORDERS}
                 ],
                 [
-                    {"text": "👥 Bizneslar", "callback_data": CALLBACK_MENU_BUSINESSES}
+                    {"text": "👥 Bizneslar", "callback_data": CALLBACK_MENU_BUSINESSES},
+                    {"text": "📢 Xabarnomalar", "callback_data": CALLBACK_MENU_NOTIF}
                 ]
             ]
         }
@@ -3081,3 +3217,609 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
             parse_mode="HTML",
             reply_markup=keyboard
         )
+
+    # ===== XABARNOMALAR UI =====
+
+    async def _show_notif_menu(self, message_id: int, chat_id: str):
+        """Xabarnomalar asosiy menyu"""
+        pending_count = sum(1 for n in self._notifications if n.get("status") == "pending")
+        sent_count = sum(1 for n in self._notifications if n.get("status") == "sent")
+
+        text = f"📢 <b>XABARNOMALAR</b>\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
+        text += f"🕐 Rejalashtirilgan: <b>{pending_count}</b> ta\n"
+        text += f"✅ Yuborilgan: <b>{sent_count}</b> ta\n\n"
+        text += f"<i>Bizneslar guruhlariga rejalashtirilgan xabarnomalar yuborish</i>"
+
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "➕ Yangi xabarnoma", "callback_data": CALLBACK_NOTIF_NEW}],
+                [{"text": f"📋 Ro'yxat ({pending_count + sent_count})", "callback_data": CALLBACK_NOTIF_LIST}],
+                [{"text": "◀️ Orqaga", "callback_data": CALLBACK_MENU_BACK}]
+            ]
+        }
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )
+
+    async def _show_notif_target_type(self, message_id: int, chat_id: str):
+        """Target turini tanlash"""
+        self._notif_draft[chat_id] = {}
+
+        text = "📢 <b>YANGI XABARNOMA</b>\n"
+        text += "━━━━━━━━━━━━━━━━━━━━\n\n"
+        text += "Kimga yuborilsin?\n\n"
+        text += "🏙 <b>Hudud</b> - bir viloyatdagi barcha bizneslar\n"
+        text += "🏘 <b>Tuman</b> - bir tumandagi bizneslar\n"
+        text += "🏪 <b>Bizneslar</b> - tanlangan bizneslar"
+
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "🏙 Hudud bo'yicha", "callback_data": CALLBACK_NOTIF_TARGET_REGION}],
+                [{"text": "🏘 Tuman bo'yicha", "callback_data": CALLBACK_NOTIF_TARGET_DISTRICT}],
+                [{"text": "🏪 Bizneslar", "callback_data": CALLBACK_NOTIF_TARGET_BIZ}],
+                [{"text": "◀️ Orqaga", "callback_data": CALLBACK_NOTIF_BACK}]
+            ]
+        }
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )
+
+    async def _show_notif_regions(self, message_id: int, chat_id: str, for_district: bool = False):
+        """Viloyatlar ro'yxati (xabarnoma uchun)"""
+        if not self.nonbor_service:
+            return
+
+        businesses = await self.nonbor_service.get_businesses()
+        if not businesses:
+            await self.telegram.edit_message(
+                message_id=message_id,
+                text="❌ Bizneslar topilmadi",
+                chat_id=chat_id,
+                parse_mode="HTML",
+                reply_markup={"inline_keyboard": [[{"text": "◀️ Orqaga", "callback_data": CALLBACK_NOTIF_BACK}]]}
+            )
+            return
+
+        regions = {}
+        for biz in businesses:
+            region = biz.get("region_name_uz") or "Noma'lum"
+            if region not in regions:
+                regions[region] = []
+            regions[region].append(biz)
+
+        self._notif_regions = sorted(regions.keys())
+        self._notif_regions_data = regions
+
+        action = "tuman tanlash" if for_district else "xabarnoma yuborish"
+        text = f"🏙 <b>VILOYAT TANLANG</b>\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
+        text += f"<i>{action.capitalize()} uchun viloyatni tanlang:</i>"
+
+        keyboard_rows = []
+        for idx, region_name in enumerate(self._notif_regions):
+            count = len(regions[region_name])
+            grp_count = sum(1 for b in regions[region_name] if str(b.get("id", 0)) in self._business_groups)
+            if for_district:
+                callback = f"{CALLBACK_NOTIF_SEL_REGION}d{idx}"
+            else:
+                callback = f"{CALLBACK_NOTIF_SEL_REGION}{idx}"
+            keyboard_rows.append([{
+                "text": f"🏙 {region_name} ({grp_count}/{count})",
+                "callback_data": callback
+            }])
+
+        keyboard_rows.append([{"text": "◀️ Orqaga", "callback_data": CALLBACK_NOTIF_BACK}])
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup={"inline_keyboard": keyboard_rows}
+        )
+
+    async def _handle_notif_region_select(self, message_id: int, chat_id: str, region_idx_or_str):
+        """Viloyat tanlanganda"""
+        idx_str = str(region_idx_or_str)
+
+        if idx_str.startswith("d"):
+            region_idx = int(idx_str[1:])
+            await self._show_notif_districts(message_id, chat_id, region_idx)
+            return
+
+        region_idx = int(idx_str)
+        if not hasattr(self, '_notif_regions') or region_idx >= len(self._notif_regions):
+            await self._show_notif_menu(message_id, chat_id)
+            return
+
+        region_name = self._notif_regions[region_idx]
+        region_businesses = self._notif_regions_data.get(region_name, [])
+        target_ids = [b.get("id") for b in region_businesses if str(b.get("id", 0)) in self._business_groups]
+
+        self._notif_draft[chat_id] = {
+            "target_type": "region",
+            "target_ids": target_ids,
+            "target_name": region_name
+        }
+
+        if not target_ids:
+            await self.telegram.edit_message(
+                message_id=message_id,
+                text=f"❌ <b>{region_name}</b> da guruh ulangan biznes yo'q!",
+                chat_id=chat_id,
+                parse_mode="HTML",
+                reply_markup={"inline_keyboard": [[{"text": "◀️ Orqaga", "callback_data": CALLBACK_NOTIF_BACK}]]}
+            )
+            return
+
+        await self._ask_notif_text(message_id, chat_id)
+
+    async def _show_notif_districts(self, message_id: int, chat_id: str, region_idx: int):
+        """Viloyat ichidagi tumanlar ro'yxati"""
+        if not hasattr(self, '_notif_regions') or region_idx >= len(self._notif_regions):
+            await self._show_notif_menu(message_id, chat_id)
+            return
+
+        region_name = self._notif_regions[region_idx]
+        region_businesses = self._notif_regions_data.get(region_name, [])
+
+        districts = {}
+        for biz in region_businesses:
+            district = biz.get("district_name_uz") or "Noma'lum"
+            if district not in districts:
+                districts[district] = []
+            districts[district].append(biz)
+
+        self._notif_districts = sorted(districts.keys())
+        self._notif_districts_data = districts
+        self._notif_district_region_idx = region_idx
+
+        text = f"🏘 <b>{region_name} - TUMANLAR</b>\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
+        text += "<i>Tuman tanlang:</i>"
+
+        keyboard_rows = []
+        for d_idx, district_name in enumerate(self._notif_districts):
+            count = len(districts[district_name])
+            grp_count = sum(1 for b in districts[district_name] if str(b.get("id", 0)) in self._business_groups)
+            keyboard_rows.append([{
+                "text": f"🏘 {district_name} ({grp_count}/{count})",
+                "callback_data": f"{CALLBACK_NOTIF_SEL_DISTRICT}{region_idx}_{d_idx}"
+            }])
+
+        keyboard_rows.append([{"text": "◀️ Orqaga", "callback_data": CALLBACK_NOTIF_BACK}])
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup={"inline_keyboard": keyboard_rows}
+        )
+
+    async def _handle_notif_district_select(self, message_id: int, chat_id: str, region_idx: int, district_idx: int):
+        """Tuman tanlanganda"""
+        if not hasattr(self, '_notif_districts') or district_idx >= len(self._notif_districts):
+            await self._show_notif_menu(message_id, chat_id)
+            return
+
+        region_name = self._notif_regions[region_idx]
+        district_name = self._notif_districts[district_idx]
+        district_businesses = self._notif_districts_data.get(district_name, [])
+        target_ids = [b.get("id") for b in district_businesses if str(b.get("id", 0)) in self._business_groups]
+
+        self._notif_draft[chat_id] = {
+            "target_type": "district",
+            "target_ids": target_ids,
+            "target_name": f"{region_name}, {district_name}"
+        }
+
+        if not target_ids:
+            await self.telegram.edit_message(
+                message_id=message_id,
+                text=f"❌ <b>{district_name}</b> da guruh ulangan biznes yo'q!",
+                chat_id=chat_id,
+                parse_mode="HTML",
+                reply_markup={"inline_keyboard": [[{"text": "◀️ Orqaga", "callback_data": CALLBACK_NOTIF_BACK}]]}
+            )
+            return
+
+        await self._ask_notif_text(message_id, chat_id)
+
+    async def _show_notif_biz_select(self, message_id: int, chat_id: str, page: int = 0):
+        """Bizneslar tanlash (faqat guruh ulanganlar)"""
+        if not self.nonbor_service:
+            return
+
+        businesses = await self.nonbor_service.get_businesses()
+        biz_with_groups = [b for b in businesses if str(b.get("id", 0)) in self._business_groups]
+
+        if not biz_with_groups:
+            await self.telegram.edit_message(
+                message_id=message_id,
+                text="❌ Guruh ulangan biznes yo'q!",
+                chat_id=chat_id,
+                parse_mode="HTML",
+                reply_markup={"inline_keyboard": [[{"text": "◀️ Orqaga", "callback_data": CALLBACK_NOTIF_BACK}]]}
+            )
+            return
+
+        draft = self._notif_draft.get(chat_id, {})
+        selected_ids = draft.get("target_ids", [])
+
+        per_page = 10
+        total = len(biz_with_groups)
+        total_pages = max(1, (total + per_page - 1) // per_page)
+        page = max(0, min(page, total_pages - 1))
+        start = page * per_page
+        end = min(start + per_page, total)
+        page_biz = biz_with_groups[start:end]
+
+        text = f"🏪 <b>BIZNES TANLANG</b> ({total} ta)\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n"
+        text += f"Tanlangan: <b>{len(selected_ids)}</b> ta\n"
+        text += f"📄 Sahifa {page + 1}/{total_pages}\n\n"
+
+        for biz in page_biz:
+            biz_id = biz.get("id", 0)
+            title = biz.get("title", "Noma'lum")
+            check = "✅" if biz_id in selected_ids else "⬜"
+            text += f"{check} {title}\n"
+
+        keyboard_rows = []
+        row = []
+        for biz in page_biz:
+            biz_id = biz.get("id", 0)
+            title = biz.get("title", "Noma'lum")
+            check = "✅" if biz_id in selected_ids else "⬜"
+            short_name = title[:12] if len(title) > 12 else title
+            row.append({"text": f"{check} {short_name}", "callback_data": f"{CALLBACK_NOTIF_SEL_BIZ}{biz_id}"})
+            if len(row) == 2:
+                keyboard_rows.append(row)
+                row = []
+        if row:
+            keyboard_rows.append(row)
+
+        nav_row = []
+        if page > 0:
+            nav_row.append({"text": "◀️", "callback_data": f"{CALLBACK_NOTIF_SEL_BIZ_PAGE}{page - 1}"})
+        if page < total_pages - 1:
+            nav_row.append({"text": "▶️", "callback_data": f"{CALLBACK_NOTIF_SEL_BIZ_PAGE}{page + 1}"})
+        if nav_row:
+            keyboard_rows.append(nav_row)
+
+        bottom = []
+        if selected_ids:
+            bottom.append({"text": f"✅ Tayyor ({len(selected_ids)})", "callback_data": CALLBACK_NOTIF_DONE_BIZ})
+        bottom.append({"text": "◀️ Orqaga", "callback_data": CALLBACK_NOTIF_BACK})
+        keyboard_rows.append(bottom)
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup={"inline_keyboard": keyboard_rows}
+        )
+
+    async def _handle_notif_biz_toggle(self, message_id: int, chat_id: str, biz_id: int):
+        """Biznes tanlash/bekor qilish"""
+        draft = self._notif_draft.get(chat_id, {})
+        selected_ids = draft.get("target_ids", [])
+        selected_names = draft.get("target_names", [])
+
+        if biz_id in selected_ids:
+            idx = selected_ids.index(biz_id)
+            selected_ids.pop(idx)
+            if idx < len(selected_names):
+                selected_names.pop(idx)
+        else:
+            selected_ids.append(biz_id)
+            if self.nonbor_service:
+                businesses = await self.nonbor_service.get_businesses()
+                for b in businesses:
+                    if b.get("id") == biz_id:
+                        selected_names.append(b.get("title", f"#{biz_id}"))
+                        break
+
+        draft["target_ids"] = selected_ids
+        draft["target_names"] = selected_names
+        self._notif_draft[chat_id] = draft
+        await self._show_notif_biz_select(message_id, chat_id)
+
+    async def _ask_notif_text(self, message_id: int, chat_id: str):
+        """Xabarnoma matni so'rash"""
+        draft = self._notif_draft.get(chat_id, {})
+        target_name = draft.get("target_name", "")
+        if draft.get("target_type") == "businesses":
+            names = draft.get("target_names", [])
+            target_name = ", ".join(names[:5])
+            if len(names) > 5:
+                target_name += f" (+{len(names) - 5})"
+
+        target_type_label = {
+            "region": "🏙 Hudud",
+            "district": "🏘 Tuman",
+            "businesses": "🏪 Bizneslar"
+        }.get(draft.get("target_type", ""), "")
+
+        text = f"📢 <b>XABARNOMA MATNI</b>\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
+        text += f"{target_type_label}: <b>{target_name}</b>\n"
+        text += f"Guruhlar: <b>{len(draft.get('target_ids', []))}</b> ta\n\n"
+        text += f"Xabarnoma matnini yozing:"
+
+        self._awaiting_notif_text[chat_id] = message_id
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup={"inline_keyboard": [[{"text": "❌ Bekor qilish", "callback_data": CALLBACK_NOTIF_CANCEL}]]}
+        )
+
+    async def _ask_notif_datetime(self, chat_id: str):
+        """Sana va vaqt so'rash"""
+        text = "📅 <b>SANA VA VAQT</b>\n"
+        text += "━━━━━━━━━━━━━━━━━━━━\n\n"
+        text += "Quyidagi formatda kiriting:\n\n"
+        text += "<code>15.02.2026 07:00</code>\n\n"
+        text += "yoki <code>2026-02-15 07:00</code>"
+
+        result = await self.telegram.send_message(
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML"
+        )
+        if result:
+            self._awaiting_notif_datetime[chat_id] = result
+
+    async def _handle_notif_datetime_input(self, chat_id: str, text: str):
+        """Sana/vaqt kiritilganda"""
+        dt = None
+        for fmt in ("%d.%m.%Y %H:%M", "%Y-%m-%d %H:%M", "%d/%m/%Y %H:%M"):
+            try:
+                dt = datetime.strptime(text, fmt)
+                break
+            except ValueError:
+                continue
+
+        if dt is None:
+            await self.telegram.send_message(
+                text="❌ Noto'g'ri format! Masalan: <code>15.02.2026 07:00</code>",
+                chat_id=chat_id,
+                parse_mode="HTML"
+            )
+            self._awaiting_notif_datetime[chat_id] = 0
+            return
+
+        uz_tz = timezone(timedelta(hours=5))
+        dt = dt.replace(tzinfo=uz_tz)
+
+        now = datetime.now(uz_tz)
+        if dt <= now:
+            await self.telegram.send_message(
+                text="❌ Vaqt o'tib ketgan! Kelajakdagi vaqtni kiriting.",
+                chat_id=chat_id,
+                parse_mode="HTML"
+            )
+            self._awaiting_notif_datetime[chat_id] = 0
+            return
+
+        draft = self._notif_draft.get(chat_id, {})
+        draft["send_at"] = dt.isoformat()
+        self._notif_draft[chat_id] = draft
+        await self._show_notif_confirm(chat_id)
+
+    async def _show_notif_confirm(self, chat_id: str):
+        """Xabarnomani tasdiqlash"""
+        draft = self._notif_draft.get(chat_id, {})
+        target_type_label = {
+            "region": "🏙 Hudud",
+            "district": "🏘 Tuman",
+            "businesses": "🏪 Bizneslar"
+        }.get(draft.get("target_type", ""), "")
+
+        target_name = draft.get("target_name", "")
+        if draft.get("target_type") == "businesses":
+            names = draft.get("target_names", [])
+            target_name = ", ".join(names[:5])
+            if len(names) > 5:
+                target_name += f" (+{len(names) - 5})"
+
+        send_at = draft.get("send_at", "")
+        try:
+            dt = datetime.fromisoformat(send_at)
+            send_at_str = dt.strftime("%d.%m.%Y %H:%M")
+        except:
+            send_at_str = send_at
+
+        notif_text = draft.get("text", "")
+        preview = notif_text[:200] + "..." if len(notif_text) > 200 else notif_text
+
+        text = f"📢 <b>TASDIQLASH</b>\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
+        text += f"{target_type_label}: <b>{target_name}</b>\n"
+        text += f"📬 Guruhlar: <b>{len(draft.get('target_ids', []))}</b> ta\n"
+        text += f"📅 Yuborilish: <b>{send_at_str}</b>\n\n"
+        text += f"📝 <b>Matn:</b>\n{preview}"
+
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "✅ Tasdiqlash", "callback_data": CALLBACK_NOTIF_CONFIRM}],
+                [{"text": "❌ Bekor qilish", "callback_data": CALLBACK_NOTIF_CANCEL}]
+            ]
+        }
+
+        await self.telegram.send_message(
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )
+
+    async def _save_notif_draft(self, message_id: int, chat_id: str):
+        """Xabarnomani saqlash"""
+        draft = self._notif_draft.pop(chat_id, {})
+        if not draft or not draft.get("text") or not draft.get("send_at"):
+            await self.telegram.edit_message(
+                message_id=message_id,
+                text="❌ Xabarnoma yaratilmadi - ma'lumot yetarli emas",
+                chat_id=chat_id,
+                parse_mode="HTML",
+                reply_markup={"inline_keyboard": [[{"text": "◀️ Orqaga", "callback_data": CALLBACK_NOTIF_BACK}]]}
+            )
+            return
+
+        notif = {
+            "id": str(uuid.uuid4())[:8],
+            "text": draft["text"],
+            "send_at": draft["send_at"],
+            "target_type": draft.get("target_type", ""),
+            "target_ids": draft.get("target_ids", []),
+            "target_name": draft.get("target_name", ""),
+            "status": "pending",
+            "created_at": datetime.now(timezone(timedelta(hours=5))).isoformat(),
+            "created_by": chat_id
+        }
+
+        if draft.get("target_type") == "businesses":
+            names = draft.get("target_names", [])
+            notif["target_name"] = ", ".join(names[:5])
+            if len(names) > 5:
+                notif["target_name"] += f" (+{len(names) - 5})"
+
+        self._notifications.append(notif)
+        self._save_notifications()
+
+        try:
+            dt = datetime.fromisoformat(notif["send_at"])
+            send_at_str = dt.strftime("%d.%m.%Y %H:%M")
+        except:
+            send_at_str = notif["send_at"]
+
+        text = f"✅ <b>XABARNOMA SAQLANDI!</b>\n\n"
+        text += f"📅 Yuborilish: <b>{send_at_str}</b>\n"
+        text += f"📬 Guruhlar: <b>{len(notif['target_ids'])}</b> ta\n"
+        text += f"📝 Matn: {notif['text'][:100]}..."
+
+        logger.info(f"Xabarnoma yaratildi: id={notif['id']}, send_at={send_at_str}, targets={len(notif['target_ids'])}")
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup={"inline_keyboard": [[{"text": "📢 Xabarnomalar", "callback_data": CALLBACK_MENU_NOTIF}]]}
+        )
+
+    async def _show_notif_list(self, message_id: int, chat_id: str, page: int = 0):
+        """Xabarnomalar ro'yxati - muddatlari bilan"""
+        if not self._notifications:
+            await self.telegram.edit_message(
+                message_id=message_id,
+                text="📋 Hozircha xabarnomalar yo'q",
+                chat_id=chat_id,
+                parse_mode="HTML",
+                reply_markup={"inline_keyboard": [
+                    [{"text": "➕ Yangi xabarnoma", "callback_data": CALLBACK_NOTIF_NEW}],
+                    [{"text": "◀️ Orqaga", "callback_data": CALLBACK_NOTIF_BACK}]
+                ]}
+            )
+            return
+
+        sorted_notifs = sorted(
+            self._notifications,
+            key=lambda n: (0 if n.get("status") == "pending" else 1, n.get("send_at", ""))
+        )
+
+        per_page = 5
+        total = len(sorted_notifs)
+        total_pages = max(1, (total + per_page - 1) // per_page)
+        page = max(0, min(page, total_pages - 1))
+        start = page * per_page
+        end = min(start + per_page, total)
+        page_notifs = sorted_notifs[start:end]
+
+        text = f"📋 <b>XABARNOMALAR</b> ({total} ta)\n"
+        text += f"━━━━━━━━━━━━━━━━━━━━\n"
+        text += f"📄 Sahifa {page + 1}/{total_pages}\n\n"
+
+        for n in page_notifs:
+            status_icon = "🕐" if n.get("status") == "pending" else "✅"
+            try:
+                dt = datetime.fromisoformat(n["send_at"])
+                send_at_str = dt.strftime("%d.%m.%Y %H:%M")
+            except:
+                send_at_str = n.get("send_at", "?")
+
+            target_type_icon = {"region": "🏙", "district": "🏘", "businesses": "🏪"}.get(n.get("target_type", ""), "📍")
+            target_name = n.get("target_name", "")
+            preview = n.get("text", "")[:60]
+            if len(n.get("text", "")) > 60:
+                preview += "..."
+
+            text += f"{status_icon} <b>{send_at_str}</b>\n"
+            text += f"   {target_type_icon} {target_name} ({len(n.get('target_ids', []))} guruh)\n"
+            text += f"   📝 {preview}\n"
+
+            if n.get("status") == "sent":
+                sent_count = n.get("sent_count", 0)
+                total_count = n.get("total_count", 0)
+                text += f"   ✅ Yuborildi: {sent_count}/{total_count}\n"
+
+            text += "\n"
+
+        keyboard_rows = []
+
+        for n in page_notifs:
+            if n.get("status") == "pending":
+                try:
+                    dt = datetime.fromisoformat(n["send_at"])
+                    send_at_str = dt.strftime("%d.%m %H:%M")
+                except:
+                    send_at_str = "?"
+                keyboard_rows.append([{
+                    "text": f"🗑 {send_at_str} - {n.get('target_name', '')[:15]}",
+                    "callback_data": f"{CALLBACK_NOTIF_DELETE}{n.get('id', '')}"
+                }])
+
+        nav_row = []
+        if page > 0:
+            nav_row.append({"text": "◀️", "callback_data": f"{CALLBACK_NOTIF_PAGE}{page - 1}"})
+        if page < total_pages - 1:
+            nav_row.append({"text": "▶️", "callback_data": f"{CALLBACK_NOTIF_PAGE}{page + 1}"})
+        if nav_row:
+            keyboard_rows.append(nav_row)
+
+        keyboard_rows.append([
+            {"text": "➕ Yangi", "callback_data": CALLBACK_NOTIF_NEW},
+            {"text": "◀️ Orqaga", "callback_data": CALLBACK_NOTIF_BACK}
+        ])
+
+        await self.telegram.edit_message(
+            message_id=message_id,
+            text=text,
+            chat_id=chat_id,
+            parse_mode="HTML",
+            reply_markup={"inline_keyboard": keyboard_rows}
+        )
+
+    async def _delete_notification(self, message_id: int, chat_id: str, notif_id: str):
+        """Xabarnomani o'chirish"""
+        self._notifications = [n for n in self._notifications if n.get("id") != notif_id]
+        self._save_notifications()
+        logger.info(f"Xabarnoma o'chirildi: id={notif_id}")
+        await self._show_notif_list(message_id, chat_id)

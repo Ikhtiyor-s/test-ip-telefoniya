@@ -1893,8 +1893,36 @@ class TelegramStatsHandler:
         stats = self.stats_service.get_period_stats(self._current_period)
 
         title = self._get_period_title()
+
+        # API dan jarayondagi va reja buyurtmalar sonini olish
+        planned_count = 0
+        active_count = 0
+        if self.nonbor_service:
+            try:
+                orders = await self.nonbor_service.get_orders()
+                logger.info(f"Stats(start): get_orders() natijasi: {type(orders)}, {len(orders) if orders else 0} ta")
+                if orders:
+                    skip = {"PENDING", "WAITING_PAYMENT", "PAYMENTPENDING", "PAYMENT_PENDING"}
+                    final = {"COMPLETED", "CANCELLED", "CANCELLED_SELLER", "CANCELLED_CLIENT", "CANCELLED_USER", "CANCELLED_ADMIN", "PAYMENT_EXPIRED"}
+                    for o in orders:
+                        state = (o.get("state") or "").upper()
+                        if state in skip:
+                            continue
+                        if o.get("is_planned") or o.get("is_planner"):
+                            planned_count += 1
+                        if state not in final:
+                            active_count += 1
+            except Exception as e:
+                logger.error(f"Stats(start): buyurtmalar olishda xato: {e}")
+
         text = f"""📊 <b>{title} STATISTIKA</b>
 ━━━━━━━━━━━━━━━━━━━━
+
+📦 <b>BUYURTMALAR:</b> {stats.total_orders} ta
+├ ✅ Qabul qilindi: {stats.accepted_orders}
+├ ❌ Bekor qilindi: {stats.rejected_orders}
+├ 🚀 Telegram'siz qabul: {stats.accepted_without_telegram}
+└ 🔄 Jarayondagi: {active_count}
 
 📞 <b>QO'NG'IROQLAR:</b> {stats.total_calls} ta
 ├ ✅ Javob berildi: {stats.answered_calls}
@@ -1902,16 +1930,13 @@ class TelegramStatsHandler:
 ├ 1️⃣ 1-urinishda: {stats.calls_1_attempt}
 └ 2️⃣ 2-urinishda: {stats.calls_2_attempts}
 
-📦 <b>BUYURTMALAR:</b> {stats.total_orders} ta
-├ ✅ Qabul qilindi: {stats.accepted_orders}
-├ ❌ Bekor qilindi: {stats.rejected_orders}
-└ 🚀 Telegram'siz qabul: {stats.accepted_without_telegram}
+📅 <b>REJA BUYURTMALAR:</b> {planned_count} ta
 
 📅 Davr: {stats.date}
 
 <i>Batafsil ko'rish uchun tugmalarni bosing:</i>"""
 
-        keyboard = self._get_stats_keyboard(stats)
+        keyboard = self._get_stats_keyboard(stats, planned_count=planned_count)
 
         return await self.telegram.send_message(
             text=text,
@@ -2554,19 +2579,23 @@ class TelegramStatsHandler:
         if self.nonbor_service:
             try:
                 orders = await self.nonbor_service.get_orders()
+                logger.info(f"Stats: get_orders() natijasi: {type(orders)}, {len(orders) if orders else 0} ta")
                 if orders:
                     skip = {"PENDING", "WAITING_PAYMENT", "PAYMENTPENDING", "PAYMENT_PENDING"}
                     final = {"COMPLETED", "CANCELLED", "CANCELLED_SELLER", "CANCELLED_CLIENT", "CANCELLED_USER", "CANCELLED_ADMIN", "PAYMENT_EXPIRED"}
+                    states_found = {}
                     for o in orders:
                         state = (o.get("state") or "").upper()
+                        states_found[state] = states_found.get(state, 0) + 1
                         if state in skip:
                             continue
                         if o.get("is_planned") or o.get("is_planner"):
                             planned_count += 1
                         if state not in final:
                             active_count += 1
-            except Exception:
-                pass
+                    logger.info(f"Stats: statuslar={states_found}, active={active_count}, planned={planned_count}")
+            except Exception as e:
+                logger.error(f"Stats: buyurtmalar olishda xato: {e}")
 
         text = f"""📊 <b>{title} STATISTIKA</b>
 ━━━━━━━━━━━━━━━━━━━━

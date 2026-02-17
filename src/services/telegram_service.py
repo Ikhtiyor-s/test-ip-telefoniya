@@ -974,7 +974,11 @@ class TelegramStatsHandler:
         )
         self._notifications: List[dict] = self._load_notifications()
         # Xabarnoma yaratish state (har bir admin chat uchun)
-        self._notif_draft: Dict[str, dict] = {}           # chat_id -> {target_type, target_ids, target_name, text, send_at}
+        self._notif_draft_file = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "data", "notif_drafts.json"
+        )
+        self._notif_draft: Dict[str, dict] = self._load_notif_drafts()
         self._awaiting_notif_text: Dict[str, int] = {}    # chat_id -> message_id
         self._awaiting_notif_datetime: Dict[str, int] = {}  # chat_id -> message_id
 
@@ -1052,6 +1056,27 @@ class TelegramStatsHandler:
                 json.dump({"notifications": self._notifications}, f, indent=2, ensure_ascii=False)
         except Exception as e:
             logger.error(f"Xabarnomalar saqlash xatosi: {e}")
+
+    def _load_notif_drafts(self) -> dict:
+        """Xabarnoma draftlarini fayldan yuklash (restart uchun)"""
+        try:
+            if os.path.exists(self._notif_draft_file):
+                with open(self._notif_draft_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    logger.info(f"Xabarnoma draftlari yuklandi: {len(data)} ta")
+                    return data
+        except Exception as e:
+            logger.error(f"Xabarnoma draftlari yuklash xatosi: {e}")
+        return {}
+
+    def _save_notif_drafts(self):
+        """Xabarnoma draftlarini faylga saqlash"""
+        try:
+            os.makedirs(os.path.dirname(self._notif_draft_file), exist_ok=True)
+            with open(self._notif_draft_file, "w", encoding="utf-8") as f:
+                json.dump(self._notif_draft, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            logger.error(f"Xabarnoma draftlari saqlash xatosi: {e}")
 
     def get_pending_notifications(self) -> list:
         """Yuborilishi kerak bo'lgan xabarnomalarni olish (vaqti kelgan)"""
@@ -1468,6 +1493,7 @@ class TelegramStatsHandler:
                 draft = self._notif_draft.get(chat_id, {})
                 draft["text"] = text
                 self._notif_draft[chat_id] = draft
+                self._save_notif_drafts()
                 # Eski xabarlarni o'chirish
                 await self.telegram.delete_message(prompt_msg_id, chat_id=chat_id)
                 await self.telegram.delete_message(user_msg_id, chat_id=chat_id)
@@ -1668,6 +1694,7 @@ class TelegramStatsHandler:
             await self._show_notif_regions(message_id, chat_id, for_district=True)
         elif data == CALLBACK_NOTIF_TARGET_BIZ:
             self._notif_draft[chat_id] = {"target_type": "businesses", "target_ids": [], "target_names": []}
+            self._save_notif_drafts()
             await self._show_notif_biz_select(message_id, chat_id)
         elif data.startswith(CALLBACK_NOTIF_SEL_REGION):
             region_val = data.replace(CALLBACK_NOTIF_SEL_REGION, "")
@@ -1693,6 +1720,7 @@ class TelegramStatsHandler:
             await self._save_notif_draft(message_id, chat_id)
         elif data == CALLBACK_NOTIF_CANCEL:
             self._notif_draft.pop(chat_id, None)
+            self._save_notif_drafts()
             await self._show_notif_menu(message_id, chat_id)
         elif data.startswith(CALLBACK_NOTIF_DELETE_CONFIRM):
             notif_id = data.replace(CALLBACK_NOTIF_DELETE_CONFIRM, "")
@@ -2499,8 +2527,8 @@ class TelegramStatsHandler:
                 period_buttons[:2],  # Kunlik, Haftalik
                 period_buttons[2:],  # Oylik, Yillik
                 [
-                    {"text": f"📞 Qo'ng'iroqlar ({stats.total_calls})", "callback_data": CALLBACK_MENU_CALLS},
-                    {"text": f"📦 Buyurtmalar ({stats.total_orders})", "callback_data": CALLBACK_MENU_ORDERS}
+                    {"text": f"📦 Buyurtmalar ({stats.total_orders})", "callback_data": CALLBACK_MENU_ORDERS},
+                    {"text": f"📞 Qo'ng'iroqlar ({stats.total_calls})", "callback_data": CALLBACK_MENU_CALLS}
                 ],
                 [
                     {"text": "👥 Bizneslar", "callback_data": CALLBACK_MENU_BUSINESSES},
@@ -2520,29 +2548,40 @@ class TelegramStatsHandler:
         stats = self.stats_service.get_period_stats(self._current_period)
         title = self._get_period_title()
 
-        # Reja buyurtmalar sonini olish
+        # API dan jarayondagi va reja buyurtmalar sonini olish
         planned_count = 0
+        active_count = 0
         if self.nonbor_service:
             try:
                 orders = await self.nonbor_service.get_orders()
                 if orders:
-                    planned_count = sum(1 for o in orders if o.get("is_planned") or o.get("is_planner"))
+                    skip = {"PENDING", "WAITING_PAYMENT", "PAYMENTPENDING", "PAYMENT_PENDING"}
+                    final = {"COMPLETED", "CANCELLED", "CANCELLED_SELLER", "CANCELLED_CLIENT", "CANCELLED_USER", "CANCELLED_ADMIN", "PAYMENT_EXPIRED"}
+                    for o in orders:
+                        state = (o.get("state") or "").upper()
+                        if state in skip:
+                            continue
+                        if o.get("is_planned") or o.get("is_planner"):
+                            planned_count += 1
+                        if state not in final:
+                            active_count += 1
             except Exception:
                 pass
 
         text = f"""📊 <b>{title} STATISTIKA</b>
 ━━━━━━━━━━━━━━━━━━━━
 
+📦 <b>BUYURTMALAR:</b> {stats.total_orders} ta
+├ ✅ Qabul qilindi: {stats.accepted_orders}
+├ ❌ Bekor qilindi: {stats.rejected_orders}
+├ 🚀 Telegram'siz qabul: {stats.accepted_without_telegram}
+└ 🔄 Jarayondagi: {active_count}
+
 📞 <b>QO'NG'IROQLAR:</b> {stats.total_calls} ta
 ├ ✅ Javob berildi: {stats.answered_calls}
 ├ ❌ Javob berilmadi: {stats.unanswered_calls}
 ├ 1️⃣ 1-urinishda: {stats.calls_1_attempt}
 └ 2️⃣ 2-urinishda: {stats.calls_2_attempts}
-
-📦 <b>BUYURTMALAR:</b> {stats.total_orders} ta
-├ ✅ Qabul qilindi: {stats.accepted_orders}
-├ ❌ Bekor qilindi: {stats.rejected_orders}
-└ 🚀 Telegram'siz qabul: {stats.accepted_without_telegram}
 
 📅 <b>REJA BUYURTMALAR:</b> {planned_count} ta
 
@@ -3612,6 +3651,7 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
     async def _show_notif_target_type(self, message_id: int, chat_id: str):
         """Target turini tanlash"""
         self._notif_draft[chat_id] = {}
+        self._save_notif_drafts()
 
         text = "📢 <b>YANGI XABARNOMA</b>\n"
         text += "━━━━━━━━━━━━━━━━━━━━\n\n"
@@ -3714,6 +3754,7 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
             "target_ids": target_ids,
             "target_name": region_name
         }
+        self._save_notif_drafts()
 
         if not target_ids:
             await self.telegram.edit_message(
@@ -3786,6 +3827,7 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
             "target_ids": target_ids,
             "target_name": f"{region_name}, {district_name}"
         }
+        self._save_notif_drafts()
 
         if not target_ids:
             await self.telegram.edit_message(
@@ -3900,6 +3942,7 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
         draft["target_ids"] = selected_ids
         draft["target_names"] = selected_names
         self._notif_draft[chat_id] = draft
+        self._save_notif_drafts()
         await self._show_notif_biz_select(message_id, chat_id)
 
     async def _ask_notif_text(self, message_id: int, chat_id: str):
@@ -3948,6 +3991,7 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
         draft = self._notif_draft.get(chat_id, {})
         draft["_cal_msg_id"] = cal_msg_id
         self._notif_draft[chat_id] = draft
+        self._save_notif_drafts()
 
     def _build_calendar(self, year: int, month: int) -> dict:
         """Inline kalendar yaratish"""
@@ -4022,6 +4066,7 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
         draft["_cal_month"] = month
         draft["_cal_day"] = day
         self._notif_draft[chat_id] = draft
+        self._save_notif_drafts()
 
         text = f"🕐 <b>Soatni tanlang:</b>\n"
         text += f"📅 {day:02d}.{month:02d}.{year}"
@@ -4050,6 +4095,7 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
         draft = self._notif_draft.get(chat_id, {})
         draft["_cal_hour"] = hour
         self._notif_draft[chat_id] = draft
+        self._save_notif_drafts()
 
         day = draft.get("_cal_day", 1)
         month = draft.get("_cal_month", 1)
@@ -4110,6 +4156,7 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
 
         draft["send_at"] = dt.isoformat()
         self._notif_draft[chat_id] = draft
+        self._save_notif_drafts()
         await self._show_notif_confirm(chat_id)
 
     async def _show_notif_confirm(self, chat_id: str):
@@ -4173,6 +4220,7 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
     async def _save_notif_draft(self, message_id: int, chat_id: str):
         """Xabarnomani saqlash"""
         draft = self._notif_draft.pop(chat_id, {})
+        self._save_notif_drafts()
         if not draft or not draft.get("text") or not draft.get("send_at"):
             await self.telegram.edit_message(
                 message_id=message_id,

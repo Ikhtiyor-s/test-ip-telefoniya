@@ -448,49 +448,9 @@ class AutodialerPro:
                     logger.error(f"Reja eslatma xatosi: {e}")
 
                 # 2. QO'NG'IROQ QILISH (agar Asterisk faol bo'lsa)
+                # MUHIM: Alohida task da ishga tushirish (main loop bloklanmasin)
                 if not self.skip_asterisk:
-                    # Biznes egasining telefon raqamini olish
-                    try:
-                        seller_phone = None
-                        businesses = await self.nonbor.get_businesses()
-                        if businesses:
-                            for b in businesses:
-                                if str(b.get("id")) == str(biz_id):
-                                    seller_phone = b.get("phone_number", "")
-                                    break
-
-                        if seller_phone:
-                            # Telefon raqamini formatlash
-                            phone_digits = ''.join(filter(str.isdigit, seller_phone))
-                            if len(phone_digits) == 9:
-                                seller_phone = f"+998{phone_digits}"
-                            elif len(phone_digits) == 12 and phone_digits.startswith("998"):
-                                seller_phone = f"+{phone_digits}"
-
-                            # Avtoqo'ng'iroq o'chirilganmi tekshirish
-                            biz_id_int = int(biz_id) if str(biz_id).isdigit() else None
-                            if biz_id_int and self.stats_handler and not self.stats_handler.is_call_enabled(biz_id_int):
-                                logger.info(f"Reja eslatma: biz #{biz_id} avtoqo'ng'iroq O'CHIRILGAN - qo'ng'iroq qilinmaydi")
-                            else:
-                                # TTS audio yaratish
-                                audio_path = await self.tts.generate_custom_message(
-                                    f"Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda {count} ta rejalashtirilgan buyurtma bor, iltimos, buyurtmalaringizni tayyorlang."
-                                )
-                                if audio_path:
-                                    result = await self.call_manager.make_call_with_retry(
-                                        phone_number=seller_phone,
-                                        audio_file=str(audio_path),
-                                    )
-                                    if result and result.is_answered:
-                                        logger.info(f"Reja eslatma qo'ng'iroq: {seller_phone} - JAVOB BERILDI")
-                                    else:
-                                        logger.warning(f"Reja eslatma qo'ng'iroq: {seller_phone} - javob berilmadi")
-                                else:
-                                    logger.error(f"Reja eslatma: TTS audio yaratilmadi")
-                        else:
-                            logger.warning(f"Reja eslatma: biz #{biz_id} telefon raqami topilmadi")
-                    except Exception as e:
-                        logger.error(f"Reja eslatma qo'ng'iroq xatosi: {e}")
+                    asyncio.create_task(self._planned_reminder_call(biz_id, count))
 
                 # Eslatma yuborildi - barcha buyurtmalarni belgilash
                 for o in orders:
@@ -499,6 +459,54 @@ class AutodialerPro:
 
         except Exception as e:
             logger.error(f"Reja eslatma tekshirish xatosi: {e}")
+
+    async def _planned_reminder_call(self, biz_id: str, order_count: int):
+        """Reja eslatma uchun qo'ng'iroq (alohida task da ishlaydi - main loop bloklanmaydi)"""
+        try:
+            seller_phone = None
+            businesses = await self.nonbor.get_businesses()
+            if businesses:
+                for b in businesses:
+                    if str(b.get("id")) == str(biz_id):
+                        seller_phone = b.get("phone_number", "")
+                        break
+
+            if not seller_phone:
+                logger.warning(f"Reja eslatma: biz #{biz_id} telefon raqami topilmadi")
+                return
+
+            # Telefon raqamini formatlash
+            phone_digits = ''.join(filter(str.isdigit, seller_phone))
+            if len(phone_digits) == 9:
+                seller_phone = f"+998{phone_digits}"
+            elif len(phone_digits) == 12 and phone_digits.startswith("998"):
+                seller_phone = f"+{phone_digits}"
+
+            # Avtoqo'ng'iroq o'chirilganmi tekshirish
+            biz_id_int = int(biz_id) if str(biz_id).isdigit() else None
+            if biz_id_int and self.stats_handler and not self.stats_handler.is_call_enabled(biz_id_int):
+                logger.info(f"Reja eslatma: biz #{biz_id} avtoqo'ng'iroq O'CHIRILGAN - qo'ng'iroq qilinmaydi")
+                return
+
+            # TTS audio yaratish
+            audio_path = await self.tts.generate_custom_message(
+                f"Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda {order_count} ta rejalashtirilgan buyurtma bor, iltimos, buyurtmalaringizni tayyorlang."
+            )
+            if not audio_path:
+                logger.error(f"Reja eslatma: TTS audio yaratilmadi")
+                return
+
+            result = await self.call_manager.make_call_with_retry(
+                phone_number=seller_phone,
+                audio_file=str(audio_path),
+            )
+            if result and result.is_answered:
+                logger.info(f"Reja eslatma qo'ng'iroq: {seller_phone} - JAVOB BERILDI")
+            else:
+                logger.warning(f"Reja eslatma qo'ng'iroq: {seller_phone} - javob berilmadi")
+
+        except Exception as e:
+            logger.error(f"Reja eslatma qo'ng'iroq xatosi: {e}")
 
     async def start(self):
         """Autodialer ni ishga tushirish"""

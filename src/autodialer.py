@@ -360,16 +360,16 @@ class AutodialerPro:
 
     async def _check_planned_reminders(self):
         """
-        Reja buyurtmalar uchun 20 daqiqa oldin eslatma yuborish.
+        Reja buyurtmalar uchun 20 daqiqa oldin eslatma yuborish VA QO'NG'IROQ QILISH.
         Qabul qilingan (ACCEPTED/READY) reja buyurtmalarning vaqti yaqinlashganda
-        biznes guruhiga eslatma xabar yuboriladi.
+        biznes guruhiga eslatma xabar yuboriladi va sotuvchiga qo'ng'iroq qilinadi.
         """
         try:
             now = datetime.now(timezone(timedelta(hours=5)))  # UZ vaqt zonasi
 
-            # Biznes guruhlar bo'yicha reja buyurtmalarni yig'ish
-            # {chat_id: [order_data1, order_data2, ...]}
-            biz_planned: Dict[str, list] = {}
+            # Biznes bo'yicha reja buyurtmalarni yig'ish
+            # {biz_id: {"chat_id": str, "orders": [...], "biz_title": str}}
+            biz_planned: Dict[str, dict] = {}
 
             for order_id, tracked in self._group_order_messages.items():
                 order_data = tracked.get("order_data", {})
@@ -400,11 +400,16 @@ class AutodialerPro:
 
                     # 20 daqiqa yoki kamroq qolgan bo'lsa (lekin o'tmagan bo'lsa)
                     if 0 <= minutes_left <= 20:
+                        biz_id = tracked.get("biz_id", "")
                         chat_id = tracked.get("chat_id", "")
-                        if chat_id:
-                            if chat_id not in biz_planned:
-                                biz_planned[chat_id] = []
-                            biz_planned[chat_id].append({
+                        if chat_id and biz_id:
+                            if biz_id not in biz_planned:
+                                biz_planned[biz_id] = {
+                                    "chat_id": chat_id,
+                                    "orders": [],
+                                    "biz_title": order_data.get("seller_name", ""),
+                                }
+                            biz_planned[biz_id]["orders"].append({
                                 "order_id": order_id,
                                 "order_number": order_data.get("order_number", ""),
                                 "delivery_time": order_data.get("delivery_time", ""),
@@ -413,9 +418,13 @@ class AutodialerPro:
                 except Exception:
                     continue
 
-            # Har bir biznes guruhga eslatma yuborish
-            for chat_id, orders in biz_planned.items():
+            # Har bir biznesga eslatma yuborish + qo'ng'iroq qilish
+            for biz_id, biz_data in biz_planned.items():
+                chat_id = biz_data["chat_id"]
+                orders = biz_data["orders"]
                 count = len(orders)
+
+                # 1. TELEGRAM XABAR yuborish (guruhga)
                 text = f"⏰ <b>ESLATMA: {count} ta reja buyurtma!</b>\n"
                 text += f"━━━━━━━━━━━━━━━━━━━━\n\n"
                 text += f"Sizda <b>{count}</b> ta reja bo'yicha buyurtmalaringiz bor:\n\n"
@@ -434,13 +443,59 @@ class AutodialerPro:
                     await self.telegram.send_message(
                         text=text, chat_id=chat_id, parse_mode="HTML"
                     )
-                    # Eslatma yuborildi - barcha buyurtmalarni belgilash
-                    for o in orders:
-                        self._planned_reminders_sent.add(o["order_id"])
-                    self._save_planned_reminders()
                     logger.info(f"Reja eslatma yuborildi: chat={chat_id}, {count} ta buyurtma")
                 except Exception as e:
                     logger.error(f"Reja eslatma xatosi: {e}")
+
+                # 2. QO'NG'IROQ QILISH (agar Asterisk faol bo'lsa)
+                if not self.skip_asterisk:
+                    # Biznes egasining telefon raqamini olish
+                    try:
+                        seller_phone = None
+                        businesses = await self.nonbor.get_businesses()
+                        if businesses:
+                            for b in businesses:
+                                if str(b.get("id")) == str(biz_id):
+                                    seller_phone = b.get("phone_number", "")
+                                    break
+
+                        if seller_phone:
+                            # Telefon raqamini formatlash
+                            phone_digits = ''.join(filter(str.isdigit, seller_phone))
+                            if len(phone_digits) == 9:
+                                seller_phone = f"+998{phone_digits}"
+                            elif len(phone_digits) == 12 and phone_digits.startswith("998"):
+                                seller_phone = f"+{phone_digits}"
+
+                            # Avtoqo'ng'iroq o'chirilganmi tekshirish
+                            biz_id_int = int(biz_id) if str(biz_id).isdigit() else None
+                            if biz_id_int and self.stats_handler and not self.stats_handler.is_call_enabled(biz_id_int):
+                                logger.info(f"Reja eslatma: biz #{biz_id} avtoqo'ng'iroq O'CHIRILGAN - qo'ng'iroq qilinmaydi")
+                            else:
+                                # TTS audio yaratish
+                                audio_path = await self.tts.generate_custom_message(
+                                    f"Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda {count} ta rejalashtirilgan buyurtma bor, iltimos, buyurtmalaringizni tayyorlang."
+                                )
+                                if audio_path:
+                                    result = await self.call_manager.make_call_with_retry(
+                                        phone_number=seller_phone,
+                                        audio_file=str(audio_path),
+                                    )
+                                    if result and result.is_answered:
+                                        logger.info(f"Reja eslatma qo'ng'iroq: {seller_phone} - JAVOB BERILDI")
+                                    else:
+                                        logger.warning(f"Reja eslatma qo'ng'iroq: {seller_phone} - javob berilmadi")
+                                else:
+                                    logger.error(f"Reja eslatma: TTS audio yaratilmadi")
+                        else:
+                            logger.warning(f"Reja eslatma: biz #{biz_id} telefon raqami topilmadi")
+                    except Exception as e:
+                        logger.error(f"Reja eslatma qo'ng'iroq xatosi: {e}")
+
+                # Eslatma yuborildi - barcha buyurtmalarni belgilash
+                for o in orders:
+                    self._planned_reminders_sent.add(o["order_id"])
+                self._save_planned_reminders()
 
         except Exception as e:
             logger.error(f"Reja eslatma tekshirish xatosi: {e}")

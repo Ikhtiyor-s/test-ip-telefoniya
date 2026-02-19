@@ -584,10 +584,6 @@ class AutodialerPro:
                     if lead_time < oldest_time:
                         oldest_time = lead_time
 
-            self.state.last_new_order_time = oldest_time
-            self.state.waiting_for_call = True
-            self.state.call_started = True  # Qo'ng'iroq qilmaslik uchun
-
             # Buyurtmalar uchun timestamp qo'shish (180s timer uchun)
             for lead in leads:
                 order_id = lead["id"]
@@ -601,7 +597,25 @@ class AutodialerPro:
                     else:
                         self.state.order_timestamps[order_id] = datetime.now()
 
-            # 180s timer avtomatik ishlaydi - Telegram xabar 180s dan keyin yuboriladi
+            # Eng eski buyurtma necha sekund oldin kelganini hisoblash
+            time_since_oldest = (datetime.now() - oldest_time).total_seconds()
+            logger.info(f"Sinxronizatsiya: eng eski buyurtma {time_since_oldest:.0f}s oldin kelgan")
+
+            # MUHIM: Agar buyurtma 90s dan oshgan bo'lsa - darhol qo'ng'iroq qilish
+            # Agar 90s dan kam bo'lsa - timer boshlash (qolgan vaqtni kutish)
+            if time_since_oldest >= self.wait_before_call:
+                # 90s o'tgan - darhol qo'ng'iroq qilish
+                logger.info(f"Sinxronizatsiya: {time_since_oldest:.0f}s > {self.wait_before_call}s - DARHOL qo'ng'iroq qilinadi")
+                self.state.last_new_order_time = oldest_time
+                self.state.waiting_for_call = True
+                self.state.call_started = False  # call_started=False → qo'ng'iroq qilinadi
+            else:
+                # 90s hali o'tmagan - timer davom etadi
+                remaining = self.wait_before_call - time_since_oldest
+                logger.info(f"Sinxronizatsiya: {time_since_oldest:.0f}s < {self.wait_before_call}s - {remaining:.0f}s kutiladi")
+                self.state.last_new_order_time = oldest_time
+                self.state.waiting_for_call = True
+                self.state.call_started = False  # call_started=False → timer tugaganda qo'ng'iroq qilinadi
 
             # MUHIM: Agar Telegram xabarlari mavjud bo'lsa, telegram_notified = True qilish
             # Bu autodialer qayta ishga tushganda kerak - oldingi Telegram xabarlari saqlanadi
@@ -609,7 +623,7 @@ class AutodialerPro:
                 self.state.telegram_notified = True
                 logger.info(f"Sinxronizatsiya: Telegram xabarlari mavjud, telegram_notified = True")
 
-            logger.info(f"Sinxronizatsiya tugadi: {count} ta buyurtma, 180s timer kuzatmoqda")
+            logger.info(f"Sinxronizatsiya tugadi: {count} ta buyurtma, qo'ng'iroq va 180s timer kuzatmoqda")
 
         except Exception as e:
             logger.error(f"Sinxronizatsiya xatosi: {e}")

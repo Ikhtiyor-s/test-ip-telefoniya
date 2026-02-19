@@ -2253,8 +2253,10 @@ class TelegramStatsHandler:
                 planned_time = ""
                 if raw_planned:
                     try:
+                        uz_tz = timezone(timedelta(hours=5))
                         dt = datetime.fromisoformat(str(raw_planned).replace('Z', '+00:00'))
-                        planned_time = dt.strftime("%d.%m %H:%M")
+                        dt_uz = dt.astimezone(uz_tz)
+                        planned_time = dt_uz.strftime("%d.%m %H:%M")
                     except:
                         planned_time = str(raw_planned)
 
@@ -3592,8 +3594,10 @@ Bu buyurtmalar 3 daqiqa ichida (Telegram yuborilmasdan) qabul qilingan."""
                 planned_time = ""
                 if raw_planned:
                     try:
+                        uz_tz = timezone(timedelta(hours=5))
                         dt = datetime.fromisoformat(str(raw_planned).replace('Z', '+00:00'))
-                        planned_time = dt.strftime("%d.%m %H:%M")
+                        dt_uz = dt.astimezone(uz_tz)
+                        planned_time = dt_uz.strftime("%d.%m %H:%M")
                     except:
                         planned_time = str(raw_planned)
 

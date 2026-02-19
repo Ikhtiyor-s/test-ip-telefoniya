@@ -924,11 +924,16 @@ class AutodialerPro:
                 raw_planned_time = order.get("planned_datetime") or order.get("planned_time") or ""
 
                 # Vaqtni formatlash (2026-01-29T11:00:00+05:00 -> 29.01 11:00)
+                # MUHIM: UTC dan O'zbekiston vaqtiga (UTC+5) o'tkazish
                 delivery_time = ""
                 if raw_planned_time:
                     try:
+                        from datetime import timezone, timedelta
+                        uz_tz = timezone(timedelta(hours=5))
                         dt = datetime.fromisoformat(str(raw_planned_time).replace('Z', '+00:00'))
-                        delivery_time = dt.strftime("%d.%m %H:%M")
+                        # O'zbekiston vaqtiga o'tkazish
+                        dt_uz = dt.astimezone(uz_tz)
+                        delivery_time = dt_uz.strftime("%d.%m %H:%M")
                     except:
                         delivery_time = str(raw_planned_time)
 

@@ -1134,7 +1134,17 @@ class AutodialerPro:
         old_ids = set(self.state.pending_order_ids)
         new_order_ids = set(new_ids)
 
-        # MUHIM: Allaqachon qo'ng'iroq qilingan/xabar berilgan buyurtmalarni topish
+        # TOZALASH (BIRINCHI): TEKSHIRILMOQDA statusidan chiqqan buyurtmalarni last_communicated_orders dan o'chirish
+        # Bu AVVAL qilinishi kerak - uncommunicated_ids ni to'g'ri hisoblash uchun
+        for _sp in list(self.state.last_communicated_orders.keys()):
+            _still = [oid for oid in self.state.last_communicated_orders[_sp] if oid in new_order_ids]
+            if _still:
+                self.state.last_communicated_orders[_sp] = _still
+            else:
+                del self.state.last_communicated_orders[_sp]
+                logger.debug(f"Sotuvchi {_sp}: barcha buyurtmalari hal qilindi, tozalandi")
+
+        # MUHIM: Allaqachon qo'ng'iroq qilingan/xabar berilgan buyurtmalarni topish (tozalangan ma'lumot bilan)
         all_communicated_ids = set()
         for seller_phone, communicated_ids in self.state.last_communicated_orders.items():
             all_communicated_ids.update(communicated_ids)
@@ -1242,20 +1252,6 @@ class AutodialerPro:
                 del self.state.order_timestamps[order_id]
                 removed_ids.append(order_id)
                 logger.debug(f"Buyurtma #{order_id} TEKSHIRILMOQDA statusidan chiqdi, vaqt yozuvlari o'chirildi")
-
-        # TOZALASH: TEKSHIRILMOQDA statusidan chiqqan buyurtmalarni last_communicated_orders dan ham o'chirish
-        # Aks holda ular hali TEKSHIRILMOQDA da bo'lganda ham "allaqachon xabar berilgan" deb hisoblanadi
-        for seller_phone in list(self.state.last_communicated_orders.keys()):
-            # Bu sotuvchining buyurtmalarini tekshirish
-            seller_order_ids = self.state.last_communicated_orders[seller_phone]
-            # Faqat hali TEKSHIRILMOQDA da bo'lgan buyurtmalarni qoldirish
-            still_pending = [oid for oid in seller_order_ids if oid in new_order_ids]
-            if len(still_pending) > 0:
-                self.state.last_communicated_orders[seller_phone] = still_pending
-            else:
-                # Bu sotuvchining barcha buyurtmalari hal qilindi - sotuvchini o'chirish
-                del self.state.last_communicated_orders[seller_phone]
-                logger.debug(f"Sotuvchi {seller_phone}: barcha buyurtmalari hal qilindi, tozalandi")
 
         # TELEGRAM YANGILASH: Agar birinchi Telegram xabar allaqachon yuborilgan bo'lsa,
         # buyurtmalar o'zgarganda faqat 180s+ eski buyurtmalarni yangilash
@@ -1433,6 +1429,7 @@ class AutodialerPro:
         if self.skip_asterisk:
             logger.info("⚠ QO'NG'IROQ O'TKAZIB YUBORILDI (Windows rejim) - faqat Telegram xabar yuboriladi")
             self.state.call_in_progress = False
+            self.state.reset()  # call_started=False va waiting_for_call=False - qo'ng'iroq siklini tugatish
             return
 
         # Qo'ng'iroq jarayonini boshlash - yangi buyurtmalar keyingi qo'ng'iroqqa qoladi
@@ -1497,6 +1494,9 @@ class AutodialerPro:
                             seller_phone = f"+{phone_digits}"
                     else:
                         seller_phone = None
+                else:
+                    # "Noma'lum" yoki bo'sh → None
+                    seller_phone = None
 
                 if not seller_phone:
                     logger.warning(f"Buyurtma #{order_id}: sotuvchi telefoni topilmadi, default ishlatiladi")

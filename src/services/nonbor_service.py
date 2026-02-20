@@ -294,7 +294,7 @@ class NonborService:
         result["price"] = (order.get("total_price", 0) or 0) / 100
 
         # Biznes (sotuvchi) ma'lumotlari
-        business = order.get("business", {})
+        business = order.get("business") or {}
         if business:
             result["business_id"] = business.get("id")
             result["seller_name"] = business.get("title", "Noma'lum")
@@ -311,7 +311,7 @@ class NonborService:
                         break
 
         # Mijoz ma'lumotlari
-        user = order.get("user", {})
+        user = order.get("user") or {}
         if user:
             first_name = user.get("first_name", "")
             last_name = user.get("last_name", "")
@@ -322,7 +322,7 @@ class NonborService:
         items = order.get("order_item") or order.get("items") or []
         if items:
             first_item = items[0]
-            product = first_item.get("product", {})
+            product = first_item.get("product") or {}
             result["product_name"] = product.get("name") or product.get("title", "Noma'lum")
             result["quantity"] = first_item.get("count", 1)
 

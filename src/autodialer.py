@@ -1303,9 +1303,26 @@ class AutodialerPro:
                         order_data = cached_data
                         logger.debug(f"Buyurtma #{order_id} keshdan olindi")
 
-                # Keshda yo'q bo'lsa - API dan olish
-                if not order_data:
-                    order_data = await self.nonbor.get_order_full_data(order_id)
+                # Keshda yo'q bo'lsa yoki ma'lumotlar to'liq emas ("Noma'lum") - API dan olish
+                has_unknown = (
+                    not order_data or
+                    order_data.get("client_name", "Noma'lum") == "Noma'lum" or
+                    order_data.get("seller_name", "Noma'lum") == "Noma'lum" or
+                    order_data.get("product_name", "Noma'lum") == "Noma'lum"
+                )
+                if has_unknown:
+                    api_data = await self.nonbor.get_order_full_data(order_id)
+                    if not order_data:
+                        order_data = api_data
+                    else:
+                        # Kesh bor, lekin ba'zi fieldlar "Noma'lum" - API dan to'ldirish
+                        for field in ("client_name", "seller_name", "product_name", "seller_phone", "price"):
+                            if order_data.get(field, "Noma'lum") in ("Noma'lum", "", None, 0):
+                                api_val = api_data.get(field)
+                                if api_val and api_val != "Noma'lum":
+                                    order_data = dict(order_data)  # copy
+                                    order_data[field] = api_val
+                    logger.debug(f"Buyurtma #{order_id} API dan to'ldirildi")
 
                 seller_phone = order_data.get("seller_phone", "Noma'lum")
                 affected_sellers.add(seller_phone)

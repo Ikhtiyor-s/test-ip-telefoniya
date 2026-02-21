@@ -1568,7 +1568,7 @@ class AutodialerPro:
                 # Shu sotuvchining CHECKING buyurtmalari (business ID bo'yicha)
                 seller_checking = [
                     o for o in checking_orders
-                    if o.get("business", {}).get("id") == seller_biz_id
+                    if (o.get("business") or {}).get("id") == seller_biz_id
                 ]
 
                 new_count = len(seller_checking)

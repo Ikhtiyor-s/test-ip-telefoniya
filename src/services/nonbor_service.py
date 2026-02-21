@@ -183,7 +183,7 @@ class NonborService:
         # business_id bo'yicha filtrlash
         biz_orders = [
             o for o in orders
-            if o.get("business", {}).get("id") == business_id
+            if (o.get("business") or {}).get("id") == business_id
         ]
         logger.info(f"Biznes #{business_id} buyurtmalari: {len(biz_orders)} ta (jami: {len(orders)})")
         return biz_orders
@@ -452,7 +452,7 @@ class NonborService:
         # Biznes ID bo'yicha filtrlash
         business_orders = [
             order for order in orders
-            if order.get("business", {}).get("id") == business_id
+            if (order.get("business") or {}).get("id") == business_id
         ]
 
         logger.info(f"Biznes #{business_id} buyurtmalari: {len(business_orders)} ta (jami: {len(orders)})")

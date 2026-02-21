@@ -2460,7 +2460,7 @@ class TelegramStatsHandler:
                 if order_items:
                     total_sum = 0
                     for item in order_items:
-                        product = item.get("product", {})
+                        product = item.get("product") or {}
                         product_name = (product.get("name") or product.get("title", "?"))[:20]
                         qty = item.get("count", 1)
                         price = item.get("price", 0)

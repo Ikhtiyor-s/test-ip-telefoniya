@@ -432,7 +432,7 @@ class AsteriskAMI:
             Context=context,
             Exten=audio_filename,  # Audio fayl nomi (hash) - dialplan uchun
             Priority="1",
-            CallerID=f"WellTech <+998783337984>",
+            CallerID=f"WellTech <+998783331002>",
             Timeout="30000",
             Variable=channel_vars,
             Async="true"

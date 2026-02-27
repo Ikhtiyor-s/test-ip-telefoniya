@@ -1499,8 +1499,8 @@ class AutodialerPro:
                     seller_phone = None
 
                 if not seller_phone:
-                    logger.warning(f"Buyurtma #{order_id}: sotuvchi telefoni topilmadi, default ishlatiladi")
-                    seller_phone = self.seller_phone
+                    logger.warning(f"Buyurtma #{order_id}: sotuvchi telefoni topilmadi, qo'ng'iroq o'tkazib yuborildi")
+                    continue
 
                 # MUHIM: Agar bu buyurtma haqida sotuvchiga allaqachon xabar berilgan bo'lsa, uni o'tkazib yuboramiz
                 if seller_phone in self.state.last_communicated_orders:

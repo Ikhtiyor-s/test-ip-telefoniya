@@ -35,7 +35,7 @@ SIP_CONFIG = {
     "port": 5060,
     "username": "admin",
     "password": os.getenv("SIP_PASSWORD", "gHMu4nYzst"),
-    "caller_id": "+998783337984",
+    "caller_id": "+998783331002",
     "transport": "udp",
 }
 

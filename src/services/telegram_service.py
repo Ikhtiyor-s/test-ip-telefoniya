@@ -304,7 +304,8 @@ class TelegramService:
         self,
         seller_orders: dict,
         call_attempts: int = 0,
-        chat_id: str = None
+        chat_id: str = None,
+        call_note: str = ""
     ) -> Optional[int]:
         """
         Sotuvchi uchun buyurtmalar haqida ogohlantirish yuborish
@@ -318,11 +319,12 @@ class TelegramService:
             }
             call_attempts: Qo'ng'iroq urinishlari
             chat_id: Chat ID
+            call_note: Qo'ng'iroq holati izohi
 
         Returns:
             Message ID
         """
-        text = self._format_seller_orders_alert(seller_orders, call_attempts)
+        text = self._format_seller_orders_alert(seller_orders, call_attempts, call_note)
 
         return await self.send_message(
             text=text,
@@ -335,10 +337,11 @@ class TelegramService:
         message_id: int,
         seller_orders: dict,
         call_attempts: int = 0,
-        chat_id: str = None
+        chat_id: str = None,
+        call_note: str = ""
     ) -> bool:
         """Mavjud sotuvchi xabarini tahrirlash (yangilash)"""
-        text = self._format_seller_orders_alert(seller_orders, call_attempts)
+        text = self._format_seller_orders_alert(seller_orders, call_attempts, call_note)
         chat_id = chat_id or self.default_chat_id
 
         return await self.edit_message(
@@ -384,7 +387,7 @@ class TelegramService:
 
         return first_message_id, seller_message_ids
 
-    def _format_seller_orders_alert(self, seller_orders: dict, call_attempts: int = 0) -> str:
+    def _format_seller_orders_alert(self, seller_orders: dict, call_attempts: int = 0, call_note: str = "") -> str:
         """Sotuvchi buyurtmalari xabarini formatlash - HAR BIR SOTUVCHI UCHUN ALOHIDA"""
         seller_name = seller_orders.get("seller_name", "Noma'lum")
         seller_phone = seller_orders.get("seller_phone", "Noma'lum")
@@ -442,13 +445,19 @@ SOTUVCHI:
             text += "\n"
 
         # Footer
+        if not call_note:
+            if call_attempts == 0:
+                call_note = "📵 Telefon raqami topilmadi"
+            else:
+                call_note = f"📞 {call_attempts} marta qo'ng'iroq qilindi, javob yo'q"
+
         text += f"""
 ━━━━━━━━━━━━━━━━━━━━━
 📦 Jami: {orders_count} ta buyurtma
 💰 Umumiy: {total_price_str}
 
 ❌ Buyurtmalarni qabul qilmayapti!
-📞 {call_attempts} marta qo'ng'iroq qilindi.
+{call_note}
 🔴 Zudlik bilan bog'laning!
 
 📱 <a href="https://welltech.amocrm.ru">Buyurtmalarni ko'rish</a>"""

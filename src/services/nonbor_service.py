@@ -256,6 +256,7 @@ class NonborService:
             "seller_name": "Noma'lum",
             "seller_phone": "Noma'lum",
             "seller_address": "Noma'lum",
+            "seller_language": "uz",  # Default: o'zbek tili
             "client_name": "Noma'lum",
             "client_phone": "Noma'lum",
             "product_name": "Noma'lum",
@@ -300,7 +301,7 @@ class NonborService:
             result["seller_name"] = business.get("title", "Noma'lum")
             result["seller_address"] = business.get("address", "Noma'lum")
 
-            # Biznes telefon raqamini olish (businesses API dan, title bo'yicha)
+            # Biznes telefon raqami va tilini olish (businesses API dan, title bo'yicha)
             biz_title = business.get("title", "")
             if biz_title:
                 for cached_biz in self._businesses_cache.values():
@@ -308,6 +309,15 @@ class NonborService:
                         phone = cached_biz.get("phone_number", "")
                         if phone:
                             result["seller_phone"] = f"+{phone}" if not phone.startswith("+") else phone
+                        # Biznes egasi tili (ilovada tanlangan)
+                        lang = (
+                            cached_biz.get("language") or
+                            cached_biz.get("owner_language") or
+                            cached_biz.get("tg_language") or
+                            cached_biz.get("language_code") or
+                            "uz"
+                        )
+                        result["seller_language"] = str(lang).lower()[:2]
                         break
 
         # Mijoz ma'lumotlari

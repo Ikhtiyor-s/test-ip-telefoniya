@@ -479,11 +479,21 @@ class AutodialerPro:
         """Reja eslatma uchun qo'ng'iroq (alohida task da ishlaydi - main loop bloklanmaydi)"""
         try:
             seller_phone = None
+            seller_lang = "uz"  # Default til
             businesses = await self.nonbor.get_businesses()
             if businesses:
                 for b in businesses:
                     if str(b.get("id")) == str(biz_id):
                         seller_phone = b.get("phone_number", "")
+                        # Biznes egasi tilini olish
+                        raw_lang = (
+                            b.get("language") or
+                            b.get("owner_language") or
+                            b.get("tg_language") or
+                            b.get("language_code") or
+                            "uz"
+                        )
+                        seller_lang = str(raw_lang).lower()[:2]
                         break
 
             if not seller_phone:
@@ -503,9 +513,28 @@ class AutodialerPro:
                 logger.info(f"Reja eslatma: biz #{biz_id} avtoqo'ng'iroq O'CHIRILGAN - qo'ng'iroq qilinmaydi")
                 return
 
-            # TTS audio yaratish
+            # Tilga qarab reja eslatma xabari
+            if seller_lang == "ru":
+                if order_count == 1:
+                    reminder_text = "Здравствуйте, вас приветствует голосовой бот Nonbor. У вас 1 запланированный заказ. Пожалуйста, начните подготовку."
+                else:
+                    reminder_text = f"Здравствуйте, вас приветствует голосовой бот Nonbor. У вас {order_count} запланированных заказа. Пожалуйста, начните подготовку."
+            elif seller_lang == "kk":
+                if order_count == 1:
+                    reminder_text = "Сәлеметсіз бе, мен Nonbor дауыстық бот қызметімін, сізде 1 жоспарланған тапсырыс бар, тапсырысыңызды дайындауды бастаңыз."
+                else:
+                    reminder_text = f"Сәлеметсіз бе, мен Nonbor дауыстық бот қызметімін, сізде {order_count} жоспарланған тапсырыс бар, тапсырыстарыңызды дайындауды бастаңыз."
+            else:
+                # uz va boshqa tillar uchun o'zbek
+                if order_count == 1:
+                    reminder_text = "Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda 1 ta rejalashtirilgan buyurtma bor, iltimos, buyurtmangizni tayyorlang."
+                else:
+                    reminder_text = f"Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda {order_count} ta rejalashtirilgan buyurtma bor, iltimos, buyurtmalaringizni tayyorlang."
+
+            # TTS audio yaratish (tilga qarab)
             audio_path = await self.tts.generate_custom_message(
-                f"Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda {order_count} ta rejalashtirilgan buyurtma bor, iltimos, buyurtmalaringizni tayyorlang."
+                text=reminder_text,
+                lang=seller_lang
             )
             if not audio_path:
                 logger.error(f"Reja eslatma: TTS audio yaratilmadi")
@@ -516,9 +545,9 @@ class AutodialerPro:
                 audio_file=str(audio_path),
             )
             if result and result.is_answered:
-                logger.info(f"Reja eslatma qo'ng'iroq: {seller_phone} - JAVOB BERILDI")
+                logger.info(f"Reja eslatma qo'ng'iroq: {seller_phone} - JAVOB BERILDI, til: {seller_lang}")
             else:
-                logger.warning(f"Reja eslatma qo'ng'iroq: {seller_phone} - javob berilmadi")
+                logger.warning(f"Reja eslatma qo'ng'iroq: {seller_phone} - javob berilmadi, til: {seller_lang}")
 
         except Exception as e:
             logger.error(f"Reja eslatma qo'ng'iroq xatosi: {e}")
@@ -1526,6 +1555,7 @@ class AutodialerPro:
                         "seller_name": order_data.get("seller_name", "Noma'lum"),
                         "seller_phone": seller_phone,
                         "business_id": order_data.get("business_id"),
+                        "language": order_data.get("seller_language", "uz"),
                         "orders": []
                     }
                 sellers[seller_phone]["orders"].append(order_data)
@@ -1549,6 +1579,7 @@ class AutodialerPro:
             order_count = len(seller_data["orders"])
             seller_name = seller_data["seller_name"]
             seller_biz_id = seller_data.get("business_id")
+            seller_lang = (seller_data.get("language") or "uz").lower()
 
             if order_count == 0:
                 logger.debug(f"Sotuvchi {seller_name} ({seller_phone}) uchun yangi buyurtmalar yo'q")
@@ -1559,10 +1590,10 @@ class AutodialerPro:
                 logger.info(f"Avtoqo'ng'iroq O'CHIRILGAN: {seller_name} (biz_id={seller_biz_id}) - qo'ng'iroq qilinmaydi")
                 return None
 
-            logger.info(f"Qo'ng'iroq: {seller_name} ({seller_phone}), {order_count} ta buyurtma")
+            logger.info(f"Qo'ng'iroq: {seller_name} ({seller_phone}), {order_count} ta buyurtma, til: {seller_lang}")
 
-            # TTS audio olish
-            audio_path = await self.tts.generate_order_message(order_count)
+            # TTS audio olish (tilga qarab)
+            audio_path = await self.tts.generate_order_message(order_count, lang=seller_lang)
             if not audio_path:
                 logger.error(f"TTS audio yaratilmadi: {seller_phone}")
                 return None
@@ -1601,9 +1632,9 @@ class AutodialerPro:
                         logger.info(f"Buyurtma #{order_id} statusi o'zgardi: {status}")
                         return (False, None)
 
-                # Yangi TTS audio yaratish (yangilangan son bilan)
-                new_audio_path = await self.tts.generate_order_message(new_count)
-                logger.info(f"Yangi audio yaratildi: {new_count} ta buyurtma")
+                # Yangi TTS audio yaratish (yangilangan son bilan, xuddi shu til bilan)
+                new_audio_path = await self.tts.generate_order_message(new_count, lang=seller_lang)
+                logger.info(f"Yangi audio yaratildi: {new_count} ta buyurtma (til: {seller_lang})")
 
                 return (True, str(new_audio_path) if new_audio_path else None)
 

@@ -1567,6 +1567,9 @@ class AutodialerPro:
             async def check_orders_still_pending():
                 # API dan hozirgi CHECKING buyurtmalarni olish
                 current_orders = await self.nonbor.get_orders()
+                if current_orders is None:
+                    logger.warning("API so'rov muvaffaqiyatsiz, qo'ng'iroq davom ettirilmoqda")
+                    return (True, None)
                 checking_orders = [o for o in current_orders if o.get("state") == "CHECKING"]
 
                 # Shu sotuvchining CHECKING buyurtmalari (business ID bo'yicha)
@@ -1645,8 +1648,11 @@ class AutodialerPro:
         results = await asyncio.gather(*call_tasks, return_exceptions=True)
 
         # Natijalarni log qilish
+        for r in results:
+            if isinstance(r, Exception):
+                logger.error(f"Qo'ng'iroq xatosi (istisno): {r}", exc_info=r)
         answered_count = sum(1 for r in results if r and hasattr(r, 'is_answered') and r.is_answered)
-        failed_count = len(results) - answered_count
+        failed_count = sum(1 for r in results if not r or not hasattr(r, 'is_answered') or not r.is_answered)
         logger.info(f"Parallel qo'ng'iroq tugadi: [OK] {answered_count} javob, [X] {failed_count} javobsiz")
 
         # Barcha qo'ng'iroqlar tugadi

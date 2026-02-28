@@ -54,6 +54,7 @@ class GoogleTTSProvider(BaseTTSProvider):
 
     async def _convert_to_wav(self, mp3_path: Path, wav_path: Path):
         """MP3 ni WAV ga convert qilish (8kHz, mono)"""
+        import asyncio
         import subprocess
 
         cmd = [

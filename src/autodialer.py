@@ -513,27 +513,9 @@ class AutodialerPro:
                 logger.info(f"Reja eslatma: biz #{biz_id} avtoqo'ng'iroq O'CHIRILGAN - qo'ng'iroq qilinmaydi")
                 return
 
-            # Tilga qarab reja eslatma xabari
-            if seller_lang == "ru":
-                if order_count == 1:
-                    reminder_text = "Здравствуйте, вас приветствует голосовой бот Nonbor. У вас 1 запланированный заказ. Пожалуйста, начните подготовку."
-                else:
-                    reminder_text = f"Здравствуйте, вас приветствует голосовой бот Nonbor. У вас {order_count} запланированных заказа. Пожалуйста, начните подготовку."
-            elif seller_lang == "kk":
-                if order_count == 1:
-                    reminder_text = "Сәлеметсіз бе, мен Nonbor дауыстық бот қызметімін, сізде 1 жоспарланған тапсырыс бар, тапсырысыңызды дайындауды бастаңыз."
-                else:
-                    reminder_text = f"Сәлеметсіз бе, мен Nonbor дауыстық бот қызметімін, сізде {order_count} жоспарланған тапсырыс бар, тапсырыстарыңызды дайындауды бастаңыз."
-            else:
-                # uz va boshqa tillar uchun o'zbek
-                if order_count == 1:
-                    reminder_text = "Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda 1 ta rejalashtirilgan buyurtma bor, iltimos, buyurtmangizni tayyorlang."
-                else:
-                    reminder_text = f"Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda {order_count} ta rejalashtirilgan buyurtma bor, iltimos, buyurtmalaringizni tayyorlang."
-
-            # TTS audio yaratish (tilga qarab)
-            audio_path = await self.tts.generate_custom_message(
-                text=reminder_text,
+            # TTS audio yaratish (tilga qarab - barcha tillar tts_service.py da)
+            audio_path = await self.tts.generate_planned_message(
+                count=order_count,
                 lang=seller_lang
             )
             if not audio_path:

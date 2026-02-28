@@ -1,6 +1,11 @@
 """
 TTS (Text-to-Speech) Servisi
-Matnni ovozga aylantirish - Ko'p til qo'llab-quvvatlanadi (uz, ru)
+Matnni ovozga aylantirish - Ko'p til qo'llab-quvvatlanadi
+
+Yangi til qo'shish uchun:
+  1. LANG_VOICES ga ovoz nomi qo'shing
+  2. ORDER_MESSAGES ga xabar qo'shing
+  3. PLANNED_MESSAGES ga xabar qo'shing
 """
 
 import os
@@ -13,36 +18,91 @@ from abc import ABC, abstractmethod
 
 logger = logging.getLogger(__name__)
 
-# Tilga qarab Edge TTS ovozlari
+# ─────────────────────────────────────────────────────────────
+# TILLAR KONFIGURATSIYASI
+# Yangi til qo'shish: faqat quyidagi 3 ta diktga qator qo'shing
+# ─────────────────────────────────────────────────────────────
+
+# Edge TTS ovozlari (https://bit.ly/edge-tts-voices)
 LANG_VOICES = {
     "uz": "uz-UZ-MadinaNeural",
     "ru": "ru-RU-SvetlanaNeural",
-    "kk": "kk-KZ-AigulNeural",
     "en": "en-US-JennyNeural",
+    "zh": "zh-CN-XiaoxiaoNeural",
+    # Qo'shimcha tillar:
+    "kk": "kk-KZ-AigulNeural",
 }
 DEFAULT_LANG = "uz"
 
-# Tilga qarab buyurtma xabari matnlari
-def _order_message_text(count: int, lang: str) -> str:
-    """Tilga qarab buyurtma xabar matnini qaytarish"""
-    lang = lang.lower() if lang else DEFAULT_LANG
+# Yangi buyurtma xabarlari: (1 ta buyurtma, ko'p buyurtma)
+# {count} joy egasi - songa almashtiriladi
+ORDER_MESSAGES = {
+    "uz": (
+        "Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda 1 ta buyurtma bor, iltimos, buyurtmangizni tekshiring.",
+        "Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda {count} ta buyurtma bor, iltimos, buyurtmalaringizni tekshiring.",
+    ),
+    "ru": (
+        "Здравствуйте, вас приветствует голосовой бот Nonbor. У вас 1 новый заказ. Пожалуйста, проверьте ваш заказ.",
+        "Здравствуйте, вас приветствует голосовой бот Nonbor. У вас {count} новых заказа. Пожалуйста, проверьте ваши заказы.",
+    ),
+    "en": (
+        "Hello, this is the Nonbor voice bot. You have 1 new order. Please check your order.",
+        "Hello, this is the Nonbor voice bot. You have {count} new orders. Please check your orders.",
+    ),
+    "zh": (
+        "您好，我是Nonbor语音助手，您有1个新订单，请检查您的订单。",
+        "您好，我是Nonbor语音助手，您有{count}个新订单，请检查您的订单。",
+    ),
+    "kk": (
+        "Сәлеметсіз бе, мен Nonbor дауыстық бот қызметімін, сізде 1 тапсырыс бар, тапсырысыңызды тексеріңіз.",
+        "Сәлеметсіз бе, мен Nonbor дауыстық бот қызметімін, сізде {count} тапсырыс бар, тапсырыстарыңызды тексеріңіз.",
+    ),
+}
 
-    if lang == "ru":
-        if count == 1:
-            return "Здравствуйте, вас приветствует голосовой бот Nonbor. У вас 1 новый заказ. Пожалуйста, проверьте ваш заказ."
-        else:
-            return f"Здравствуйте, вас приветствует голосовой бот Nonbor. У вас {count} новых заказа. Пожалуйста, проверьте ваши заказы."
-    elif lang == "kk":
-        if count == 1:
-            return f"Сәлеметсіз бе, мен Nonbor дауыстық бот қызметімін, сізде 1 тапсырыс бар, тапсырысыңызды тексеріңіз."
-        else:
-            return f"Сәлеметсіз бе, мен Nonbor дауыстық бот қызметімін, сізде {count} тапсырыс бар, тапсырыстарыңызды тексеріңіз."
-    else:
-        # uz va boshqa tillar uchun o'zbek
-        if count == 1:
-            return "Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda 1 ta buyurtma bor, iltimos, buyurtmangizni tekshiring."
-        else:
-            return f"Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda {count} ta buyurtma bor, iltimos, buyurtmalaringizni tekshiring."
+# Reja (scheduled) eslatma xabarlari: (1 ta buyurtma, ko'p buyurtma)
+PLANNED_MESSAGES = {
+    "uz": (
+        "Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda 1 ta rejalashtirilgan buyurtma bor, iltimos, buyurtmangizni tayyorlang.",
+        "Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda {count} ta rejalashtirilgan buyurtma bor, iltimos, buyurtmalaringizni tayyorlang.",
+    ),
+    "ru": (
+        "Здравствуйте, вас приветствует голосовой бот Nonbor. У вас 1 запланированный заказ. Пожалуйста, начните подготовку.",
+        "Здравствуйте, вас приветствует голосовой бот Nonbor. У вас {count} запланированных заказа. Пожалуйста, начните подготовку.",
+    ),
+    "en": (
+        "Hello, this is the Nonbor voice bot. You have 1 scheduled order. Please start preparing.",
+        "Hello, this is the Nonbor voice bot. You have {count} scheduled orders. Please start preparing.",
+    ),
+    "zh": (
+        "您好，我是Nonbor语音助手，您有1个计划订单，请开始准备。",
+        "您好，我是Nonbor语音助手，您有{count}个计划订单，请开始准备。",
+    ),
+    "kk": (
+        "Сәлеметсіз бе, мен Nonbor дауыстық бот қызметімін, сізде 1 жоспарланған тапсырыс бар, тапсырысыңызды дайындауды бастаңыз.",
+        "Сәлеметсіз бе, мен Nonbor дауыстық бот қызметімін, сізде {count} жоспарланған тапсырыс бар, тапсырыстарыңызды дайындауды бастаңыз.",
+    ),
+}
+
+# Asosiy tillar - oldindan generate qilinadi (startup da)
+PRIMARY_LANGS = ["uz", "ru", "en", "zh"]
+
+
+def _get_message(messages_dict: dict, count: int, lang: str) -> str:
+    """Til va songa qarab xabar matnini qaytarish"""
+    lang = (lang or DEFAULT_LANG).lower()
+    templates = messages_dict.get(lang) or messages_dict.get(DEFAULT_LANG)
+    single, plural = templates
+    return single if count == 1 else plural.format(count=count)
+
+
+def _order_message_text(count: int, lang: str) -> str:
+    """Yangi buyurtma xabari matni"""
+    return _get_message(ORDER_MESSAGES, count, lang)
+
+
+def _planned_message_text(count: int, lang: str) -> str:
+    """Reja eslatma xabari matni"""
+    return _get_message(PLANNED_MESSAGES, count, lang)
 
 
 class BaseTTSProvider(ABC):
@@ -87,7 +147,6 @@ class GoogleTTSProvider(BaseTTSProvider):
     async def _convert_to_wav(self, mp3_path: Path, wav_path: Path):
         """MP3 ni WAV ga convert qilish (8kHz, mono)"""
         import asyncio
-        import subprocess
 
         cmd = [
             "ffmpeg", "-y",
@@ -139,7 +198,6 @@ class EdgeTTSProvider(BaseTTSProvider):
     async def _convert_to_wav(self, mp3_path: Path, wav_path: Path):
         """MP3 ni WAV ga convert qilish"""
         import asyncio
-        import subprocess
 
         cmd = [
             "ffmpeg", "-y",
@@ -162,10 +220,11 @@ class TTSService:
     """
     TTS Servisi - Buyurtma xabarlarini ovozga aylantirish
 
-    Ko'p til qo'llab-quvvatlanadi: uz, ru, kk
+    Qo'llab-quvvatlanadigan tillar: uz, ru, en, zh (va boshqalar)
     Foydalanish:
         tts = TTSService(audio_dir="/path/to/audio")
         audio_path = await tts.generate_order_message(count=5, lang='ru')
+        audio_path = await tts.generate_planned_message(count=3, lang='zh')
     """
 
     def __init__(self, audio_dir: Path, provider: str = "edge"):
@@ -179,7 +238,7 @@ class TTSService:
         # Tilga qarab provider cache: {lang: EdgeTTSProvider}
         self._providers: dict = {}
 
-        logger.info(f"TTS servisi ishga tushdi: {provider}, tillar: {list(LANG_VOICES.keys())}")
+        logger.info(f"TTS servisi ishga tushdi: provider={provider}, tillar={list(LANG_VOICES.keys())}")
 
     def _get_provider(self, lang: str) -> BaseTTSProvider:
         """Tilga mos provider olish (cache da saqlash)"""
@@ -191,7 +250,7 @@ class TTSService:
             else:
                 voice = LANG_VOICES.get(lang, LANG_VOICES[DEFAULT_LANG])
                 self._providers[lang] = EdgeTTSProvider(voice=voice)
-            logger.info(f"TTS provider yaratildi: lang={lang}, provider={self.provider_type}")
+            logger.info(f"TTS provider yaratildi: lang={lang}, voice={LANG_VOICES.get(lang, 'default')}")
         return self._providers[lang]
 
     def _get_cache_path(self, text: str, lang: str = DEFAULT_LANG) -> Path:
@@ -200,36 +259,45 @@ class TTSService:
         text_hash = hashlib.md5(key.encode()).hexdigest()
         return self.cache_dir / f"{text_hash}.wav"
 
-    async def generate_order_message(self, count: int, lang: str = DEFAULT_LANG) -> Optional[Path]:
-        """
-        Buyurtma xabarini tilga qarab yaratish
-
-        Args:
-            count: Buyurtmalar soni
-            lang: Til kodi ('uz', 'ru', 'kk', ...)
-
-        Returns:
-            Audio fayl yo'li yoki None
-        """
+    async def _synthesize_with_cache(self, text: str, lang: str) -> Optional[Path]:
+        """Matnni cache bilan synthesize qilish (ichki yordamchi)"""
         lang = (lang or DEFAULT_LANG).lower()
-        text = _order_message_text(count, lang)
-
-        # Cache tekshirish
         cache_path = self._get_cache_path(text, lang)
         if cache_path.exists():
-            logger.debug(f"TTS cache dan olindi: {lang}/{count} ta buyurtma")
+            logger.debug(f"TTS cache dan olindi: lang={lang}")
             return cache_path
-
-        # Tilga mos provider bilan yangi audio yaratish
         provider = self._get_provider(lang)
-        logger.info(f"TTS yaratilmoqda: lang={lang}, count={count}")
         success = await provider.synthesize(text, cache_path)
-
         if success:
-            # Yangi yaratilgan faylni Asterisk katalogiga ham ko'chirish
             await self._sync_single_file(cache_path)
             return cache_path
         return None
+
+    async def generate_order_message(self, count: int, lang: str = DEFAULT_LANG) -> Optional[Path]:
+        """
+        Yangi buyurtma xabarini tilga qarab yaratish
+
+        Args:
+            count: Buyurtmalar soni
+            lang: Til kodi ('uz', 'ru', 'en', 'zh', ...)
+        """
+        lang = (lang or DEFAULT_LANG).lower()
+        text = _order_message_text(count, lang)
+        logger.info(f"TTS order: lang={lang}, count={count}")
+        return await self._synthesize_with_cache(text, lang)
+
+    async def generate_planned_message(self, count: int, lang: str = DEFAULT_LANG) -> Optional[Path]:
+        """
+        Reja eslatma xabarini tilga qarab yaratish
+
+        Args:
+            count: Rejalashtirilgan buyurtmalar soni
+            lang: Til kodi ('uz', 'ru', 'en', 'zh', ...)
+        """
+        lang = (lang or DEFAULT_LANG).lower()
+        text = _planned_message_text(count, lang)
+        logger.info(f"TTS planned: lang={lang}, count={count}")
+        return await self._synthesize_with_cache(text, lang)
 
     async def generate_custom_message(self, text: str, filename: str = None, lang: str = DEFAULT_LANG) -> Optional[Path]:
         """
@@ -239,52 +307,41 @@ class TTSService:
             text: Xabar matni
             filename: Fayl nomi (ixtiyoriy)
             lang: Til kodi
-
-        Returns:
-            Audio fayl yo'li yoki None
         """
         lang = (lang or DEFAULT_LANG).lower()
         if filename:
             output_path = self.audio_dir / f"{filename}.wav"
-        else:
-            output_path = self._get_cache_path(text, lang)
-
-        if output_path.exists():
-            return output_path
-
-        provider = self._get_provider(lang)
-        success = await provider.synthesize(text, output_path)
-
-        if success:
-            await self._sync_single_file(output_path)
-            return output_path
-        return None
+            if output_path.exists():
+                return output_path
+            provider = self._get_provider(lang)
+            success = await provider.synthesize(text, output_path)
+            if success:
+                await self._sync_single_file(output_path)
+                return output_path
+            return None
+        return await self._synthesize_with_cache(text, lang)
 
     def get_audio_path(self, count: int, lang: str = DEFAULT_LANG) -> Optional[Path]:
         """Mavjud audio faylni olish (agar cache da bo'lsa)"""
         lang = (lang or DEFAULT_LANG).lower()
         text = _order_message_text(count, lang)
         cache_path = self._get_cache_path(text, lang)
-        if cache_path.exists():
-            return cache_path
-        return None
+        return cache_path if cache_path.exists() else None
 
     async def pregenerate_messages(self, max_count: int = 20):
         """
-        Oldindan xabarlar yaratish (1 dan max_count gacha)
-        Asosiy tillar uchun: uz va ru
+        Asosiy tillar uchun oldindan xabarlar yaratish (startup da chaqiriladi)
+        Tillar: PRIMARY_LANGS = uz, ru, en, zh
         """
-        langs = ["uz", "ru"]
-        logger.info(f"TTS xabarlarini oldindan yaratish: 1-{max_count}, tillar: {langs}")
+        logger.info(f"TTS oldindan yaratish: 1-{max_count} buyurtma, tillar={PRIMARY_LANGS}")
 
-        for lang in langs:
+        for lang in PRIMARY_LANGS:
             for i in range(1, max_count + 1):
                 await self.generate_order_message(i, lang=lang)
-                logger.debug(f"TTS yaratildi: {lang}/{i} ta buyurtma")
+                await self.generate_planned_message(i, lang=lang)
+                logger.debug(f"TTS yaratildi: {lang}/{i}")
 
         logger.info("TTS oldindan yaratish tugadi")
-
-        # Asterisk katalogiga ko'chirish
         await self.sync_to_wsl()
 
     async def _sync_single_file(self, wav_path: Path):
@@ -334,7 +391,6 @@ class TTSService:
             logger.warning("Cache katalogi topilmadi")
             return
 
-        # Platform va yo'lni aniqlash
         default_platform = "wsl" if os.name == "nt" else "linux"
         platform = os.getenv("PLATFORM", default_platform).lower()
         default_sounds = "/tmp/autodialer" if os.name == "nt" else "/var/lib/asterisk/sounds/autodialer"

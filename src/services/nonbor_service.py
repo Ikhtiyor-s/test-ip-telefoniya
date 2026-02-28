@@ -357,8 +357,9 @@ class NonborService:
             async with session.post(url, json={"username": username}, timeout=timeout) as response:
                 if response.status == 200:
                     data = await response.json()
-                    if data.get("success") and data.get("result"):
-                        seller_id = data["result"][0].get("id")
+                    result_list = data.get("result", [])
+                    if data.get("success") and isinstance(result_list, list) and len(result_list) > 0:
+                        seller_id = result_list[0].get("id")
                         if seller_id:
                             self._seller_id_cache[phone] = seller_id
                             logger.info(f"Seller ID topildi: {phone} -> {seller_id}")

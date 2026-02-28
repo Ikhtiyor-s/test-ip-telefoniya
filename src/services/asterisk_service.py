@@ -127,8 +127,8 @@ class AsteriskAMI:
         if self._writer:
             try:
                 await self._send_action("Logoff")
-            except:
-                pass
+            except Exception as e:
+                logger.debug(f"Logoff xatosi (e'tiborsiz): {e}")
             self._writer.close()
             await self._writer.wait_closed()
 
@@ -154,8 +154,8 @@ class AsteriskAMI:
         if self._writer:
             try:
                 self._writer.close()
-            except:
-                pass
+            except Exception as e:
+                logger.debug(f"Writer yopish xatosi (e'tiborsiz): {e}")
         self._connected = False
         self._reader = None
         self._writer = None

@@ -260,6 +260,11 @@ class AutodialerPro:
         # {seller_phone: True/False} - javob berdi yoki yo'q
         self._seller_call_answered: Dict[str, bool] = {}
 
+        # Vaqt tekshiruv markerlar - hasattr() dan qochish uchun __init__ da e'lon
+        self._last_notif_check = None
+        self._last_planned_check = None
+        self._debug_logged = False
+
         # Servislar
         self.tts = TTSService(self.audio_dir, provider="edge")
 
@@ -322,7 +327,13 @@ class AutodialerPro:
                 with open(self._group_messages_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     # JSON key lar string bo'lgani uchun int ga o'tkazamiz
-                    self._group_order_messages = {int(k): v for k, v in data.items()}
+                    loaded = {}
+                    for k, v in data.items():
+                        try:
+                            loaded[int(k)] = v
+                        except (ValueError, TypeError):
+                            logger.warning(f"Noto'g'ri guruh xabar kaliti o'tkazib yuborildi: {k}")
+                    self._group_order_messages = loaded
                     logger.info(f"Guruh xabarlari yuklandi: {len(self._group_order_messages)} ta buyurtma")
         except Exception as e:
             logger.error(f"Guruh xabarlarini yuklashda xato: {e}")
@@ -686,7 +697,7 @@ class AutodialerPro:
 
             # MUHIM: Agar Telegram xabarlari mavjud bo'lsa, telegram_notified = True qilish
             # Bu autodialer qayta ishga tushganda kerak - oldingi Telegram xabarlari saqlanadi
-            if self.notification_manager.has_active_notification:
+            if self.notification_manager and self.notification_manager.has_active_notification:
                 self.state.telegram_notified = True
                 logger.info(f"Sinxronizatsiya: Telegram xabarlari mavjud, telegram_notified = True")
 
@@ -785,8 +796,6 @@ class AutodialerPro:
         # XABARNOMALAR SCHEDULER: Har 30 sekundda tekshirish
         if self.stats_handler:
             should_check_notif = False
-            if not hasattr(self, '_last_notif_check'):
-                self._last_notif_check = None
             if self._last_notif_check is None:
                 should_check_notif = True
             else:
@@ -800,8 +809,6 @@ class AutodialerPro:
 
         # REJA ESLATMA: Har 60 sekundda reja buyurtmalarni tekshirish
         if self.telegram and self._group_order_messages:
-            if not hasattr(self, '_last_planned_check'):
-                self._last_planned_check = None
             should_check_planned = False
             if self._last_planned_check is None:
                 should_check_planned = True
@@ -867,6 +874,8 @@ class AutodialerPro:
 
     async def _update_group_messages_internal(self, new_order_ids: set = None):
         """Internal: Lock ichida chaqiriladi"""
+        if not self.stats_handler:
+            return
         try:
             orders = await self.nonbor.get_orders()
             if not orders:
@@ -903,7 +912,7 @@ class AutodialerPro:
                     in_groups = biz_id in self.stats_handler._business_groups
                     logger.info(f"Buyurtma #{order_id}: biznes='{biz_title}' (ID={biz_id}), guruhda={in_groups}")
                     # DEBUG: Birinchi buyurtmaning barcha kalitlarini ko'rsatish (faqat bir marta)
-                    if not hasattr(self, '_debug_logged'):
+                    if not self._debug_logged:
                         self._debug_logged = True
                         logger.info(f"DEBUG #{order_id}: order_keys={list(order.keys())}")
                         logger.info(f"DEBUG #{order_id}: user={order.get('user')}")

@@ -2052,9 +2052,14 @@ class TelegramStatsHandler:
             else:
                 keyboard_rows.append([{"text": "➕ Biznes guruh", "callback_data": CALLBACK_OWNER_GROUP}])
 
-        # 2-qator: Buyurtma berish | Qo'llab quvvatlash
+        # 2-qator: Biznes sayt | Mijoz sayt
         keyboard_rows.append([
-            {"text": "🛒 Buyurtma berish", "web_app": {"url": "https://nonbor.uz"}},
+            {"text": "🏪 Biznes", "web_app": {"url": "https://business.nonbor.uz/"}},
+            {"text": "🛒 Mijoz", "web_app": {"url": "https://nonbor.uz/"}}
+        ])
+
+        # 3-qator: Qo'llab quvvatlash
+        keyboard_rows.append([
             {"text": "🆘 Qo'llab quvvatlash", "url": "https://t.me/NonborSupportBot"}
         ])
 

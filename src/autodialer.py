@@ -552,7 +552,7 @@ class AutodialerPro:
         # TTS oldindan yaratish (faqat Asterisk faol bo'lganda kerak)
         if not self.skip_asterisk:
             logger.info("TTS xabarlarini tayyorlash...")
-            await self.tts.pregenerate_messages(max_count=20)
+            await self.tts.pregenerate_messages(max_count=50)
         else:
             logger.info("TTS o'tkazib yuborildi (Asterisk o'chirilgan)")
 

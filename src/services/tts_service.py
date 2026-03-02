@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 # Edge TTS ovozlari (https://bit.ly/edge-tts-voices)
 LANG_VOICES = {
-    "uz": "uz-UZ-MadinaNeural",
+    "uz": "uz-UZ-SardorNeural",
     "ru": "ru-RU-SvetlanaNeural",
     "en": "en-US-JennyNeural",
     "zh": "zh-CN-XiaoxiaoNeural",
@@ -39,8 +39,8 @@ DEFAULT_LANG = "uz"
 # Tabiiy operator uslubi — "bot" so'zi ishlatilmaydi
 ORDER_MESSAGES = {
     "uz": (
-        "Assalomu alaykum! Nonbordan qo'ng'iroq. Sizda yangi buyurtma bor, iltimos ilovangizni tekshirib oling.",
-        "Assalomu alaykum! Nonbordan qo'ng'iroq. Sizda {count} ta yangi buyurtma bor, iltimos ilovangizni tekshirib oling.",
+        "Assalomu alaykum! Bu Nonbor xizmati. Sizda yangi buyurtma keldi, iltimos ilovani tekshiring.",
+        "Assalomu alaykum! Bu Nonbor xizmati. Sizda {count} ta yangi buyurtma keldi, iltimos ilovani tekshiring.",
     ),
     "ru": (
         "Здравствуйте! Звонит сервис Nonbor. У вас новый заказ, пожалуйста проверьте приложение.",
@@ -63,8 +63,8 @@ ORDER_MESSAGES = {
 # Reja (scheduled) eslatma xabarlari: (1 ta buyurtma, ko'p buyurtma)
 PLANNED_MESSAGES = {
     "uz": (
-        "Assalomu alaykum! Nonbordan eslatma. Bugun 1 ta rejalashtirilgan buyurtmangiz bor, iltimos tayyorlashni boshlang.",
-        "Assalomu alaykum! Nonbordan eslatma. Bugun {count} ta rejalashtirilgan buyurtmangiz bor, iltimos tayyorlashni boshlang.",
+        "Assalomu alaykum! Bu Nonbor xizmati. Bugun 1 ta rejalashtirilgan buyurtmangiz bor, iltimos tayyorlashni boshlang.",
+        "Assalomu alaykum! Bu Nonbor xizmati. Bugun {count} ta rejalashtirilgan buyurtmangiz bor, iltimos tayyorlashni boshlang.",
     ),
     "ru": (
         "Здравствуйте! Напоминает сервис Nonbor. У вас запланированный заказ на сегодня, пожалуйста начните подготовку.",

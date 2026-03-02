@@ -36,50 +36,51 @@ DEFAULT_LANG = "uz"
 
 # Yangi buyurtma xabarlari: (1 ta buyurtma, ko'p buyurtma)
 # {count} joy egasi - songa almashtiriladi
+# Tabiiy operator uslubi — "bot" so'zi ishlatilmaydi
 ORDER_MESSAGES = {
     "uz": (
-        "Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda 1 ta buyurtma bor, iltimos, buyurtmangizni tekshiring.",
-        "Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda {count} ta buyurtma bor, iltimos, buyurtmalaringizni tekshiring.",
+        "Assalomu alaykum! Nonbordan qo'ng'iroq. Sizda yangi buyurtma bor, iltimos ilovangizni tekshirib oling.",
+        "Assalomu alaykum! Nonbordan qo'ng'iroq. Sizda {count} ta yangi buyurtma bor, iltimos ilovangizni tekshirib oling.",
     ),
     "ru": (
-        "Здравствуйте, вас приветствует голосовой бот Nonbor. У вас 1 новый заказ. Пожалуйста, проверьте ваш заказ.",
-        "Здравствуйте, вас приветствует голосовой бот Nonbor. У вас {count} новых заказа. Пожалуйста, проверьте ваши заказы.",
+        "Здравствуйте! Звонит сервис Nonbor. У вас новый заказ, пожалуйста проверьте приложение.",
+        "Здравствуйте! Звонит сервис Nonbor. У вас {count} новых заказа, пожалуйста проверьте приложение.",
     ),
     "en": (
-        "Hello, this is the Nonbor voice bot. You have 1 new order. Please check your order.",
-        "Hello, this is the Nonbor voice bot. You have {count} new orders. Please check your orders.",
+        "Hello! This is Nonbor calling. You have a new order, please check your app.",
+        "Hello! This is Nonbor calling. You have {count} new orders, please check your app.",
     ),
     "zh": (
-        "您好，我是Nonbor语音助手，您有1个新订单，请检查您的订单。",
-        "您好，我是Nonbor语音助手，您有{count}个新订单，请检查您的订单。",
+        "您好！Nonbor来电通知。您有一个新订单，请查看您的应用。",
+        "您好！Nonbor来电通知。您有{count}个新订单，请查看您的应用。",
     ),
     "kk": (
-        "Сәлеметсіз бе, мен Nonbor дауыстық бот қызметімін, сізде 1 тапсырыс бар, тапсырысыңызды тексеріңіз.",
-        "Сәлеметсіз бе, мен Nonbor дауыстық бот қызметімін, сізде {count} тапсырыс бар, тапсырыстарыңызды тексеріңіз.",
+        "Сәлеметсіз бе! Nonbor хабарлайды. Сізде жаңа тапсырыс бар, қолданбаны тексеріңіз.",
+        "Сәлеметсіз бе! Nonbor хабарлайды. Сізде {count} жаңа тапсырыс бар, қолданбаны тексеріңіз.",
     ),
 }
 
 # Reja (scheduled) eslatma xabarlari: (1 ta buyurtma, ko'p buyurtma)
 PLANNED_MESSAGES = {
     "uz": (
-        "Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda 1 ta rejalashtirilgan buyurtma bor, iltimos, buyurtmangizni tayyorlang.",
-        "Assalomu alaykum, men nonbor ovozli bot xizmatiman, sizda {count} ta rejalashtirilgan buyurtma bor, iltimos, buyurtmalaringizni tayyorlang.",
+        "Assalomu alaykum! Nonbordan eslatma. Bugun 1 ta rejalashtirilgan buyurtmangiz bor, iltimos tayyorlashni boshlang.",
+        "Assalomu alaykum! Nonbordan eslatma. Bugun {count} ta rejalashtirilgan buyurtmangiz bor, iltimos tayyorlashni boshlang.",
     ),
     "ru": (
-        "Здравствуйте, вас приветствует голосовой бот Nonbor. У вас 1 запланированный заказ. Пожалуйста, начните подготовку.",
-        "Здравствуйте, вас приветствует голосовой бот Nonbor. У вас {count} запланированных заказа. Пожалуйста, начните подготовку.",
+        "Здравствуйте! Напоминает сервис Nonbor. У вас запланированный заказ на сегодня, пожалуйста начните подготовку.",
+        "Здравствуйте! Напоминает сервис Nonbor. У вас {count} запланированных заказа на сегодня, пожалуйста начните подготовку.",
     ),
     "en": (
-        "Hello, this is the Nonbor voice bot. You have 1 scheduled order. Please start preparing.",
-        "Hello, this is the Nonbor voice bot. You have {count} scheduled orders. Please start preparing.",
+        "Hello! A reminder from Nonbor. You have a scheduled order today, please start preparing.",
+        "Hello! A reminder from Nonbor. You have {count} scheduled orders today, please start preparing.",
     ),
     "zh": (
-        "您好，我是Nonbor语音助手，您有1个计划订单，请开始准备。",
-        "您好，我是Nonbor语音助手，您有{count}个计划订单，请开始准备。",
+        "您好！Nonbor温馨提醒。您今天有一个计划订单，请开始准备。",
+        "您好！Nonbor温馨提醒。您今天有{count}个计划订单，请开始准备。",
     ),
     "kk": (
-        "Сәлеметсіз бе, мен Nonbor дауыстық бот қызметімін, сізде 1 жоспарланған тапсырыс бар, тапсырысыңызды дайындауды бастаңыз.",
-        "Сәлеметсіз бе, мен Nonbor дауыстық бот қызметімін, сізде {count} жоспарланған тапсырыс бар, тапсырыстарыңызды дайындауды бастаңыз.",
+        "Сәлеметсіз бе! Nonbor еске салады. Бүгін 1 жоспарланған тапсырысыңыз бар, дайындауды бастаңыз.",
+        "Сәлеметсіз бе! Nonbor еске салады. Бүгін {count} жоспарланған тапсырысыңыз бар, дайындауды бастаңыз.",
     ),
 }
 

@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 # Edge TTS ovozlari (https://bit.ly/edge-tts-voices)
 LANG_VOICES = {
-    "uz": "uz-UZ-SardorNeural",
+    "uz": "uz-UZ-MadinaNeural",
     "ru": "ru-RU-SvetlanaNeural",
     "en": "en-US-JennyNeural",
     "zh": "zh-CN-XiaoxiaoNeural",

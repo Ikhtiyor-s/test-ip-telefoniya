@@ -8,6 +8,5 @@ data/
 tmpclaude-*
 .env
 *.log
-*.wav
 test_voices/
 nul

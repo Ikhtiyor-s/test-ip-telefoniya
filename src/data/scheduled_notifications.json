@@ -1,1 +1,20 @@
-{"notifications": []}
+{
+  "notifications": [
+    {
+      "id": "3401b9e6",
+      "text": "k.k.",
+      "send_at": "2026-02-14T15:45:00+05:00",
+      "target_type": "businesses",
+      "target_ids": [
+        1
+      ],
+      "target_name": "Samo..",
+      "status": "sent",
+      "created_at": "2026-02-14T15:41:23.118102+05:00",
+      "created_by": "5813487451",
+      "sent_count": 1,
+      "total_count": 1,
+      "sent_at": "2026-02-14T15:45:28.478708+05:00"
+    }
+  ]
+}

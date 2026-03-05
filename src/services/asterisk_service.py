@@ -579,7 +579,9 @@ class CallManager:
         phone_number: str,
         audio_file: str,
         on_attempt: Callable = None,
-        before_retry_check: Callable = None
+        before_retry_check: Callable = None,
+        max_attempts_override: int = None,
+        retry_interval_override: int = None,
     ) -> CallResult:
         """
         Qo'ng'iroq qilish (retry bilan)
@@ -591,21 +593,25 @@ class CallManager:
             before_retry_check: Retry dan oldin chaqiriladigan callback
                 - (False, None) qaytarsa - to'xtatiladi
                 - (True, new_audio_path) qaytarsa - yangi audio bilan davom etadi
+            max_attempts_override: Per-business urinishlar soni (None = global)
+            retry_interval_override: Per-business qayta qo'ng'iroq intervali (None = global)
 
         Returns:
             Yakuniy CallResult
         """
+        effective_max = max_attempts_override if max_attempts_override is not None else self.max_attempts
+        effective_retry = retry_interval_override if retry_interval_override is not None else self.retry_interval
         self._current_attempt = 0
         current_audio = audio_file
 
-        while self._current_attempt < self.max_attempts:
+        while self._current_attempt < effective_max:
             self._current_attempt += 1
 
             if on_attempt:
-                await on_attempt(self._current_attempt, self.max_attempts)
+                await on_attempt(self._current_attempt, effective_max)
 
             logger.info(
-                f"Qo'ng'iroq urinishi {self._current_attempt}/{self.max_attempts}: {phone_number}"
+                f"Qo'ng'iroq urinishi {self._current_attempt}/{effective_max}: {phone_number}"
             )
 
             result = await self._make_single_call(phone_number, current_audio)
@@ -614,7 +620,7 @@ class CallManager:
                 logger.info(f"Qo'ng'iroq muvaffaqiyatli: {phone_number}")
                 return result
 
-            if self._current_attempt < self.max_attempts:
+            if self._current_attempt < effective_max:
                 # Birinchi - buyurtmalarni qayta tekshirish va yangi audio olish
                 if before_retry_check:
                     logger.info(f"Buyurtmalarni qayta tekshirish...")
@@ -635,8 +641,8 @@ class CallManager:
                         return result
 
                 # Keyin kutish
-                logger.info(f"Qayta urinish {self.retry_interval}s dan keyin...")
-                await asyncio.sleep(self.retry_interval)
+                logger.info(f"Qayta urinish {effective_retry}s dan keyin...")
+                await asyncio.sleep(effective_retry)
 
         logger.warning(f"Barcha urinishlar tugadi: {phone_number}")
         return self._last_call_result or CallResult(status=CallStatus.FAILED)

@@ -1020,29 +1020,41 @@ class TelegramStatsHandler:
 
     # ===== AVTOQO'NG'IROQ SOZLAMALARI =====
 
-    def _load_call_settings(self) -> set:
-        """O'chirilgan bizneslar ro'yxatini yuklash"""
+    def _load_call_settings_raw(self) -> dict:
+        """call_settings.json ni to'liq o'qish"""
         try:
             if os.path.exists(self._call_settings_file):
                 with open(self._call_settings_file, "r") as f:
-                    data = json.load(f)
-                    return set(data.get("disabled_businesses", []))
+                    return json.load(f)
         except Exception as e:
             logger.error(f"Call settings yuklash xatosi: {e}")
-        return set()
+        return {}
+
+    def _load_call_settings(self) -> set:
+        """O'chirilgan bizneslar ro'yxatini yuklash"""
+        data = self._load_call_settings_raw()
+        return set(data.get("disabled_businesses", []))
 
     def _save_call_settings(self):
         """O'chirilgan bizneslar ro'yxatini saqlash"""
         try:
+            data = self._load_call_settings_raw()
+            data["disabled_businesses"] = list(self._disabled_businesses)
             os.makedirs(os.path.dirname(self._call_settings_file), exist_ok=True)
             with open(self._call_settings_file, "w") as f:
-                json.dump({"disabled_businesses": list(self._disabled_businesses)}, f, indent=2)
+                json.dump(data, f, indent=2, ensure_ascii=False)
         except Exception as e:
             logger.error(f"Call settings saqlash xatosi: {e}")
 
     def is_call_enabled(self, business_id: int) -> bool:
         """Biznes uchun avtoqo'ng'iroq yoqilganmi?"""
         return business_id not in self._disabled_businesses
+
+    def get_business_config(self, business_id: int) -> dict:
+        """Biznes uchun individual sozlamalar (har safar fayldan o'qiydi)"""
+        data = self._load_call_settings_raw()
+        configs = data.get("business_configs", {})
+        return configs.get(str(business_id), {})
 
     # ===== XABARNOMALAR =====
 

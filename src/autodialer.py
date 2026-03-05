@@ -1564,6 +1564,14 @@ class AutodialerPro:
                 logger.info(f"Avtoqo'ng'iroq O'CHIRILGAN: {seller_name} (biz_id={seller_biz_id}) - qo'ng'iroq qilinmaydi")
                 return None
 
+            # Per-business config (fayldan o'qish, bo'lmasa global)
+            biz_config = {}
+            if seller_biz_id and self.stats_handler:
+                biz_config = self.stats_handler.get_business_config(seller_biz_id)
+            biz_max_attempts = biz_config.get("max_call_attempts", self.max_call_attempts)
+            biz_retry_interval = biz_config.get("retry_interval", self.retry_interval)
+            logger.info(f"Config: {seller_name} (biz={seller_biz_id}) max_attempts={biz_max_attempts}, retry={biz_retry_interval}s")
+
             logger.info(f"Qo'ng'iroq: {seller_name} ({seller_phone}), {order_count} ta buyurtma, til: {seller_lang}")
 
             # TTS audio olish (tilga qarab)
@@ -1612,12 +1620,14 @@ class AutodialerPro:
 
                 return (True, str(new_audio_path) if new_audio_path else None)
 
-            # Qo'ng'iroq qilish
+            # Qo'ng'iroq qilish (per-business config bilan)
             result = await self.call_manager.make_call_with_retry(
                 phone_number=seller_phone,
                 audio_file=str(audio_path),
                 on_attempt=self._on_call_attempt,
-                before_retry_check=check_orders_still_pending
+                before_retry_check=check_orders_still_pending,
+                max_attempts_override=biz_max_attempts,
+                retry_interval_override=biz_retry_interval,
             )
 
             # Buyurtmalarni belgilash
